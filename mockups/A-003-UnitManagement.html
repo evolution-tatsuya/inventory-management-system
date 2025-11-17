@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A-003: ユニット管理 - 在庫管理システム</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .header-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .logout-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid white;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: white;
+      color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Main Content */
+    .main-content {
+      background: white;
+      margin: 0;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      background: #f7f7f7;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .nav-tab {
+      padding: 16px 32px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: #666;
+      transition: all 0.3s ease;
+    }
+
+    .nav-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: white;
+    }
+
+    .nav-tab:hover {
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    /* Page Header */
+    .page-header {
+      padding: 30px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .add-button {
+      padding: 12px 28px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .add-button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Table Container */
+    .table-container {
+      padding: 30px;
+      overflow-x: auto;
+    }
+
+    /* Table Styles */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    thead {
+      background: #f7f7f7;
+    }
+
+    th {
+      padding: 14px 12px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #e0e0e0;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 12px;
+      text-align: center;
+      font-size: 14px;
+      color: #444;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: middle;
+    }
+
+    tbody tr:hover {
+      background: #f0f7ff;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    td.center {
+      text-align: center;
+    }
+
+    /* Thumbnail */
+    .thumbnail {
+      width: 60px;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .btn-edit,
+    .btn-delete {
+      padding: 6px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-edit {
+      background: #3182ce;
+      color: white;
+    }
+
+    .btn-edit:hover {
+      background: #2c5282;
+      transform: translateY(-2px);
+    }
+
+    .btn-delete {
+      background: #e53e3e;
+      color: white;
+    }
+
+    .btn-delete:hover {
+      background: #c53030;
+      transform: translateY(-2px);
+    }
+
+    /* Selector Container */
+    .selector-container {
+      padding: 20px 30px;
+      background: #f7f7f7;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .selector-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .selector-group label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      white-space: nowrap;
+    }
+
+    .selector-group select {
+      padding: 10px 16px;
+      font-size: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      background: white;
+      color: #333;
+      cursor: pointer;
+      min-width: 200px;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    .selector-group select:hover {
+      border-color: #667eea;
+    }
+
+    .selector-group select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #999;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close:hover {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .btn-cancel,
+    .btn-submit {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-cancel {
+      background: #f7f7f7;
+      color: #666;
+    }
+
+    .btn-cancel:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-submit {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-submit:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        padding: 16px 20px;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .header-title {
+        font-size: 18px;
+      }
+
+      .nav-tabs {
+        overflow-x: auto;
+      }
+
+      .nav-tab {
+        padding: 12px 20px;
+        font-size: 13px;
+      }
+
+      .selector-container {
+        padding: 15px 20px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+      }
+
+      .selector-group {
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .selector-group select {
+        width: 100%;
+      }
+
+      .page-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+      }
+
+      .table-container {
+        padding: 20px;
+      }
+
+      th, td {
+        font-size: 12px;
+        padding: 10px 8px;
+      }
+
+      .thumbnail {
+        width: 50px;
+      }
+
+      .modal-content {
+        width: 95%;
+        margin: 20px;
+      }
+
+      .modal-footer {
+        flex-direction: column;
+      }
+
+      .btn-cancel,
+      .btn-submit {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">在庫管理システム - 管理画面</div>
+    <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-tab" onclick="location.href='A-000-Dashboard.html'">ダッシュボード</button>
+      <button class="nav-tab" onclick="location.href='A-001-CategoryManagement.html'">カテゴリー管理</button>
+      <button class="nav-tab" onclick="location.href='A-002-GenreManagement.html'">ジャンル管理</button>
+      <button class="nav-tab active" onclick="location.href='A-003-UnitManagement.html'">ユニット管理</button>
+      <button class="nav-tab" onclick="location.href='A-004-PartsManagement.html'">パーツ管理</button>
+      <button class="nav-tab" onclick="location.href='A-005-AccountSettings.html'">アカウント設定</button>
+      <button class="nav-tab" onclick="location.href='A-006-QRCode.html'">QRコード</button>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1 class="page-title">ユニット管理</h1>
+      <button class="add-button" onclick="handleAdd()">+ 新規ユニット追加</button>
+    </div>
+
+    <!-- Category and Genre Selector -->
+    <div class="selector-container">
+      <div class="selector-group">
+        <label for="categorySelect">カテゴリー選択:</label>
+        <select id="categorySelect" onchange="handleCategoryChange()">
+          <option value="GT3-048">GT3-048 - レーシングカー</option>
+          <option value="GT3-049">GT3-049 - スポーツカー</option>
+          <option value="GT3-050">GT3-050 - クラシックカー</option>
+          <option value="GT3-051">GT3-051 - オフロードカー</option>
+          <option value="GT3-052">GT3-052 - ラグジュアリーカー</option>
+          <option value="GT3-053">GT3-053 - エレクトリックカー</option>
+        </select>
+      </div>
+
+      <div class="selector-group">
+        <label for="genreSelect">ジャンル選択:</label>
+        <select id="genreSelect" onchange="handleGenreChange()">
+          <option value="エンジン">エンジン</option>
+          <option value="トランスミッション" selected>トランスミッション</option>
+          <option value="サスペンション">サスペンション</option>
+          <option value="ブレーキ">ブレーキ</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>UNIT CODE</th>
+            <th>ユニット名</th>
+            <th>所属ジャンル</th>
+            <th>パーツ数</th>
+            <th>作成日</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="center"><img class="thumbnail" src="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=60&h=60&fit=crop" alt="GEARBOX INNER PARTS_10"></td>
+            <td>UNT-001</td>
+            <td>GEARBOX INNER PARTS_10</td>
+            <td>トランスミッション</td>
+            <td class="center">12</td>
+            <td class="center">2025-02-01</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-edit" onclick="handleEdit('UNT-001')">編集</button>
+                <button class="btn-delete" onclick="handleDelete('UNT-001')">削除</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="center"><img class="thumbnail" src="https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=60&h=60&fit=crop" alt="GEARBOX OUTER PARTS_20"></td>
+            <td>UNT-002</td>
+            <td>GEARBOX OUTER PARTS_20</td>
+            <td>トランスミッション</td>
+            <td class="center">8</td>
+            <td class="center">2025-02-02</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-edit" onclick="handleEdit('UNT-002')">編集</button>
+                <button class="btn-delete" onclick="handleDelete('UNT-002')">削除</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="center"><img class="thumbnail" src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=60&h=60&fit=crop" alt="CLUTCH ASSEMBLY_30"></td>
+            <td>UNT-003</td>
+            <td>CLUTCH ASSEMBLY_30</td>
+            <td>トランスミッション</td>
+            <td class="center">5</td>
+            <td class="center">2025-02-03</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-edit" onclick="handleEdit('UNT-003')">編集</button>
+                <button class="btn-delete" onclick="handleDelete('UNT-003')">削除</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="center"><img class="thumbnail" src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=60&h=60&fit=crop" alt="GEAR SELECTOR_40"></td>
+            <td>UNT-004</td>
+            <td>GEAR SELECTOR_40</td>
+            <td>トランスミッション</td>
+            <td class="center">6</td>
+            <td class="center">2025-02-04</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-edit" onclick="handleEdit('UNT-004')">編集</button>
+                <button class="btn-delete" onclick="handleDelete('UNT-004')">削除</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add Unit Modal -->
+  <div id="addUnitModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">新規ユニット追加</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="addUnitForm">
+          <div class="form-group">
+            <label for="modalCategory">所属カテゴリー</label>
+            <select id="modalCategory" name="category" required onchange="updateModalGenre()">
+              <option value="GT3-048">GT3-048 - レーシングカー</option>
+              <option value="GT3-049">GT3-049 - スポーツカー</option>
+              <option value="GT3-050">GT3-050 - クラシックカー</option>
+              <option value="GT3-051">GT3-051 - オフロードカー</option>
+              <option value="GT3-052">GT3-052 - ラグジュアリーカー</option>
+              <option value="GT3-053">GT3-053 - エレクトリックカー</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="modalGenre">所属ジャンル</label>
+            <select id="modalGenre" name="genre" required>
+              <option value="エンジン">エンジン</option>
+              <option value="トランスミッション">トランスミッション</option>
+              <option value="サスペンション">サスペンション</option>
+              <option value="ブレーキ">ブレーキ</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="unitId">UNIT CODE</label>
+            <input type="text" id="unitId" name="unitId" placeholder="例: 3205" required>
+          </div>
+
+          <div class="form-group">
+            <label for="unitName">ユニット名</label>
+            <input type="text" id="unitName" name="unitName" placeholder="例: GEARBOX INNER PARTS_10" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" onclick="closeModal()">キャンセル</button>
+        <button type="submit" class="btn-submit" onclick="submitUnitForm()">追加</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Genre data for each category
+    const genreData = {
+      'GT3-048': ['エンジン', 'トランスミッション', 'サスペンション', 'ブレーキ'],
+      'GT3-049': ['エアロパーツ', 'インテリア', 'ホイール'],
+      'GT3-050': ['電装系', 'シート', 'ステアリング', 'メーター'],
+      'GT3-051': ['タイヤ', 'サスペンション', 'ボディ'],
+      'GT3-052': ['インテリア', 'エンジン', 'エクステリア', 'ホイール', 'エキゾースト'],
+      'GT3-053': ['バッテリー', 'モーター', '充電システム', 'インバーター']
+    };
+
+    // Unit data for each genre
+    const unitData = {
+      'エンジン': [
+        { id: 'UNT-001', name: 'V8 ENGINE BLOCK', image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=60&h=60&fit=crop', genre: 'エンジン', parts: 15, date: '2025-01-15' },
+        { id: 'UNT-002', name: 'TURBO CHARGER UNIT', image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=60&h=60&fit=crop', genre: 'エンジン', parts: 8, date: '2025-01-16' },
+        { id: 'UNT-003', name: 'INTAKE MANIFOLD', image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=60&h=60&fit=crop', genre: 'エンジン', parts: 6, date: '2025-01-17' }
+      ],
+      'トランスミッション': [
+        { id: 'UNT-004', name: 'GEARBOX INNER PARTS_10', image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=60&h=60&fit=crop', genre: 'トランスミッション', parts: 12, date: '2025-02-01' },
+        { id: 'UNT-005', name: 'GEARBOX OUTER PARTS_20', image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=60&h=60&fit=crop', genre: 'トランスミッション', parts: 8, date: '2025-02-02' },
+        { id: 'UNT-006', name: 'CLUTCH ASSEMBLY_30', image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=60&h=60&fit=crop', genre: 'トランスミッション', parts: 5, date: '2025-02-03' },
+        { id: 'UNT-007', name: 'GEAR SELECTOR_40', image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=60&h=60&fit=crop', genre: 'トランスミッション', parts: 6, date: '2025-02-04' }
+      ],
+      'サスペンション': [
+        { id: 'UNT-008', name: 'FRONT SUSPENSION KIT', image: 'https://images.unsplash.com/photo-1581092160578-e5d6e0f88e6e?w=60&h=60&fit=crop', genre: 'サスペンション', parts: 10, date: '2025-03-01' },
+        { id: 'UNT-009', name: 'REAR SUSPENSION KIT', image: 'https://images.unsplash.com/photo-1581092918484-8313e1f77e5e?w=60&h=60&fit=crop', genre: 'サスペンション', parts: 9, date: '2025-03-02' }
+      ],
+      'ブレーキ': [
+        { id: 'UNT-010', name: 'BRAKE CALIPER SET', image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=60&h=60&fit=crop', genre: 'ブレーキ', parts: 7, date: '2025-04-01' },
+        { id: 'UNT-011', name: 'BRAKE DISC ROTOR', image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=60&h=60&fit=crop', genre: 'ブレーキ', parts: 4, date: '2025-04-02' }
+      ],
+      'エアロパーツ': [
+        { id: 'UNT-012', name: 'FRONT BUMPER KIT', image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=60&h=60&fit=crop', genre: 'エアロパーツ', parts: 8, date: '2025-02-05' },
+        { id: 'UNT-013', name: 'REAR WING ASSEMBLY', image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=60&h=60&fit=crop', genre: 'エアロパーツ', parts: 5, date: '2025-02-06' }
+      ],
+      'インテリア': [
+        { id: 'UNT-014', name: 'RACING SEAT SET', image: 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?w=60&h=60&fit=crop', genre: 'インテリア', parts: 6, date: '2025-02-07' },
+        { id: 'UNT-015', name: 'DASHBOARD PANEL', image: 'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=60&h=60&fit=crop', genre: 'インテリア', parts: 12, date: '2025-02-08' }
+      ],
+      'ホイール': [
+        { id: 'UNT-016', name: 'FORGED WHEEL SET', image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=60&h=60&fit=crop', genre: 'ホイール', parts: 4, date: '2025-02-09' }
+      ],
+      '電装系': [
+        { id: 'UNT-017', name: 'WIRING HARNESS', image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=60&h=60&fit=crop', genre: '電装系', parts: 20, date: '2025-03-05' }
+      ],
+      'シート': [
+        { id: 'UNT-018', name: 'VINTAGE LEATHER SEAT', image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=60&h=60&fit=crop', genre: 'シート', parts: 8, date: '2025-03-06' }
+      ],
+      'ステアリング': [
+        { id: 'UNT-019', name: 'WOODEN STEERING WHEEL', image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=60&h=60&fit=crop', genre: 'ステアリング', parts: 3, date: '2025-03-07' }
+      ],
+      'メーター': [
+        { id: 'UNT-020', name: 'ANALOG GAUGE CLUSTER', image: 'https://images.unsplash.com/photo-1581092160578-e5d6e0f88e6e?w=60&h=60&fit=crop', genre: 'メーター', parts: 7, date: '2025-03-08' }
+      ],
+      'タイヤ': [
+        { id: 'UNT-021', name: 'ALL-TERRAIN TIRE SET', image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=60&h=60&fit=crop', genre: 'タイヤ', parts: 4, date: '2025-04-05' }
+      ],
+      'ボディ': [
+        { id: 'UNT-022', name: 'ROLL CAGE KIT', image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=60&h=60&fit=crop', genre: 'ボディ', parts: 15, date: '2025-04-06' }
+      ],
+      'エクステリア': [
+        { id: 'UNT-023', name: 'CHROME TRIM SET', image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=60&h=60&fit=crop', genre: 'エクステリア', parts: 10, date: '2025-05-01' }
+      ],
+      'エキゾースト': [
+        { id: 'UNT-024', name: 'TITANIUM EXHAUST SYSTEM', image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=60&h=60&fit=crop', genre: 'エキゾースト', parts: 8, date: '2025-05-02' }
+      ],
+      'バッテリー': [
+        { id: 'UNT-025', name: 'LITHIUM-ION BATTERY PACK', image: 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?w=60&h=60&fit=crop', genre: 'バッテリー', parts: 12, date: '2025-06-01' }
+      ],
+      'モーター': [
+        { id: 'UNT-026', name: 'ELECTRIC MOTOR UNIT', image: 'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=60&h=60&fit=crop', genre: 'モーター', parts: 9, date: '2025-06-02' }
+      ],
+      '充電システム': [
+        { id: 'UNT-027', name: 'FAST CHARGER MODULE', image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=60&h=60&fit=crop', genre: '充電システム', parts: 6, date: '2025-06-03' }
+      ],
+      'インバーター': [
+        { id: 'UNT-028', name: 'POWER INVERTER ASSEMBLY', image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=60&h=60&fit=crop', genre: 'インバーター', parts: 7, date: '2025-06-04' }
+      ]
+    };
+
+    // Handle category change - update genre dropdown
+    function handleCategoryChange() {
+      const categorySelect = document.getElementById('categorySelect');
+      const genreSelect = document.getElementById('genreSelect');
+      const selectedCategory = categorySelect.value;
+
+      // Get genres for selected category
+      const genres = genreData[selectedCategory] || [];
+
+      // Clear genre dropdown
+      genreSelect.innerHTML = '';
+
+      // Populate genre dropdown
+      genres.forEach((genre, index) => {
+        const option = document.createElement('option');
+        option.value = genre;
+        option.textContent = genre;
+        if (index === 0) option.selected = true;
+        genreSelect.appendChild(option);
+      });
+
+      // Update unit table
+      handleGenreChange();
+    }
+
+    // Handle genre change - update unit table
+    function handleGenreChange() {
+      const genreSelect = document.getElementById('genreSelect');
+      const selectedGenre = genreSelect.value;
+
+      // Get units for selected genre
+      const units = unitData[selectedGenre] || [];
+
+      // Update table
+      const tbody = document.querySelector('table tbody');
+      tbody.innerHTML = '';
+
+      units.forEach(unit => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="center"><img class="thumbnail" src="${unit.image}" alt="${unit.name}"></td>
+          <td>${unit.id}</td>
+          <td>${unit.name}</td>
+          <td>${unit.genre}</td>
+          <td class="center">${unit.parts}</td>
+          <td class="center">${unit.date}</td>
+          <td>
+            <div class="action-buttons">
+              <button class="btn-edit" onclick="handleEdit('${unit.id}')">編集</button>
+              <button class="btn-delete" onclick="handleDelete('${unit.id}')">削除</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // モーダルを開く
+    function handleAdd() {
+      const modal = document.getElementById('addUnitModal');
+      const categorySelect = document.getElementById('categorySelect');
+      const genreSelect = document.getElementById('genreSelect');
+      const modalCategory = document.getElementById('modalCategory');
+      const modalGenre = document.getElementById('modalGenre');
+
+      // 現在選択中のカテゴリーとジャンルを自動入力
+      modalCategory.value = categorySelect.value;
+
+      // モーダルのジャンルドロップダウンを更新
+      updateModalGenre();
+
+      // 現在選択中のジャンルを設定
+      modalGenre.value = genreSelect.value;
+
+      // モーダルを表示
+      modal.classList.add('show');
+    }
+
+    // モーダルのジャンルドロップダウンを更新
+    function updateModalGenre() {
+      const modalCategory = document.getElementById('modalCategory');
+      const modalGenre = document.getElementById('modalGenre');
+      const selectedCategory = modalCategory.value;
+
+      // 選択されたカテゴリーのジャンルを取得
+      const genres = genreData[selectedCategory] || [];
+
+      // ジャンルドロップダウンをクリア
+      modalGenre.innerHTML = '';
+
+      // ジャンルを追加
+      genres.forEach((genre, index) => {
+        const option = document.createElement('option');
+        option.value = genre;
+        option.textContent = genre;
+        if (index === 0) option.selected = true;
+        modalGenre.appendChild(option);
+      });
+    }
+
+    // モーダルを閉じる
+    function closeModal() {
+      const modal = document.getElementById('addUnitModal');
+      modal.classList.remove('show');
+
+      // フォームをリセット
+      document.getElementById('addUnitForm').reset();
+    }
+
+    // フォーム送信
+    function submitUnitForm() {
+      const form = document.getElementById('addUnitForm');
+
+      if (form.checkValidity()) {
+        const category = document.getElementById('modalCategory').value;
+        const genre = document.getElementById('modalGenre').value;
+        const unitName = document.getElementById('unitName').value;
+        const unitId = document.getElementById('unitId').value;
+
+        alert('新規ユニット追加（デモ）\n\nカテゴリー: ' + category + '\nジャンル: ' + genre + '\nUNIT CODE: ' + unitId + '\nユニット名: ' + unitName + '\n\n実際の実装では、データベースに保存されます。');
+
+        closeModal();
+      } else {
+        form.reportValidity();
+      }
+    }
+
+    // モーダルの外側をクリックしたら閉じる
+    window.onclick = function(event) {
+      const modal = document.getElementById('addUnitModal');
+      if (event.target === modal) {
+        closeModal();
+      }
+    }
+
+    function handleEdit(id) {
+      alert('ユニット編集（デモ）\n\nUNIT CODE: ' + id + '\n\n編集フォームを表示します。');
+    }
+
+    function handleDelete(id) {
+      if (confirm('ユニット「' + id + '」を削除しますか？\n\n※このユニットに紐づくパーツも削除されます。')) {
+        alert('ユニット「' + id + '」を削除しました（デモ）');
+      }
+    }
+
+    function handleLogout() {
+      if (confirm('ログアウトしますか？')) {
+        alert('ログアウトしました（デモ）\n\nログインページへ戻ります。');
+      }
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', function() {
+      handleGenreChange();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P-004: パーツリスト - Professional</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .header-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .logout-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid white;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: white;
+      color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Main Content */
+    .main-content {
+      background: white;
+      margin: 0;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* Image Area Container */
+    .image-area-container {
+      position: relative;
+      min-height: 60px;
+    }
+
+    /* Image Area */
+    .image-area {
+      background: white;
+      padding: 40px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .image-area.hidden {
+      padding: 0;
+      max-height: 0;
+      overflow: hidden;
+    }
+
+    .image-area img {
+      max-width: 800px;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .image-toggle-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #333;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      z-index: 10;
+    }
+
+    .image-toggle-btn:hover {
+      background: #000;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Sub Header */
+    .sub-header {
+      padding: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .sub-header-left h2 {
+      font-size: 18px;
+      color: #666;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .sub-header-left p {
+      font-size: 14px;
+      color: #999;
+      font-weight: 400;
+    }
+
+    .sub-header-right {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .control-btn {
+      padding: 10px 20px;
+      background: white;
+      border: 2px solid #667eea;
+      color: #667eea;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      min-width: 160px;
+    }
+
+    .control-btn:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .export-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .export-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+      transition: all 0.3s ease;
+      min-width: 80px;
+    }
+
+    .export-btn.pdf {
+      background: #e53e3e;
+    }
+
+    .export-btn.pdf:hover {
+      background: #c53030;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+    }
+
+    .export-btn.csv {
+      background: #3182ce;
+    }
+
+    .export-btn.csv:hover {
+      background: #2c5282;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
+    }
+
+    .export-btn.excel {
+      background: #38a169;
+    }
+
+    .export-btn.excel:hover {
+      background: #2f855a;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(56, 161, 105, 0.3);
+    }
+
+    /* Table Container */
+    .table-container {
+      padding: 30px;
+      overflow-x: auto;
+    }
+
+    /* Table Styles */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    thead {
+      background: #f7f7f7;
+    }
+
+    th {
+      padding: 14px 12px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #e0e0e0;
+      white-space: nowrap;
+    }
+
+    /* First header row (Japanese) - no bottom border, less padding */
+    thead tr:first-child th {
+      border-bottom: none;
+      padding: 8px 12px 4px 12px;
+    }
+
+    /* Second header row (English) - normal padding */
+    thead tr:last-child th {
+      padding: 4px 12px 8px 12px;
+    }
+
+    td {
+      padding: 14px 12px;
+      text-align: left;
+      font-size: 14px;
+      color: #444;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: middle;
+    }
+
+    tbody tr:hover {
+      background: #f0f7ff;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Stock 0 styling */
+    tr.out-of-stock td {
+      color: #e53e3e;
+    }
+
+    /* Thumbnail */
+    .thumbnail {
+      width: 60px;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+    }
+
+    /* Image column control */
+    table.image-column-hidden th:first-child,
+    table.image-column-hidden td:first-child {
+      display: none;
+    }
+
+    /* Numeric columns - right aligned */
+    td.numeric {
+      text-align: right;
+    }
+
+    /* Center aligned columns */
+    td.center {
+      text-align: center;
+    }
+
+    /* Notes column - wider */
+    th:last-child,
+    td:last-child {
+      min-width: 300px;
+      width: 300px;
+    }
+
+    /* Bottom Buttons */
+    .bottom-buttons {
+      padding: 40px 30px;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      padding: 14px 28px;
+      background: white;
+      border: 2px solid #667eea;
+      color: #667eea;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      min-width: 180px;
+    }
+
+    .action-btn:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        padding: 16px 20px;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .header-title {
+        font-size: 16px;
+      }
+
+      .sub-header {
+        flex-direction: column;
+        gap: 20px;
+        padding: 20px;
+      }
+
+      .export-buttons {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .image-area {
+        padding: 20px;
+      }
+
+      .image-area img {
+        max-width: 100%;
+      }
+
+      .image-toggle-btn {
+        padding: 8px 16px;
+        font-size: 12px;
+      }
+
+      .control-buttons {
+        flex-direction: column;
+      }
+
+      .control-btn {
+        min-width: 200px;
+      }
+
+      .table-container {
+        padding: 20px;
+      }
+
+      th, td {
+        font-size: 12px;
+        padding: 10px 8px;
+      }
+
+      .thumbnail {
+        width: 50px;
+      }
+
+      .bottom-buttons {
+        flex-direction: column;
+        padding: 30px 20px;
+      }
+
+      .action-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">GT3-048 - トランスミッション</div>
+    <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Image Area Container -->
+    <div class="image-area-container">
+      <div class="image-area" id="imageArea">
+        <img src="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=800&h=600&fit=crop" alt="Gearbox Inner Parts">
+      </div>
+      <button class="image-toggle-btn" id="imageToggleBtn" onclick="toggleImage()">Open/Hide</button>
+    </div>
+
+    <!-- Sub Header -->
+    <div class="sub-header">
+      <div class="sub-header-left">
+        <h2>GEARBOX INNER PARTS_10</h2>
+        <p>Unit Code: 3205</p>
+      </div>
+      <div class="sub-header-right">
+        <div class="control-buttons">
+          <button class="control-btn" id="toggleThumbnailBtn" onclick="toggleThumbnails()">パーツ画像を非表示</button>
+          <button class="control-btn" id="toggleImagePositionBtn" onclick="toggleImagePosition()">画像位置：左端</button>
+        </div>
+        <div class="export-buttons">
+          <button class="export-btn pdf" onclick="handleExport('PDF')">PDF</button>
+          <button class="export-btn csv" onclick="handleExport('CSV')">CSV</button>
+          <button class="export-btn excel" onclick="handleExport('Excel')">Excel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table id="partsTable">
+        <thead>
+          <tr>
+            <th></th>
+            <th>ユニット番号</th>
+            <th>品番</th>
+            <th>品名</th>
+            <th>数量</th>
+            <th>在庫数量</th>
+            <th>価格</th>
+            <th>収納ケース</th>
+            <th>発注日</th>
+            <th>入荷予定日</th>
+            <th>備考</th>
+          </tr>
+          <tr>
+            <th></th>
+            <th>Unit No.</th>
+            <th>Part No.</th>
+            <th>Part Name</th>
+            <th>Units</th>
+            <th>Stock</th>
+            <th>List Price</th>
+            <th>Storage</th>
+            <th>Order Date</th>
+            <th>Arrival Date</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><img class="thumbnail" src="https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=60&h=60&fit=crop" alt="Part"></td>
+            <td>4-1-1</td>
+            <td>393R1TDB</td>
+            <td>523A LAYSHAFT SET</td>
+            <td class="center">1</td>
+            <td class="center">2</td>
+            <td class="numeric">¥25,000</td>
+            <td class="center">A-12</td>
+            <td class="center">2025-10-10</td>
+            <td class="center">2025-11-14</td>
+            <td>-</td>
+          </tr>
+          <tr class="out-of-stock">
+            <td><img class="thumbnail" src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=60&h=60&fit=crop" alt="Part"></td>
+            <td>4-1-2</td>
+            <td>351R2RT10A</td>
+            <td>DOG RING</td>
+            <td class="center">3</td>
+            <td class="center">0</td>
+            <td class="numeric">¥6,500</td>
+            <td class="center">A-13</td>
+            <td class="center">-</td>
+            <td class="center">-</td>
+            <td>要発注</td>
+          </tr>
+          <tr class="out-of-stock">
+            <td><img class="thumbnail" src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=60&h=60&fit=crop" alt="Part"></td>
+            <td>4-1-3</td>
+            <td>351R3RT10A</td>
+            <td>MAINSHAFT</td>
+            <td class="center">1</td>
+            <td class="center">0</td>
+            <td class="numeric">¥32,000</td>
+            <td class="center">B-56</td>
+            <td class="center">-</td>
+            <td class="center">-</td>
+            <td>-</td>
+          </tr>
+          <tr class="out-of-stock">
+            <td><img class="thumbnail" src="https://images.unsplash.com/photo-1581092160578-e5d6e0f88e6e?w=60&h=60&fit=crop" alt="Part"></td>
+            <td>4-1-4</td>
+            <td>351R4RT10A</td>
+            <td>GEAR RATIO 3rd (16/27)</td>
+            <td class="center">1</td>
+            <td class="center">0</td>
+            <td class="numeric">¥8,000</td>
+            <td class="center">B-56</td>
+            <td class="center">-</td>
+            <td class="center">-</td>
+            <td>-</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Bottom Buttons -->
+    <div class="bottom-buttons">
+      <button class="action-btn" onclick="handleBackToGenres()">← ジャンル一覧へ戻る</button>
+    </div>
+  </div>
+
+  <script>
+    // Toggle large image area visibility
+    function toggleImage() {
+      const imageArea = document.getElementById('imageArea');
+
+      if (imageArea.classList.contains('hidden')) {
+        imageArea.classList.remove('hidden');
+      } else {
+        imageArea.classList.add('hidden');
+      }
+    }
+
+    // Toggle thumbnail visibility in table
+    function toggleThumbnails() {
+      const table = document.getElementById('partsTable');
+      const btn = document.getElementById('toggleThumbnailBtn');
+
+      if (table.classList.contains('image-column-hidden')) {
+        table.classList.remove('image-column-hidden');
+        btn.textContent = 'パーツ画像を非表示';
+      } else {
+        table.classList.add('image-column-hidden');
+        btn.textContent = 'パーツ画像を表示';
+      }
+    }
+
+    // Toggle image column position (left/right)
+    let imagePositionRight = false;
+    function toggleImagePosition() {
+      const table = document.getElementById('partsTable');
+      const btn = document.getElementById('toggleImagePositionBtn');
+      const thead = table.querySelector('thead tr');
+      const tbody = table.querySelector('tbody');
+
+      if (imagePositionRight) {
+        // Move to left (original position)
+        const headerImageCell = thead.querySelector('th:last-child');
+        thead.insertBefore(headerImageCell, thead.firstChild);
+
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach(row => {
+          const imageCell = row.querySelector('td:last-child');
+          row.insertBefore(imageCell, row.firstChild);
+        });
+
+        btn.textContent = '画像位置：左端';
+        imagePositionRight = false;
+      } else {
+        // Move to right
+        const headerImageCell = thead.querySelector('th:first-child');
+        thead.appendChild(headerImageCell);
+
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach(row => {
+          const imageCell = row.querySelector('td:first-child');
+          row.appendChild(imageCell);
+        });
+
+        btn.textContent = '画像位置：右端';
+        imagePositionRight = true;
+      }
+    }
+
+    // Export handlers
+    function handleExport(type) {
+      alert(`${type}エクスポート機能（デモ）\n\nパーツリストを${type}形式でダウンロードします。`);
+    }
+
+    // Action button handlers
+    function handleBackToGenres() {
+      alert('ジャンル一覧へ戻る（デモ）\n\nP-003: ジャンル一覧ページに戻ります。');
+    }
+
+    function handleLogout() {
+      if (confirm('ログアウトしますか？')) {
+        alert('ログアウトしました（デモ）');
+      }
+    }
+  </script>
+</body>
+</html>

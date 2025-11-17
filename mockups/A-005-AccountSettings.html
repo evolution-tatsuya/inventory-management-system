@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A-005: アカウント設定 - 在庫管理システム</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .header-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .logout-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid white;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: white;
+      color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Main Content */
+    .main-content {
+      background: white;
+      margin: 0;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      background: #f7f7f7;
+      border-bottom: 2px solid #e0e0e0;
+      overflow-x: auto;
+    }
+
+    .nav-tab {
+      padding: 16px 32px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: #666;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .nav-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: white;
+    }
+
+    .nav-tab:hover {
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    /* Settings Content */
+    .settings-content {
+      padding: 30px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 30px;
+    }
+
+    /* Profile Section */
+    .profile-section {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .profile-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: white;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      color: #667eea;
+      font-weight: 700;
+    }
+
+    .profile-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 5px;
+    }
+
+    .profile-email {
+      font-size: 14px;
+      color: white;
+    }
+
+    /* Form Section */
+    .form-section {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+
+    .form-section-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    .form-group input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group input::placeholder {
+      color: #999;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 15px;
+      justify-content: flex-end;
+    }
+
+    .btn-save {
+      padding: 12px 32px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-save:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-cancel {
+      padding: 12px 32px;
+      background: white;
+      color: #666;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-cancel:hover {
+      background: #f7f7f7;
+      border-color: #ccc;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        padding: 16px 20px;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .header-title {
+        font-size: 18px;
+      }
+
+      .settings-content {
+        padding: 20px;
+      }
+
+      .page-title {
+        font-size: 22px;
+      }
+
+      .profile-section {
+        padding: 20px;
+      }
+
+      .form-section {
+        padding: 20px;
+      }
+
+      .form-actions {
+        flex-direction: column;
+      }
+
+      .btn-save,
+      .btn-cancel {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">在庫管理システム - 管理画面</div>
+    <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-tab" onclick="location.href='A-000-Dashboard.html'">ダッシュボード</button>
+      <button class="nav-tab" onclick="location.href='A-001-CategoryManagement.html'">カテゴリー管理</button>
+      <button class="nav-tab" onclick="location.href='A-002-GenreManagement.html'">ジャンル管理</button>
+      <button class="nav-tab" onclick="location.href='A-003-UnitManagement.html'">ユニット管理</button>
+      <button class="nav-tab" onclick="location.href='A-004-PartsManagement.html'">パーツ管理</button>
+      <button class="nav-tab active" onclick="location.href='A-005-AccountSettings.html'">アカウント設定</button>
+      <button class="nav-tab" onclick="location.href='A-006-QRCode.html'">QRコード</button>
+    </div>
+
+    <!-- Settings Content -->
+    <div class="settings-content">
+      <h1 class="page-title">アカウント設定</h1>
+
+      <!-- Profile Section -->
+      <div class="profile-section">
+        <div class="profile-avatar">A</div>
+        <div class="profile-name">管理者</div>
+        <div class="profile-email">admin@example.com</div>
+      </div>
+
+      <!-- Basic Information Form -->
+      <div class="form-section">
+        <h2 class="form-section-title">基本情報</h2>
+        <form id="basicInfoForm">
+          <div class="form-group">
+            <label for="displayName">表示名</label>
+            <input
+              type="text"
+              id="displayName"
+              name="displayName"
+              value="管理者"
+              placeholder="表示名を入力"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="email">メールアドレス</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value="admin@example.com"
+              placeholder="example@email.com"
+            >
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" onclick="handleCancel()">キャンセル</button>
+            <button type="submit" class="btn-save">変更を保存</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Password Change Form -->
+      <div class="form-section">
+        <h2 class="form-section-title">パスワード変更</h2>
+        <form id="passwordForm">
+          <div class="form-group">
+            <label for="currentPassword">現在のパスワード</label>
+            <input
+              type="password"
+              id="currentPassword"
+              name="currentPassword"
+              placeholder="現在のパスワードを入力"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="newPassword">新しいパスワード</label>
+            <input
+              type="password"
+              id="newPassword"
+              name="newPassword"
+              placeholder="新しいパスワードを入力"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">新しいパスワード（確認）</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              placeholder="新しいパスワードを再入力"
+            >
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" onclick="handleCancel()">キャンセル</button>
+            <button type="submit" class="btn-save">パスワードを変更</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Basic info form submission
+    document.getElementById('basicInfoForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const displayName = document.getElementById('displayName').value;
+      const email = document.getElementById('email').value;
+      alert('基本情報を更新しました（デモ）\n\n表示名: ' + displayName + '\nメール: ' + email);
+    });
+
+    // Password form submission
+    document.getElementById('passwordForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (newPassword !== confirmPassword) {
+        alert('新しいパスワードが一致しません。');
+        return;
+      }
+
+      if (newPassword.length < 8) {
+        alert('パスワードは8文字以上で設定してください。');
+        return;
+      }
+
+      alert('パスワードを変更しました（デモ）');
+      this.reset();
+    });
+
+    function handleCancel() {
+      if (confirm('変更内容を破棄しますか？')) {
+        location.reload();
+      }
+    }
+
+    function handleLogout() {
+      if (confirm('ログアウトしますか？')) {
+        alert('ログアウトしました（デモ）\n\nログインページへ戻ります。');
+      }
+    }
+  </script>
+</body>
+</html>

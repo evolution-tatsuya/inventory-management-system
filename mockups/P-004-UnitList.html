@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P-004: ユニット一覧 - 在庫管理システム</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      background: white;
+      color: #667eea;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border-radius: 12px;
+      margin-bottom: 30px;
+    }
+
+    .header-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .logout-btn {
+      background: rgba(102, 126, 234, 0.1);
+      border: 2px solid #667eea;
+      color: #667eea;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Main Content */
+    .main-content {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
+    }
+
+    .page-subtitle {
+      font-size: 1rem;
+      color: #666;
+    }
+
+    /* Unit Grid */
+    .unit-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .unit-card {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .unit-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+      border-color: #667eea;
+    }
+
+    .unit-image {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .unit-info {
+      flex: 1;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .unit-code {
+      font-size: 0.9rem;
+      color: #999;
+      margin-bottom: 8px;
+    }
+
+    .unit-name {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #333;
+    }
+
+    /* Back Buttons */
+    .back-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .back-button {
+      padding: 15px 40px;
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+      border-radius: 25px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+
+    .back-button:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .header {
+        padding: 16px 20px;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .header-title {
+        font-size: 18px;
+      }
+
+      .main-content {
+        padding: 30px 20px;
+      }
+
+      .page-title {
+        font-size: 1.6rem;
+      }
+
+      .unit-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+
+      .unit-image {
+        width: 100px;
+        height: 100px;
+      }
+
+      .unit-code {
+        font-size: 0.8rem;
+      }
+
+      .unit-name {
+        font-size: 1.1rem;
+      }
+
+      .back-buttons {
+        flex-direction: column;
+      }
+
+      .back-button {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .unit-image {
+        width: 80px;
+        height: 80px;
+      }
+
+      .unit-info {
+        padding: 15px;
+      }
+
+      .unit-code {
+        font-size: 0.75rem;
+      }
+
+      .unit-name {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-title">在庫管理システム - Inventory Management System</div>
+      <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">トランスミッション - ユニット一覧</h1>
+        <p class="page-subtitle">管理するユニットを選択してください</p>
+      </div>
+
+      <div class="unit-grid">
+        <a href="#" class="unit-card">
+          <img src="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=300&h=300&fit=crop" alt="GEARBOX INNER PARTS_10" class="unit-image">
+          <div class="unit-info">
+            <div class="unit-code">Unit Code: 3205</div>
+            <div class="unit-name">GEARBOX INNER PARTS_10</div>
+          </div>
+        </a>
+
+        <a href="#" class="unit-card">
+          <img src="https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=300&h=300&fit=crop" alt="GEARBOX OUTER PARTS_20" class="unit-image">
+          <div class="unit-info">
+            <div class="unit-code">Unit Code: 3206</div>
+            <div class="unit-name">GEARBOX OUTER PARTS_20</div>
+          </div>
+        </a>
+
+        <a href="#" class="unit-card">
+          <img src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=300&h=300&fit=crop" alt="CLUTCH ASSEMBLY_30" class="unit-image">
+          <div class="unit-info">
+            <div class="unit-code">Unit Code: 3207</div>
+            <div class="unit-name">CLUTCH ASSEMBLY_30</div>
+          </div>
+        </a>
+
+        <a href="#" class="unit-card">
+          <img src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&h=300&fit=crop" alt="GEAR SELECTOR_40" class="unit-image">
+          <div class="unit-info">
+            <div class="unit-code">Unit Code: 3208</div>
+            <div class="unit-name">GEAR SELECTOR_40</div>
+          </div>
+        </a>
+      </div>
+
+      <div class="back-buttons">
+        <a href="#" class="back-button" id="backToCategory">← カテゴリー選択へ戻る</a>
+        <a href="#" class="back-button" id="backToGenre">← ジャンル選択へ戻る</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Unit card click handler
+    document.querySelectorAll('.unit-card').forEach(card => {
+      card.addEventListener('click', function(e) {
+        e.preventDefault();
+        const unitName = this.querySelector('.unit-name').textContent;
+        alert('ユニット「' + unitName + '」を選択しました。\n\nP-005: パーツリストへ遷移します。');
+      });
+    });
+
+    // Back to category button click handler
+    document.getElementById('backToCategory').addEventListener('click', function(e) {
+      e.preventDefault();
+      alert('P-002: カテゴリー選択へ戻ります。');
+    });
+
+    // Back to genre button click handler
+    document.getElementById('backToGenre').addEventListener('click', function(e) {
+      e.preventDefault();
+      alert('P-003: ジャンル選択へ戻ります。');
+    });
+
+    // Logout handler
+    function handleLogout() {
+      if (confirm('ログアウトしますか？')) {
+        alert('ログアウトしました。\n\nP-001: ログインページへ戻ります。');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A-000: ダッシュボード - 在庫管理システム</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .header-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .logout-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid white;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: white;
+      color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Main Content */
+    .main-content {
+      background: white;
+      margin: 0;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      background: #f7f7f7;
+      border-bottom: 2px solid #e0e0e0;
+      overflow-x: auto;
+    }
+
+    .nav-tab {
+      padding: 16px 32px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: #666;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .nav-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: white;
+    }
+
+    .nav-tab:hover {
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    /* Dashboard Content */
+    .dashboard-content {
+      padding: 30px;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 30px;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .stat-card.warning {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .stat-card.success {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .stat-card.info {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 700;
+    }
+
+    .stat-description {
+      font-size: 12px;
+      opacity: 0.8;
+      margin-top: 8px;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      margin-bottom: 40px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    .action-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .action-btn {
+      padding: 16px 24px;
+      background: white;
+      border: 2px solid #667eea;
+      color: #667eea;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      text-align: center;
+      text-decoration: none;
+      display: block;
+    }
+
+    .action-btn:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Recent Activity */
+    .recent-activity {
+      background: #f7f7f7;
+      padding: 25px;
+      border-radius: 12px;
+    }
+
+    .activity-list {
+      list-style: none;
+    }
+
+    .activity-item {
+      padding: 15px;
+      background: white;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .activity-item:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transform: translateX(5px);
+    }
+
+    .activity-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .activity-text {
+      font-size: 14px;
+      color: #444;
+    }
+
+    .activity-time {
+      font-size: 12px;
+      color: #999;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        padding: 16px 20px;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .header-title {
+        font-size: 18px;
+      }
+
+      .dashboard-content {
+        padding: 20px;
+      }
+
+      .page-title {
+        font-size: 22px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stat-value {
+        font-size: 28px;
+      }
+
+      .action-buttons {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">在庫管理システム - 管理画面</div>
+    <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="location.href='A-000-Dashboard.html'">ダッシュボード</button>
+      <button class="nav-tab" onclick="location.href='A-001-CategoryManagement.html'">カテゴリー管理</button>
+      <button class="nav-tab" onclick="location.href='A-002-GenreManagement.html'">ジャンル管理</button>
+      <button class="nav-tab" onclick="location.href='A-003-UnitManagement.html'">ユニット管理</button>
+      <button class="nav-tab" onclick="location.href='A-004-PartsManagement.html'">パーツ管理</button>
+      <button class="nav-tab" onclick="location.href='A-005-AccountSettings.html'">アカウント設定</button>
+      <button class="nav-tab" onclick="location.href='A-006-QRCode.html'">QRコード</button>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div class="dashboard-content">
+      <h1 class="page-title">ダッシュボード</h1>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">カテゴリー総数</div>
+          <div class="stat-value">6</div>
+          <div class="stat-description">登録済みカテゴリー</div>
+        </div>
+
+        <div class="stat-card success">
+          <div class="stat-label">ジャンル総数</div>
+          <div class="stat-value">24</div>
+          <div class="stat-description">全カテゴリー合計</div>
+        </div>
+
+        <div class="stat-card info">
+          <div class="stat-label">ユニット総数</div>
+          <div class="stat-value">96</div>
+          <div class="stat-description">全ジャンル合計</div>
+        </div>
+
+        <div class="stat-card warning">
+          <div class="stat-label">在庫切れパーツ</div>
+          <div class="stat-value">18</div>
+          <div class="stat-description">要発注：早急な対応が必要</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions">
+        <h2 class="section-title">クイックアクション</h2>
+        <div class="action-buttons">
+          <a href="A-001-CategoryManagement.html" class="action-btn">+ 新規カテゴリー追加</a>
+          <a href="A-002-GenreManagement.html" class="action-btn">+ 新規ジャンル追加</a>
+          <a href="A-003-UnitManagement.html" class="action-btn">+ 新規ユニット追加</a>
+          <a href="A-004-PartsManagement.html" class="action-btn">+ 新規パーツ追加</a>
+          <a href="A-006-QRCode.html" class="action-btn">QRコード表示</a>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="recent-activity">
+        <h2 class="section-title">最近の更新履歴</h2>
+        <ul class="activity-list">
+          <li class="activity-item">
+            <span class="activity-text">パーツ「DOG RING」の在庫が0になりました</span>
+            <span class="activity-time">5分前</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-text">新規ユニット「GEAR SELECTOR_40」が追加されました</span>
+            <span class="activity-time">1時間前</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-text">カテゴリー「GT3-053」が更新されました</span>
+            <span class="activity-time">3時間前</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-text">パーツ「523A LAYSHAFT SET」の在庫が補充されました</span>
+            <span class="activity-time">5時間前</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-text">新規ジャンル「ブレーキ」が追加されました</span>
+            <span class="activity-time">1日前</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function handleLogout() {
+      if (confirm('ログアウトしますか？')) {
+        alert('ログアウトしました（デモ）\n\nログインページへ戻ります。');
+      }
+    }
+  </script>
+</body>
+</html>

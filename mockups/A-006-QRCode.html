@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A-006: QRコード - 在庫管理システム</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .header-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .logout-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid white;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: white;
+      color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Main Content */
+    .main-content {
+      background: white;
+      margin: 0;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      background: #f7f7f7;
+      border-bottom: 2px solid #e0e0e0;
+      overflow-x: auto;
+    }
+
+    .nav-tab {
+      padding: 16px 32px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: #666;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .nav-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: white;
+    }
+
+    .nav-tab:hover {
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    /* QR Content */
+    .qr-content {
+      padding: 30px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .page-subtitle {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 40px;
+    }
+
+    /* QR Card */
+    .qr-card {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .qr-code-container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      display: inline-block;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+
+    #qrcode {
+      display: inline-block;
+    }
+
+    .qr-info {
+      background: #f7f7f7;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+
+    .qr-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .qr-url {
+      font-size: 16px;
+      color: #667eea;
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    /* Action Buttons */
+    .qr-actions {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-action {
+      padding: 12px 32px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-print {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-print:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-download {
+      background: #3182ce;
+      color: white;
+    }
+
+    .btn-download:hover {
+      background: #2c5282;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
+    }
+
+    .btn-copy {
+      background: #38a169;
+      color: white;
+    }
+
+    .btn-copy:hover {
+      background: #2f855a;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(56, 161, 105, 0.3);
+    }
+
+    /* Print Styles */
+    @media print {
+      .header,
+      .nav-tabs,
+      .page-title,
+      .page-subtitle,
+      .qr-actions {
+        display: none;
+      }
+
+      .qr-content {
+        padding: 0;
+        max-width: 100%;
+      }
+
+      .qr-card {
+        border: none;
+        box-shadow: none;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        padding: 16px 20px;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .header-title {
+        font-size: 18px;
+      }
+
+      .qr-content {
+        padding: 20px;
+      }
+
+      .page-title {
+        font-size: 22px;
+      }
+
+      .qr-card {
+        padding: 20px;
+      }
+
+      .qr-code-container {
+        padding: 20px;
+      }
+
+      .qr-actions {
+        flex-direction: column;
+      }
+
+      .btn-action {
+        width: 100%;
+      }
+    }
+  </style>
+  <!-- QRCode.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">在庫管理システム - 管理画面</div>
+    <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-tab" onclick="location.href='A-000-Dashboard.html'">ダッシュボード</button>
+      <button class="nav-tab" onclick="location.href='A-001-CategoryManagement.html'">カテゴリー管理</button>
+      <button class="nav-tab" onclick="location.href='A-002-GenreManagement.html'">ジャンル管理</button>
+      <button class="nav-tab" onclick="location.href='A-003-UnitManagement.html'">ユニット管理</button>
+      <button class="nav-tab" onclick="location.href='A-004-PartsManagement.html'">パーツ管理</button>
+      <button class="nav-tab" onclick="location.href='A-005-AccountSettings.html'">アカウント設定</button>
+      <button class="nav-tab active" onclick="location.href='A-006-QRCode.html'">QRコード</button>
+    </div>
+
+    <!-- QR Content -->
+    <div class="qr-content">
+      <h1 class="page-title">ログインページQRコード</h1>
+      <p class="page-subtitle">一般ユーザー向けログインページへのアクセス用QRコードです</p>
+
+      <div class="qr-card">
+        <div class="qr-code-container">
+          <div id="qrcode"></div>
+        </div>
+
+        <div class="qr-info">
+          <div class="qr-label">アクセスURL</div>
+          <div class="qr-url" id="loginUrl">https://example.com/P-001-Login.html</div>
+        </div>
+
+        <div class="qr-actions">
+          <button class="btn-action btn-print" onclick="handlePrint()">印刷</button>
+          <button class="btn-action btn-download" onclick="handleDownload()">QRコードをダウンロード</button>
+          <button class="btn-action btn-copy" onclick="handleCopyUrl()">URLをコピー</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Generate QR Code
+    const loginUrl = window.location.origin + '/P-001-Login.html';
+    document.getElementById('loginUrl').textContent = loginUrl;
+
+    new QRCode(document.getElementById("qrcode"), {
+      text: loginUrl,
+      width: 256,
+      height: 256,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+
+    // Print QR Code
+    function handlePrint() {
+      window.print();
+    }
+
+    // Download QR Code
+    function handleDownload() {
+      const canvas = document.querySelector('#qrcode canvas');
+      if (canvas) {
+        const url = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = 'login-qrcode.png';
+        link.href = url;
+        link.click();
+        alert('QRコードをダウンロードしました（デモ）');
+      } else {
+        alert('QRコードのダウンロードに失敗しました。');
+      }
+    }
+
+    // Copy URL to clipboard
+    function handleCopyUrl() {
+      const url = document.getElementById('loginUrl').textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        alert('URLをクリップボードにコピーしました\n\n' + url);
+      }).catch(() => {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('URLをクリップボードにコピーしました\n\n' + url);
+      });
+    }
+
+    function handleLogout() {
+      if (confirm('ログアウトしますか？')) {
+        alert('ログアウトしました（デモ）\n\nログインページへ戻ります。');
+      }
+    }
+  </script>
+</body>
+</html>

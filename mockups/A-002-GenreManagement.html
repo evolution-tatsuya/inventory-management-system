@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A-002: ジャンル管理 - 在庫管理システム</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .header-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .logout-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid white;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: white;
+      color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Main Content */
+    .main-content {
+      background: white;
+      margin: 0;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      background: #f7f7f7;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .nav-tab {
+      padding: 16px 32px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: #666;
+      transition: all 0.3s ease;
+    }
+
+    .nav-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: white;
+    }
+
+    .nav-tab:hover {
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    /* Page Header */
+    .page-header {
+      padding: 30px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .add-button {
+      padding: 12px 28px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .add-button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Category Selector */
+    .category-selector {
+      padding: 20px 30px;
+      background: #f7f7f7;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .category-selector label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-right: 12px;
+    }
+
+    .category-selector select {
+      padding: 10px 16px;
+      font-size: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      background: white;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      outline: none;
+      min-width: 200px;
+    }
+
+    .category-selector select:hover {
+      border-color: #667eea;
+    }
+
+    .category-selector select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Table Container */
+    .table-container {
+      padding: 30px;
+      overflow-x: auto;
+    }
+
+    /* Table Styles */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    thead {
+      background: #f7f7f7;
+    }
+
+    th {
+      padding: 14px 12px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #e0e0e0;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 12px;
+      text-align: center;
+      font-size: 14px;
+      color: #444;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: middle;
+    }
+
+    tbody tr:hover {
+      background: #f0f7ff;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    td.center {
+      text-align: center;
+    }
+
+    /* Thumbnail */
+    .thumbnail {
+      width: 60px;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .btn-edit,
+    .btn-delete {
+      padding: 6px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-edit {
+      background: #3182ce;
+      color: white;
+    }
+
+    .btn-edit:hover {
+      background: #2c5282;
+      transform: translateY(-2px);
+    }
+
+    .btn-delete {
+      background: #e53e3e;
+      color: white;
+    }
+
+    .btn-delete:hover {
+      background: #c53030;
+      transform: translateY(-2px);
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #999;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close:hover {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .btn-cancel,
+    .btn-submit {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-cancel {
+      background: #f7f7f7;
+      color: #666;
+    }
+
+    .btn-cancel:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-submit {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-submit:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        padding: 16px 20px;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .header-title {
+        font-size: 18px;
+      }
+
+      .nav-tabs {
+        overflow-x: auto;
+      }
+
+      .nav-tab {
+        padding: 12px 20px;
+        font-size: 13px;
+      }
+
+      .page-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+      }
+
+      .table-container {
+        padding: 20px;
+      }
+
+      th, td {
+        font-size: 12px;
+        padding: 10px 8px;
+      }
+
+      .thumbnail {
+        width: 50px;
+      }
+
+      .modal-content {
+        width: 95%;
+        margin: 20px;
+      }
+
+      .modal-footer {
+        flex-direction: column;
+      }
+
+      .btn-cancel,
+      .btn-submit {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">在庫管理システム - 管理画面</div>
+    <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-tab" onclick="location.href='A-000-Dashboard.html'">ダッシュボード</button>
+      <button class="nav-tab" onclick="location.href='A-001-CategoryManagement.html'">カテゴリー管理</button>
+      <button class="nav-tab active" onclick="location.href='A-002-GenreManagement.html'">ジャンル管理</button>
+      <button class="nav-tab" onclick="location.href='A-003-UnitManagement.html'">ユニット管理</button>
+      <button class="nav-tab" onclick="location.href='A-004-PartsManagement.html'">パーツ管理</button>
+      <button class="nav-tab" onclick="location.href='A-005-AccountSettings.html'">アカウント設定</button>
+      <button class="nav-tab" onclick="location.href='A-006-QRCode.html'">QRコード</button>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1 class="page-title">ジャンル管理</h1>
+      <button class="add-button" onclick="handleAdd()">+ 新規ジャンル追加</button>
+    </div>
+
+    <!-- Category Selector -->
+    <div class="category-selector">
+      <label for="categorySelect">カテゴリー選択:</label>
+      <select id="categorySelect" onchange="handleCategoryChange()">
+        <option value="GT3-048">GT3-048 - レーシングカー</option>
+        <option value="GT3-049">GT3-049 - スポーツカー</option>
+        <option value="GT3-050">GT3-050 - クラシックカー</option>
+        <option value="GT3-051">GT3-051 - オフロードカー</option>
+        <option value="GT3-052">GT3-052 - ラグジュアリーカー</option>
+        <option value="GT3-053">GT3-053 - エレクトリックカー</option>
+      </select>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>ジャンルID</th>
+            <th>ジャンル名</th>
+            <th>所属カテゴリー</th>
+            <th>ユニット数</th>
+            <th>作成日</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="center"><img class="thumbnail" src="https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=60&h=60&fit=crop" alt="エンジン"></td>
+            <td>GNR-001</td>
+            <td>エンジン</td>
+            <td>GT3-048</td>
+            <td class="center">3</td>
+            <td class="center">2025-01-20</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-edit" onclick="handleEdit('GNR-001')">編集</button>
+                <button class="btn-delete" onclick="handleDelete('GNR-001')">削除</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="center"><img class="thumbnail" src="https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=60&h=60&fit=crop" alt="トランスミッション"></td>
+            <td>GNR-002</td>
+            <td>トランスミッション</td>
+            <td>GT3-048</td>
+            <td class="center">4</td>
+            <td class="center">2025-01-21</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-edit" onclick="handleEdit('GNR-002')">編集</button>
+                <button class="btn-delete" onclick="handleDelete('GNR-002')">削除</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="center"><img class="thumbnail" src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=60&h=60&fit=crop" alt="サスペンション"></td>
+            <td>GNR-003</td>
+            <td>サスペンション</td>
+            <td>GT3-048</td>
+            <td class="center">2</td>
+            <td class="center">2025-01-22</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-edit" onclick="handleEdit('GNR-003')">編集</button>
+                <button class="btn-delete" onclick="handleDelete('GNR-003')">削除</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="center"><img class="thumbnail" src="https://images.unsplash.com/photo-1528164344705-47542687000d?w=60&h=60&fit=crop" alt="ブレーキ"></td>
+            <td>GNR-004</td>
+            <td>ブレーキ</td>
+            <td>GT3-048</td>
+            <td class="center">2</td>
+            <td class="center">2025-01-23</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-edit" onclick="handleEdit('GNR-004')">編集</button>
+                <button class="btn-delete" onclick="handleDelete('GNR-004')">削除</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add Genre Modal -->
+  <div id="addGenreModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">新規ジャンル追加</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="addGenreForm">
+          <div class="form-group">
+            <label for="modalCategory">所属カテゴリー</label>
+            <select id="modalCategory" name="category" required>
+              <option value="GT3-048">GT3-048 - レーシングカー</option>
+              <option value="GT3-049">GT3-049 - スポーツカー</option>
+              <option value="GT3-050">GT3-050 - クラシックカー</option>
+              <option value="GT3-051">GT3-051 - オフロードカー</option>
+              <option value="GT3-052">GT3-052 - ラグジュアリーカー</option>
+              <option value="GT3-053">GT3-053 - エレクトリックカー</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="genreId">ジャンルID</label>
+            <input type="text" id="genreId" name="genreId" placeholder="例: GNR-001" required>
+          </div>
+
+          <div class="form-group">
+            <label for="genreName">ジャンル名</label>
+            <input type="text" id="genreName" name="genreName" placeholder="例: エンジン" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" onclick="closeModal()">キャンセル</button>
+        <button type="submit" class="btn-submit" onclick="submitGenreForm()">追加</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ジャンルデータ（カテゴリーごと）
+    const genreData = {
+      'GT3-048': [
+        { id: 'GNR-001', name: 'エンジン', image: 'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=60&h=60&fit=crop', units: 3, date: '2025-01-20' },
+        { id: 'GNR-002', name: 'トランスミッション', image: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=60&h=60&fit=crop', units: 4, date: '2025-01-21' },
+        { id: 'GNR-003', name: 'サスペンション', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=60&h=60&fit=crop', units: 2, date: '2025-01-22' },
+        { id: 'GNR-004', name: 'ブレーキ', image: 'https://images.unsplash.com/photo-1528164344705-47542687000d?w=60&h=60&fit=crop', units: 2, date: '2025-01-23' }
+      ],
+      'GT3-049': [
+        { id: 'GNR-005', name: 'エアロパーツ', image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=60&h=60&fit=crop', units: 5, date: '2025-02-01' },
+        { id: 'GNR-006', name: 'インテリア', image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=60&h=60&fit=crop', units: 3, date: '2025-02-02' },
+        { id: 'GNR-007', name: 'ホイール', image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=60&h=60&fit=crop', units: 4, date: '2025-02-03' }
+      ],
+      'GT3-050': [
+        { id: 'GNR-008', name: 'クラシックエンジン', image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=60&h=60&fit=crop', units: 2, date: '2025-03-01' },
+        { id: 'GNR-009', name: 'レザーシート', image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=60&h=60&fit=crop', units: 1, date: '2025-03-02' }
+      ],
+      'GT3-051': [
+        { id: 'GNR-010', name: 'オフロードタイヤ', image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=60&h=60&fit=crop', units: 6, date: '2025-04-01' },
+        { id: 'GNR-011', name: 'サスペンション強化', image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=60&h=60&fit=crop', units: 3, date: '2025-04-02' }
+      ],
+      'GT3-052': [
+        { id: 'GNR-012', name: 'プレミアム内装', image: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=60&h=60&fit=crop', units: 4, date: '2025-05-01' },
+        { id: 'GNR-013', name: 'エンターテイメントシステム', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=60&h=60&fit=crop', units: 2, date: '2025-05-02' }
+      ],
+      'GT3-053': [
+        { id: 'GNR-014', name: 'バッテリーパック', image: 'https://images.unsplash.com/photo-1528164344705-47542687000d?w=60&h=60&fit=crop', units: 3, date: '2025-06-01' },
+        { id: 'GNR-015', name: '充電システム', image: 'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=60&h=60&fit=crop', units: 2, date: '2025-06-02' }
+      ]
+    };
+
+    // カテゴリー変更時の処理
+    function handleCategoryChange() {
+      const categorySelect = document.getElementById('categorySelect');
+      const selectedCategory = categorySelect.value;
+      const genres = genreData[selectedCategory] || [];
+
+      // テーブルボディを取得
+      const tbody = document.querySelector('table tbody');
+
+      // テーブルをクリア
+      tbody.innerHTML = '';
+
+      // 選択されたカテゴリーのジャンルを表示
+      genres.forEach(genre => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="center"><img class="thumbnail" src="${genre.image}" alt="${genre.name}"></td>
+          <td>${genre.id}</td>
+          <td>${genre.name}</td>
+          <td>${selectedCategory}</td>
+          <td class="center">${genre.units}</td>
+          <td class="center">${genre.date}</td>
+          <td>
+            <div class="action-buttons">
+              <button class="btn-edit" onclick="handleEdit('${genre.id}')">編集</button>
+              <button class="btn-delete" onclick="handleDelete('${genre.id}')">削除</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // モーダルを開く
+    function handleAdd() {
+      const modal = document.getElementById('addGenreModal');
+      const categorySelect = document.getElementById('categorySelect');
+      const modalCategory = document.getElementById('modalCategory');
+
+      // 現在選択中のカテゴリーを自動入力
+      modalCategory.value = categorySelect.value;
+
+      // モーダルを表示
+      modal.classList.add('show');
+    }
+
+    // モーダルを閉じる
+    function closeModal() {
+      const modal = document.getElementById('addGenreModal');
+      modal.classList.remove('show');
+
+      // フォームをリセット
+      document.getElementById('addGenreForm').reset();
+    }
+
+    // フォーム送信
+    function submitGenreForm() {
+      const form = document.getElementById('addGenreForm');
+
+      if (form.checkValidity()) {
+        const category = document.getElementById('modalCategory').value;
+        const genreName = document.getElementById('genreName').value;
+        const genreId = document.getElementById('genreId').value;
+
+        alert('新規ジャンル追加（デモ）\n\nカテゴリー: ' + category + '\nジャンル名: ' + genreName + '\nジャンルID: ' + genreId + '\n\n実際の実装では、データベースに保存されます。');
+
+        closeModal();
+      } else {
+        form.reportValidity();
+      }
+    }
+
+    // モーダルの外側をクリックしたら閉じる
+    window.onclick = function(event) {
+      const modal = document.getElementById('addGenreModal');
+      if (event.target === modal) {
+        closeModal();
+      }
+    }
+
+    function handleEdit(id) {
+      alert('ジャンル編集（デモ）\n\nジャンルID: ' + id + '\n\n編集フォームを表示します。');
+    }
+
+    function handleDelete(id) {
+      if (confirm('ジャンル「' + id + '」を削除しますか？\n\n※このジャンルに紐づくユニット・パーツも削除されます。')) {
+        alert('ジャンル「' + id + '」を削除しました（デモ）');
+      }
+    }
+
+    function handleLogout() {
+      if (confirm('ログアウトしますか？')) {
+        alert('ログアウトしました（デモ）\n\nログインページへ戻ります。');
+      }
+    }
+  </script>
+</body>
+</html>

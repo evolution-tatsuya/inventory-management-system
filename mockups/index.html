@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>モックアップギャラリー - 在庫管理システム</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: white;
+      text-align: center;
+      font-size: 42px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 50px;
+    }
+
+    .section {
+      margin-bottom: 50px;
+    }
+
+    .section-title {
+      color: white;
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-id {
+      color: #667eea;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .card-title {
+      color: #333;
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .card-description {
+      color: #666;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+
+    .badge-admin {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .badge-user {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .update-info {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 40px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .update-info h2 {
+      color: #667eea;
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .update-info ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .update-info li {
+      color: #444;
+      font-size: 15px;
+      line-height: 1.8;
+      padding-left: 24px;
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    .update-info li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #10b981;
+      font-weight: 700;
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 32px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📋 モックアップギャラリー</h1>
+    <p class="subtitle">在庫管理システム - Inventory Management System</p>
+
+    <div class="update-info">
+      <h2>📅 最新更新情報 (2025-11-17)</h2>
+      <ul>
+        <li>全管理ページ（A-001〜A-004）に新規追加モーダルを実装</li>
+        <li>カスケード型ドロップダウン機能追加（親選択で子が自動更新）</li>
+        <li>ページ選択状態の自動入力機能実装</li>
+        <li>A-001, A-002, A-003のテーブルを中央揃えに統一</li>
+        <li>全管理ページのフィールド順序を「ID → 名前」に統一</li>
+        <li>A-003のユニットIDを「UNIT CODE」に変更</li>
+        <li>A-004のユニット選択値を新形式（3205等）に統一</li>
+        <li>命名規則の統一化完了</li>
+      </ul>
+    </div>
+
+    <!-- 管理者向けページ -->
+    <div class="section">
+      <h2 class="section-title">🔐 管理者向けページ (Admin Pages)</h2>
+      <div class="cards">
+        <a href="A-000-Dashboard.html" class="card">
+          <div class="card-id">A-000</div>
+          <div class="card-title">ダッシュボード</div>
+          <div class="card-description">管理画面のホーム。各管理ページへのクイックアクセス。</div>
+          <span class="badge badge-admin">管理者</span>
+        </a>
+
+        <a href="A-001-CategoryManagement.html" class="card">
+          <div class="card-id">A-001</div>
+          <div class="card-title">カテゴリー管理</div>
+          <div class="card-description">車両カテゴリーの追加・編集・削除。新規追加モーダル実装済み。</div>
+          <span class="badge badge-admin">管理者</span>
+        </a>
+
+        <a href="A-002-GenreManagement.html" class="card">
+          <div class="card-id">A-002</div>
+          <div class="card-title">ジャンル管理</div>
+          <div class="card-description">ジャンルの追加・編集・削除。カテゴリー自動入力モーダル実装済み。</div>
+          <span class="badge badge-admin">管理者</span>
+        </a>
+
+        <a href="A-003-UnitManagement.html" class="card">
+          <div class="card-id">A-003</div>
+          <div class="card-title">ユニット管理</div>
+          <div class="card-description">ユニットの追加・編集・削除。カスケード型モーダル実装済み（UNIT CODE対応）。</div>
+          <span class="badge badge-admin">管理者</span>
+        </a>
+
+        <a href="A-004-PartsManagement.html" class="card">
+          <div class="card-id">A-004</div>
+          <div class="card-title">パーツ管理</div>
+          <div class="card-description">パーツの追加・編集・削除・在庫管理。3段階カスケードモーダル実装済み。</div>
+          <span class="badge badge-admin">管理者</span>
+        </a>
+
+        <a href="A-005-AccountSettings.html" class="card">
+          <div class="card-id">A-005</div>
+          <div class="card-title">アカウント設定</div>
+          <div class="card-description">管理者アカウント情報の変更・パスワード変更。</div>
+          <span class="badge badge-admin">管理者</span>
+        </a>
+
+        <a href="A-006-QRCode.html" class="card">
+          <div class="card-id">A-006</div>
+          <div class="card-title">QRコード生成</div>
+          <div class="card-description">一般ユーザー向けページのQRコード生成・印刷。</div>
+          <span class="badge badge-admin">管理者</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 一般ユーザー向けページ -->
+    <div class="section">
+      <h2 class="section-title">👥 一般ユーザー向けページ (Public Pages)</h2>
+      <div class="cards">
+        <a href="P-001-Login.html" class="card">
+          <div class="card-id">P-001</div>
+          <div class="card-title">ログイン</div>
+          <div class="card-description">管理者ログインページ。</div>
+          <span class="badge badge-user">一般</span>
+        </a>
+
+        <a href="P-002-CategoryList.html" class="card">
+          <div class="card-id">P-002</div>
+          <div class="card-title">カテゴリー一覧</div>
+          <div class="card-description">車両カテゴリーのカード一覧表示。</div>
+          <span class="badge badge-user">一般</span>
+        </a>
+
+        <a href="P-003-GenreList.html" class="card">
+          <div class="card-id">P-003</div>
+          <div class="card-title">ジャンル一覧</div>
+          <div class="card-description">選択されたカテゴリー内のジャンル一覧。</div>
+          <span class="badge badge-user">一般</span>
+        </a>
+
+        <a href="P-004-UnitList.html" class="card">
+          <div class="card-id">P-004</div>
+          <div class="card-title">ユニット一覧</div>
+          <div class="card-description">選択されたジャンル内のユニット一覧。Unit Code表示対応。</div>
+          <span class="badge badge-user">一般</span>
+        </a>
+
+        <a href="P-005-PartsList.html" class="card">
+          <div class="card-id">P-005</div>
+          <div class="card-title">パーツ一覧</div>
+          <div class="card-description">選択されたユニット内のパーツ詳細一覧。画像表示切替・位置変更機能付き。</div>
+          <span class="badge badge-user">一般</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

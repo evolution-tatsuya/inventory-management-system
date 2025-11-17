@@ -188,7 +188,8 @@ Genre:
 | ユニット番号 | リスト内の割り振り番号（例: 4-1, 4-2） |
 | 品番 | Part No. |
 | 品名 | Part Name |
-| 数量 | Units |
+| 数量 | Units（必要数） |
+| 在庫数量 | Stock Quantity（現在の在庫数、PartMasterから取得） |
 | 備考 | 任意のメモ |
 | 収納ケース番号 | 保管場所 |
 | 発注日 | 発注した日付 |
@@ -216,13 +217,14 @@ Part:
     - unitNumber（必須）例: 4-1
     - partNumber（必須）品番
     - partName（必須）品名
+    - quantity（必須）数量（必要数）
     - storageCase（任意）収納ケース番号
     - notes（任意）備考
     - orderDate（任意）発注日
     - expectedArrivalDate（任意）入荷予定日
     - imageUrl（任意）Cloudinary URL
   在庫情報:
-    - quantity（必須）在庫数（PartMasterから取得）
+    - stockQuantity（PartMasterから取得）現在の在庫数
   メタ情報:
     - 作成日時
     - 更新日時
@@ -458,6 +460,8 @@ Part:
     - unitNumber: ユニット番号（4-1など）
     - partNumber: 品番
     - partName: 品名
+    - quantity: 数量（必要数）
+    - stockQuantity: 在庫数量（PartMasterから取得）
     - storageCase: 収納ケース番号
     - notes: 備考
     - orderDate: 発注日
