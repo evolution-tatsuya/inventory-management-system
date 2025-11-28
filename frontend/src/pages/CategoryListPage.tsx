@@ -2,42 +2,36 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Card,
-  CardActionArea,
   Button,
-  AppBar,
-  Toolbar,
-  Stack,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
+import { Search } from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
+import { categoriesApi } from '@/services/api';
 
 // ============================================================
 // CategoryListPage
 // ============================================================
 // カテゴリー選択ページ（P-002）
-// - カスタムヘッダー（ログアウトボタン付き）
-// - カテゴリーカードのグリッド表示（4カラム）
-// - 検索ボタン（中央下部）
+// - 紫グラデーション背景
+// - 白い丸角コンテンツエリア
+// - カテゴリーカードのグリッド表示（3カラム）
 // ============================================================
-
-// モックデータ
-const MOCK_CATEGORIES = [
-  { id: '1', name: 'GT3-048', image: 'https://picsum.photos/seed/gt3-048/400/300' },
-  { id: '2', name: 'GT3-049', image: 'https://picsum.photos/seed/gt3-049/400/300' },
-  { id: '3', name: '991 GT3 RS', image: 'https://picsum.photos/seed/991gt3rs/400/300' },
-  { id: '4', name: 'Cayman GT4', image: 'https://picsum.photos/seed/cayman/400/300' },
-];
 
 export const CategoryListPage = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
 
+  // カテゴリー一覧取得
+  const { data: categories = [], isLoading, error } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoriesApi.getCategories(),
+  });
+
   const handleCategoryClick = (categoryId: string) => {
     navigate(`/categories/${categoryId}/genres`);
-  };
-
-  const handleSearchClick = () => {
-    navigate('/search');
   };
 
   const handleLogout = async () => {
@@ -50,9 +44,8 @@ export const CategoryListPage = () => {
       sx={{
         minHeight: '100vh',
         width: '100vw',
-        backgroundColor: '#f5f5f5',
-        display: 'flex',
-        flexDirection: 'column',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '20px',
         position: 'fixed',
         top: 0,
         left: 0,
@@ -62,134 +55,247 @@ export const CategoryListPage = () => {
       }}
     >
       {/* ヘッダー */}
-      <AppBar position="static" elevation={0} sx={{ backgroundColor: '#3949ab', width: 'calc(100% - 48px)', mt: 6, mx: 3 }}>
-        <Toolbar sx={{ justifyContent: 'center', position: 'relative' }}>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>
-            カテゴリー
-          </Typography>
+      <Box
+        sx={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: { xs: '16px 20px', md: '20px 30px' },
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '30px',
+          flexDirection: { xs: 'column', md: 'row' },
+          gap: { xs: '12px', md: 0 },
+          maxWidth: '1200px',
+          margin: '0 auto 30px auto',
+          width: '100%',
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: { xs: '18px', md: '22px' },
+            fontWeight: 600,
+            color: '#667eea',
+            letterSpacing: '0.5px',
+          }}
+        >
+          在庫管理システム - Inventory Management System
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
-            color="inherit"
+            onClick={() => navigate('/search')}
+            startIcon={<Search />}
+            sx={{
+              background: 'rgba(102, 126, 234, 0.1)',
+              border: '2px solid #667eea',
+              color: '#667eea',
+              padding: '10px 24px',
+              borderRadius: '8px',
+              fontSize: '15px',
+              fontWeight: 600,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                background: '#667eea',
+                color: 'white',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+              },
+            }}
+          >
+            検索
+          </Button>
+          <Button
             onClick={handleLogout}
-            sx={{ color: '#ffffff', position: 'absolute', right: 16 }}
+            sx={{
+              background: 'rgba(102, 126, 234, 0.1)',
+              border: '2px solid #667eea',
+              color: '#667eea',
+              padding: '10px 24px',
+              borderRadius: '8px',
+              fontSize: '15px',
+              fontWeight: 600,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                background: '#667eea',
+                color: 'white',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+              },
+            }}
           >
             ログアウト
           </Button>
-        </Toolbar>
-      </AppBar>
+        </Box>
+      </Box>
 
       {/* メインコンテンツ */}
       <Box
         sx={{
-          flexGrow: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'flex-start',
+          background: 'white',
+          borderRadius: '20px',
+          padding: { xs: '30px 20px', md: '40px' },
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+          maxWidth: '1200px',
+          margin: '0 auto',
           width: '100%',
-          pt: 6,
-          pb: 6,
-          px: 3,
         }}
       >
-        {/* カテゴリーリスト（縦並び） */}
-        <Box sx={{ width: '100%', maxWidth: 1200, mb: 6 }}>
-          <Stack spacing={3}>
-            {MOCK_CATEGORIES.map((category) => (
+        {/* ページヘッダー */}
+        <Box
+          sx={{
+            textAlign: 'center',
+            marginBottom: '40px',
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: { xs: '1.8rem', md: '2.5rem' },
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              marginBottom: '10px',
+            }}
+          >
+            カテゴリー一覧
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: '1rem',
+              color: '#666',
+            }}
+          >
+            管理するカテゴリーを選択してください
+          </Typography>
+        </Box>
+
+        {/* ローディング表示 */}
+        {isLoading && (
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '400px',
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* エラー表示 */}
+        {error && (
+          <Box sx={{ marginBottom: '20px' }}>
+            <Alert severity="error">カテゴリーデータの取得に失敗しました</Alert>
+          </Box>
+        )}
+
+        {/* カテゴリーグリッド */}
+        {!isLoading && !error && (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(3, 1fr)',
+              },
+              gap: { xs: '15px', md: '20px' },
+              marginBottom: '20px',
+            }}
+          >
+            {categories.map((category) => (
               <Box
                 key={category.id}
                 onClick={() => handleCategoryClick(category.id)}
                 sx={{
-                  display: 'flex',
-                  alignItems: 'flex-end',
+                  background: 'white',
+                  border: '2px solid #e0e0e0',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease',
                   cursor: 'pointer',
-                  transition: 'transform 0.3s ease',
-                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '120px',
                   '&:hover': {
-                    transform: 'translateX(8px)',
+                    transform: 'translateY(-5px)',
+                    boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
+                    borderColor: '#667eea',
                   },
                 }}
               >
-                {/* 青いブロック（左端） */}
+                {/* カテゴリー画像 */}
                 <Box
+                  component="img"
+                  src={
+                    category.imageUrl ||
+                    'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=300&h=300&fit=crop'
+                  }
+                  alt={category.name}
                   sx={{
-                    width: 40,
-                    height: 160,
-                    backgroundColor: '#2196F3',
+                    width: '120px',
+                    height: '120px',
+                    objectFit: 'cover', // アップロード時に正方形にトリミング済み
                     flexShrink: 0,
-                    position: 'relative',
-                    zIndex: 1,
                   }}
                 />
 
-                {/* 画像エリア */}
-                <Box
-                  sx={{
-                    width: 220,
-                    height: 160,
-                    borderRadius: 0,
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                    backgroundImage: category.image ? `url(${category.image})` : 'none',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundColor: '#ffffff',
-                    position: 'relative',
-                    zIndex: 2,
-                    marginLeft: '-40px',
-                  }}
-                />
-
-                {/* グラデーションバー（斜めカット） */}
+                {/* カテゴリー情報 */}
                 <Box
                   sx={{
                     flex: 1,
-                    height: 70,
-                    background: 'linear-gradient(90deg, #2196F3 0%, #9C27B0 50%, #E91E63 100%)',
+                    padding: { xs: '15px', md: '20px' },
                     display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
                     alignItems: 'center',
-                    paddingLeft: '210px',
-                    paddingRight: '50px',
-                    marginLeft: '-150px',
-                    marginRight: '80px',
-                    marginBottom: '-10px',
-                    clipPath: 'polygon(30px 0, 100% 0, calc(100% - 30px) 100%, 0 100%)',
-                    position: 'relative',
-                    zIndex: 1,
+                    gap: '4px',
                   }}
                 >
+                  {/* カテゴリーID */}
+                  {category.categoryId && (
+                    <Typography
+                      sx={{
+                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.4rem' },
+                        fontWeight: 700,
+                        color: '#333',
+                      }}
+                    >
+                      {category.categoryId}
+                    </Typography>
+                  )}
+
+                  {/* カテゴリー名 */}
                   <Typography
-                    variant="h4"
                     sx={{
-                      fontWeight: 600,
-                      color: '#ffffff',
-                      letterSpacing: 2,
+                      fontSize: { xs: '0.75rem', sm: '0.85rem' },
+                      fontWeight: 500,
+                      color: '#667eea',
+                      letterSpacing: '0.5px',
                     }}
                   >
                     {category.name}
                   </Typography>
+
+                  {/* サブタイトル */}
+                  {category.subtitle && (
+                    <Typography
+                      sx={{
+                        fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                        color: '#666',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      {category.subtitle}
+                    </Typography>
+                  )}
                 </Box>
               </Box>
             ))}
-          </Stack>
-        </Box>
-
-        {/* 検索ボタン（中央下部） */}
-        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSearchClick}
-            size="large"
-            sx={{
-              px: 6,
-              py: 1.5,
-              fontSize: '1.1rem',
-              fontWeight: 600,
-            }}
-          >
-            検索ページへ
-          </Button>
-        </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );

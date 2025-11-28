@@ -19,7 +19,7 @@ interface ProtectedRouteProps {
 // ============================================================
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { admin, loading } = useAuth();
+  const { account, userType, loading } = useAuth();
 
   // ローディング中
   if (loading) {
@@ -38,10 +38,16 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   // 未認証の場合は/loginにリダイレクト
-  if (!admin) {
+  if (!account || !userType) {
     return <Navigate to="/login" replace />;
   }
 
-  // 認証済みの場合は子要素を表示
+  // 管理者が一般ページに来た場合は/admin/dashboardにリダイレクト
+  if (userType === 'admin') {
+    console.warn('⚠️ 管理者が一般ページにアクセスしようとしました。/admin/dashboardにリダイレクトします。');
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  // 一般ユーザーの場合は子要素を表示
   return <>{children}</>;
 };

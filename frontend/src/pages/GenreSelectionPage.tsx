@@ -7,9 +7,12 @@ import {
   Stack,
   Button,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import { ArrowBack, ChevronRight } from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
 import { MainLayout } from '@/layouts/MainLayout';
+import { genresApi, categoriesApi } from '@/services/api';
 
 // ============================================================
 // GenreSelectionPage (Admin)
@@ -19,46 +22,25 @@ import { MainLayout } from '@/layouts/MainLayout';
 // - ジャンル選択 → パーツ管理ページへ遷移
 // ============================================================
 
-const GENRES: Record<string, Array<{ id: string; name: string }>> = {
-  '1': [
-    { id: '1', name: 'エンジン' },
-    { id: '2', name: 'トランスミッション' },
-    { id: '3', name: 'サスペンション' },
-    { id: '4', name: 'ブレーキ' },
-  ],
-  '2': [
-    { id: '5', name: 'エンジン' },
-    { id: '6', name: 'トランスミッション' },
-    { id: '7', name: 'サスペンション' },
-    { id: '8', name: 'ブレーキ' },
-  ],
-  '3': [
-    { id: '9', name: 'エンジン' },
-    { id: '10', name: 'トランスミッション' },
-    { id: '11', name: 'サスペンション' },
-    { id: '12', name: 'ブレーキ' },
-  ],
-  '4': [
-    { id: '13', name: 'エンジン' },
-    { id: '14', name: 'トランスミッション' },
-    { id: '15', name: 'サスペンション' },
-    { id: '16', name: 'ブレーキ' },
-  ],
-};
-
-const CATEGORY_NAMES: Record<string, string> = {
-  '1': 'GT3-048',
-  '2': 'GT3-049',
-  '3': '991 GT3 RS',
-  '4': 'Cayman GT4',
-};
-
 export const GenreSelectionPage = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams<{ categoryId: string }>();
 
-  const genres = categoryId ? GENRES[categoryId] || [] : [];
-  const categoryName = categoryId ? CATEGORY_NAMES[categoryId] || 'カテゴリー' : 'カテゴリー';
+  // ジャンル一覧取得
+  const { data: genres, isLoading: genresLoading, error: genresError } = useQuery({
+    queryKey: ['genres', categoryId],
+    queryFn: () => genresApi.getGenres(categoryId!),
+    enabled: !!categoryId,
+  });
+
+  // カテゴリー情報取得（カテゴリー名表示用）
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoriesApi.getCategories(),
+  });
+
+  const category = categories?.find((c) => c.id === categoryId);
+  const categoryName = category?.name || 'カテゴリー';
 
   const handleGenreClick = (genreId: string) => {
     navigate(`/admin/parts/${genreId}`);
@@ -81,55 +63,71 @@ export const GenreSelectionPage = () => {
           </Typography>
         </Box>
 
+        {/* ローディング状態 */}
+        {genresLoading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* エラー状態 */}
+        {genresError && (
+          <Alert severity="error" sx={{ mb: 3, maxWidth: 800 }}>
+            ジャンルの取得に失敗しました。再度お試しください。
+          </Alert>
+        )}
+
         {/* ジャンルが見つからない場合 */}
-        {genres.length === 0 && (
+        {!genresLoading && !genresError && genres && genres.length === 0 && (
           <Alert severity="warning" sx={{ mb: 3, maxWidth: 800 }}>
             このカテゴリーにはジャンルが登録されていません
           </Alert>
         )}
 
         {/* ジャンルリスト（横長リスト表示） */}
-        <Box sx={{ maxWidth: 800, mb: 4 }}>
-          <Stack spacing={2}>
-            {genres.map((genre) => (
-              <Card
-                key={genre.id}
-                elevation={1}
-                sx={{
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    boxShadow: 3,
-                    transform: 'translateX(4px)',
-                  },
-                }}
-              >
-                <CardActionArea
-                  onClick={() => handleGenreClick(genre.id)}
-                  sx={{ p: 2.5 }}
+        {!genresLoading && !genresError && genres && genres.length > 0 && (
+          <Box sx={{ maxWidth: 800, mb: 4 }}>
+            <Stack spacing={2}>
+              {genres.map((genre) => (
+                <Card
+                  key={genre.id}
+                  elevation={1}
+                  sx={{
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      boxShadow: 3,
+                      transform: 'translateX(4px)',
+                    },
+                  }}
                 >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
+                  <CardActionArea
+                    onClick={() => handleGenreClick(genre.id)}
+                    sx={{ p: 2.5 }}
                   >
-                    <Typography
-                      variant="h6"
+                    <Box
                       sx={{
-                        fontWeight: 600,
-                        color: 'text.primary',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                       }}
                     >
-                      {genre.name}
-                    </Typography>
-                    <ChevronRight sx={{ color: 'text.secondary' }} />
-                  </Box>
-                </CardActionArea>
-              </Card>
-            ))}
-          </Stack>
-        </Box>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 600,
+                          color: 'text.primary',
+                        }}
+                      >
+                        {genre.name}
+                      </Typography>
+                      <ChevronRight sx={{ color: 'text.secondary' }} />
+                    </Box>
+                  </CardActionArea>
+                </Card>
+              ))}
+            </Stack>
+          </Box>
+        )}
 
         {/* 戻るボタン */}
         <Box>

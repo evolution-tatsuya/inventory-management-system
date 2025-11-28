@@ -1,18 +1,23 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { AdminRoute } from '@/components/AdminRoute';
 import { LoginPage } from '@/pages/LoginPage';
+import { AdminLoginPage } from '@/pages/AdminLoginPage';
 import { CategoryListPage } from '@/pages/CategoryListPage';
-import { GenreListPage } from '@/pages/GenreListPage';
 import { PartsListPage } from '@/pages/PartsListPage';
 import { SearchPage } from '@/pages/SearchPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { CategoryManagementPage } from '@/pages/CategoryManagementPage';
 import { GenreManagementPage } from '@/pages/GenreManagementPage';
 import { PartsManagementPage } from '@/pages/PartsManagementPage';
+import { UnitManagementPage } from '@/pages/UnitManagementPage';
 import { DisplaySettingsPage } from '@/pages/DisplaySettingsPage';
 import { AccountSettingsPage } from '@/pages/AccountSettingsPage';
 import { CategorySelectionPage } from '@/pages/CategorySelectionPage';
 import { GenreSelectionPage } from '@/pages/GenreSelectionPage';
+import { QRCodePage } from '@/pages/QRCodePage';
+import { GenreListPage } from '@/pages/GenreListPage';
+import { UnitListPage } from '@/pages/UnitListPage';
 
 // ============================================================
 // App
@@ -28,6 +33,7 @@ function App() {
 
       {/* 公開ページ */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/admin/login" element={<AdminLoginPage />} />
 
       {/* 認証必須ページ */}
       <Route
@@ -49,7 +55,16 @@ function App() {
       />
 
       <Route
-        path="/genres/:genreId/parts"
+        path="/categories/:categoryId/genres/:genreId/units"
+        element={
+          <ProtectedRoute>
+            <UnitListPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/categories/:categoryId/genres/:genreId/units/:unitId/parts"
         element={
           <ProtectedRoute>
             <PartsListPage />
@@ -69,72 +84,90 @@ function App() {
       <Route
         path="/admin/dashboard"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <DashboardPage />
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
 
       <Route
         path="/admin/categories"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <CategoryManagementPage />
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
 
       <Route
         path="/admin/genres"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <GenreManagementPage />
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
 
       <Route
         path="/admin/parts/categories"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <CategorySelectionPage />
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
 
       <Route
         path="/admin/parts/categories/:categoryId/genres"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <GenreSelectionPage />
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
 
       <Route
-        path="/admin/parts/:genreId"
+        path="/admin/parts"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <PartsManagementPage />
-          </ProtectedRoute>
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/admin/units"
+        element={
+          <AdminRoute>
+            <UnitManagementPage />
+          </AdminRoute>
         }
       />
 
       <Route
         path="/admin/display-settings"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <DisplaySettingsPage />
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
 
       <Route
         path="/admin/account-settings"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <AccountSettingsPage />
-          </ProtectedRoute>
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/admin/qr"
+        element={
+          <AdminRoute>
+            <QRCodePage />
+          </AdminRoute>
         }
       />
 

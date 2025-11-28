@@ -274,7 +274,7 @@ export const ImageEditorDialog = ({
               min={0.3}
               max={3}
               step={0.1}
-              onChange={(e, value) => setScale(value as number)}
+              onChange={(_, value) => setScale(value as number)}
               valueLabelDisplay="auto"
               valueLabelFormat={(value) => `${Math.round(value * 100)}%`}
             />
@@ -288,7 +288,7 @@ export const ImageEditorDialog = ({
             <ToggleButtonGroup
               value={backgroundColor}
               exclusive
-              onChange={(e, value) => {
+              onChange={(_, value) => {
                 if (value !== null) {
                   setBackgroundColor(value);
                 }

@@ -5,9 +5,13 @@ import {
   Card,
   CardActionArea,
   Stack,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import { ChevronRight } from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
 import { MainLayout } from '@/layouts/MainLayout';
+import { categoriesApi } from '@/services/api';
 
 // ============================================================
 // CategorySelectionPage (Admin)
@@ -17,15 +21,14 @@ import { MainLayout } from '@/layouts/MainLayout';
 // - カテゴリー選択 → ジャンル選択ページへ遷移
 // ============================================================
 
-const CATEGORIES = [
-  { id: '1', name: 'GT3-048' },
-  { id: '2', name: 'GT3-049' },
-  { id: '3', name: '991 GT3 RS' },
-  { id: '4', name: 'Cayman GT4' },
-];
-
 export const CategorySelectionPage = () => {
   const navigate = useNavigate();
+
+  // カテゴリー一覧取得
+  const { data: categories, isLoading, error } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoriesApi.getCategories(),
+  });
 
   const handleCategoryClick = (categoryId: string) => {
     navigate(`/admin/parts/categories/${categoryId}/genres`);
@@ -44,48 +47,64 @@ export const CategorySelectionPage = () => {
           </Typography>
         </Box>
 
+        {/* ローディング状態 */}
+        {isLoading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* エラー状態 */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3, maxWidth: 800 }}>
+            カテゴリーの取得に失敗しました。再度お試しください。
+          </Alert>
+        )}
+
         {/* カテゴリーリスト（横長リスト表示） */}
-        <Box sx={{ maxWidth: 800 }}>
-          <Stack spacing={2}>
-            {CATEGORIES.map((category) => (
-              <Card
-                key={category.id}
-                elevation={1}
-                sx={{
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    boxShadow: 3,
-                    transform: 'translateX(4px)',
-                  },
-                }}
-              >
-                <CardActionArea
-                  onClick={() => handleCategoryClick(category.id)}
-                  sx={{ p: 2.5 }}
+        {!isLoading && !error && categories && (
+          <Box sx={{ maxWidth: 800 }}>
+            <Stack spacing={2}>
+              {categories.map((category) => (
+                <Card
+                  key={category.id}
+                  elevation={1}
+                  sx={{
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      boxShadow: 3,
+                      transform: 'translateX(4px)',
+                    },
+                  }}
                 >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
+                  <CardActionArea
+                    onClick={() => handleCategoryClick(category.id)}
+                    sx={{ p: 2.5 }}
                   >
-                    <Typography
-                      variant="h6"
+                    <Box
                       sx={{
-                        fontWeight: 600,
-                        color: 'text.primary',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                       }}
                     >
-                      {category.name}
-                    </Typography>
-                    <ChevronRight sx={{ color: 'text.secondary' }} />
-                  </Box>
-                </CardActionArea>
-              </Card>
-            ))}
-          </Stack>
-        </Box>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 600,
+                          color: 'text.primary',
+                        }}
+                      >
+                        {category.name}
+                      </Typography>
+                      <ChevronRight sx={{ color: 'text.secondary' }} />
+                    </Box>
+                  </CardActionArea>
+                </Card>
+              ))}
+            </Stack>
+          </Box>
+        )}
       </Box>
     </MainLayout>
   );

@@ -1,0 +1,177 @@
+// ============================================================
+// 階層型在庫管理システム - Prismaスキーマ
+// ============================================================
+// DATABASE_URL は .env.local から読み込み
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Admin: 管理者
+// ============================================================
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // bcryptでハッシュ化
+  name      String?  // 表示名（オプション）
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
+}
+
+// ============================================================
+// User: 一般ユーザー
+// ============================================================
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // bcryptでハッシュ化
+  name      String?  // 表示名（オプション）
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ============================================================
+// Category: カテゴリー
+// ============================================================
+model Category {
+  id              String   @id @default(cuid())
+  categoryId      String?  // カテゴリーID（ユーザー定義）
+  name            String   // 同名カテゴリーを許可
+  subtitle        String?  // サブタイトル
+  imageUrl        String?  // 画像URL
+  cropPositionX   Float?   @default(0.5) // 画像のクロップ位置X (0.0 ~ 1.0)
+  cropPositionY   Float?   @default(0.5) // 画像のクロップ位置Y (0.0 ~ 1.0)
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  genres          Genre[]
+
+  @@index([order])
+  @@map("categories")
+}
+
+// ============================================================
+// Genre: ジャンル
+// ============================================================
+model Genre {
+  id            String         @id @default(cuid())
+  genreId       String?        // ジャンルID（ユーザー定義）
+  categoryId    String
+  name          String
+  subtitle      String?        // サブタイトル
+  imageUrl      String?
+  cropPositionX Float?         @default(0.5) // 画像のクロップ位置X (0.0 ~ 1.0)
+  cropPositionY Float?         @default(0.5) // 画像のクロップ位置Y (0.0 ~ 1.0)
+  order         Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  units         Unit[]
+  parts         Part[]
+  diagramImage  DiagramImage[]
+
+  @@index([categoryId])
+  @@index([order])
+  @@map("genres")
+}
+
+// ============================================================
+// Unit: ユニット（新規追加）
+// ============================================================
+model Unit {
+  id            String   @id @default(cuid())
+  genreId       String
+  unitNumber    String
+  unitName      String
+  imageUrl      String?
+  cropPositionX Float?   @default(0.5) // 画像のクロップ位置X (0.0 ~ 1.0)
+  cropPositionY Float?   @default(0.5) // 画像のクロップ位置Y (0.0 ~ 1.0)
+  partsCount    Int      @default(0)
+  sortOrder     Int      @default(0)   // 並び順
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  genre         Genre    @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  parts         Part[]   // このユニットに属するパーツ
+
+  @@unique([genreId, unitNumber])
+  @@index([genreId])
+  @@index([sortOrder])
+  @@map("units")
+}
+
+// ============================================================
+// Part: パーツ
+// ============================================================
+model Part {
+  id                  String     @id @default(cuid())
+  genreId             String
+  unitId              String?    // ユニットID（外部キー）
+  unitNumber          String     // ユニット個別番号（手入力、例: "1-2-1"）
+  partNumber          String
+  partName            String
+  quantity            Int?       // 数量
+  price               Float?     // 価格
+  storageCase         String?
+  notes               String?
+  orderDate           DateTime?
+  expectedArrivalDate DateTime?
+  imageUrl            String?
+  cropPositionX       Float?     @default(0.5) // 画像のクロップ位置X (0.0 ~ 1.0)
+  cropPositionY       Float?     @default(0.5) // 画像のクロップ位置Y (0.0 ~ 1.0)
+  sortOrder           Int        @default(0)   // 並び順
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  genre               Genre      @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  unit                Unit?      @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  partMaster          PartMaster @relation(fields: [partNumber], references: [partNumber])
+
+  @@index([genreId])
+  @@index([unitId])
+  @@index([unitNumber])
+  @@index([partNumber])
+  @@index([storageCase])
+  @@index([sortOrder])
+  @@map("parts")
+}
+
+// ============================================================
+// PartMaster: 在庫マスター（品番ごとの在庫数を一元管理）
+// ============================================================
+model PartMaster {
+  id            String   @id @default(cuid())
+  partNumber    String   @unique
+  stockQuantity Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  parts         Part[]
+
+  @@index([partNumber])
+  @@map("part_masters")
+}
+
+// ============================================================
+// DiagramImage: 展開図
+// ============================================================
+model DiagramImage {
+  id        String   @id @default(cuid())
+  genreId   String
+  imageUrl  String
+  imageType String   @default("diagram")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  genre     Genre    @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@index([genreId])
+  @@map("diagram_images")
+}

@@ -10,16 +10,38 @@
 export interface Admin {
   id: string;
   email: string;
+  name?: string;           // 表示名（オプション）
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ============================================================
+// User（一般ユーザー）
+// ============================================================
+export interface User {
+  id: string;
+  email: string;
+  name?: string;           // 表示名（オプション）
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ============================================================
+// UserType（ユーザータイプ）
+// ============================================================
+export type UserType = 'admin' | 'user';
 
 // ============================================================
 // Category（カテゴリー）
 // ============================================================
 export interface Category {
   id: string;
+  categoryId?: string;     // カテゴリーID（ユーザー定義）
   name: string;
+  subtitle?: string;       // サブタイトル
+  imageUrl?: string;       // 画像URL
+  cropPositionX?: number;  // 画像のクロップ位置X (0.0 ~ 1.0)
+  cropPositionY?: number;  // 画像のクロップ位置Y (0.0 ~ 1.0)
   order: number;
   createdAt: Date;
   updatedAt: Date;
@@ -30,13 +52,34 @@ export interface Category {
 // ============================================================
 export interface Genre {
   id: string;
+  genreId?: string;        // ジャンルID（ユーザー定義）
   categoryId: string;
   name: string;
+  subtitle?: string;       // サブタイトル
   imageUrl?: string;
+  cropPositionX?: number;  // 画像のクロップ位置X (0.0 ~ 1.0)
+  cropPositionY?: number;  // 画像のクロップ位置Y (0.0 ~ 1.0)
   order: number;
   createdAt: Date;
   updatedAt: Date;
   category?: Category;
+}
+
+// ============================================================
+// Unit（ユニット）
+// ============================================================
+export interface Unit {
+  id: string;
+  genreId: string;
+  unitNumber: string;
+  unitName: string;
+  imageUrl?: string;
+  cropPositionX?: number;  // 画像のクロップ位置X (0.0 ~ 1.0)
+  cropPositionY?: number;  // 画像のクロップ位置Y (0.0 ~ 1.0)
+  partsCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  genre?: Genre;
 }
 
 // ============================================================
@@ -48,11 +91,15 @@ export interface Part {
   unitNumber: string;
   partNumber: string;
   partName: string;
+  quantity?: number;       // 数量
+  price?: number;          // 価格
   storageCase?: string;
   notes?: string;
-  orderDate?: Date;
-  expectedArrivalDate?: Date;
+  orderDate?: string;
+  expectedArrivalDate?: string;
   imageUrl?: string;
+  cropPositionX?: number;  // 画像のクロップ位置X (0.0 ~ 1.0)
+  cropPositionY?: number;  // 画像のクロップ位置Y (0.0 ~ 1.0)
   createdAt: Date;
   updatedAt: Date;
   genre?: Genre;
@@ -77,7 +124,7 @@ export interface DiagramImage {
   id: string;
   genreId: string;
   imageUrl: string;
-  imageType: 'diagram';
+  imageType: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -88,6 +135,7 @@ export interface DiagramImage {
 export interface LoginRequest {
   email: string;
   password: string;
+  userType?: 'admin' | 'user'; // デフォルト'admin'（後方互換性のため）
 }
 
 export interface AuthResponse {
@@ -132,10 +180,14 @@ export interface ExportOptions {
 // ============================================================
 export interface UpdateEmailRequest {
   newEmail: string;
-  currentPassword: string;
+  currentPassword?: string;
+  userType?: 'admin' | 'user';
+  accountId?: string;
 }
 
 export interface UpdatePasswordRequest {
   currentPassword: string;
   newPassword: string;
+  userType?: 'admin' | 'user';
+  accountId?: string;
 }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -12,14 +12,17 @@ import {
   InputAdornment,
   ToggleButtonGroup,
   ToggleButton,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import { ArrowBack, Search as SearchIcon, PictureAsPdf, TableChart, Description } from '@mui/icons-material';
 import { useAuth } from '@/hooks/useAuth';
+import { useMutation } from '@tanstack/react-query';
+import { searchApi } from '@/services/api';
+import type { SearchResult } from '@/types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
-import { GENRE_NAMES } from '@/data/partsData';
-import { usePartsStore } from '@/stores/partsStore';
 
 // ============================================================
 // SearchPage
@@ -38,85 +41,44 @@ import { usePartsStore } from '@/stores/partsStore';
 // - 戻るボタン（カテゴリー選択へ）
 // ============================================================
 
-// 検索アイテムの型定義
-interface SearchItem {
-  id: string;
-  type: 'genre' | 'part';
-  categoryId: string;
-  genreId: string;
-  name: string;
-  partNumber: string;
-  storageCase: string;
-  unitNumber: string;
-  quantity: number;
-  stockQuantity: number;
-  price: number;
-  image: string;
-}
-
-const TYPE_LABELS: Record<string, string> = {
-  genre: 'ジャンル',
-  part: 'パーツ',
-};
-
-type SearchFilter = 'all' | 'partNumber' | 'name' | 'genre' | 'storageCase';
+type SearchFilter = 'storageCase' | 'partNumber';
 
 export const SearchPage = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
 
-  // Zustandストア全体を監視（セレクター使用）
-  const partsData = usePartsStore((state) => state.partsData);
-
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchItem[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
-  const [searchFilter, setSearchFilter] = useState<SearchFilter>('all');
+  const [searchFilter, setSearchFilter] = useState<SearchFilter>('storageCase');
 
-  // Zustandストアから検索用アイテムリストを生成（partsDataが更新されると自動的に再生成）
-  const ALL_ITEMS = useMemo((): SearchItem[] => {
-    const items: SearchItem[] = [];
+  // 収納ケース番号検索用のMutation
+  const storageCaseSearchMutation = useMutation({
+    mutationFn: (caseNumber: string) => searchApi.searchByStorageCase(caseNumber),
+    onSuccess: (data) => {
+      setSearchResults(data);
+      setHasSearched(true);
+    },
+    onError: (error: Error) => {
+      console.error('Storage case search error:', error);
+      setSearchResults([]);
+      setHasSearched(true);
+    },
+  });
 
-    // ジャンルを追加
-    Object.entries(GENRE_NAMES).forEach(([genreId, genreName]) => {
-      items.push({
-        id: `g${genreId}`,
-        type: 'genre',
-        categoryId: '1',
-        genreId,
-        name: genreName,
-        partNumber: '',
-        storageCase: '',
-        unitNumber: '',
-        quantity: 0,
-        stockQuantity: 0,
-        price: 0,
-        image: `https://picsum.photos/seed/genre${genreId}/400/300`,
-      });
-    });
-
-    // Zustandストアからパーツを追加
-    Object.entries(partsData).forEach(([genreId, parts]) => {
-      parts.forEach((part) => {
-        items.push({
-          id: part.id,
-          type: 'part',
-          categoryId: '1',
-          genreId,
-          name: part.partName,
-          partNumber: part.partNumber,
-          storageCase: part.storageCase,
-          unitNumber: part.unitNumber,
-          quantity: part.quantity,
-          stockQuantity: part.stockQuantity,
-          price: part.price,
-          image: part.imageUrl,
-        });
-      });
-    });
-
-    return items;
-  }, [partsData]);
+  // 品番検索用のMutation
+  const partNumberSearchMutation = useMutation({
+    mutationFn: (partNumber: string) => searchApi.searchByPartNumber(partNumber),
+    onSuccess: (data) => {
+      setSearchResults(data);
+      setHasSearched(true);
+    },
+    onError: (error: Error) => {
+      console.error('Part number search error:', error);
+      setSearchResults([]);
+      setHasSearched(true);
+    },
+  });
 
   const handleSearch = () => {
     if (!searchQuery.trim()) {
@@ -125,40 +87,13 @@ export const SearchPage = () => {
       return;
     }
 
-    const query = searchQuery.toLowerCase();
-    let results: typeof ALL_ITEMS = [];
+    const query = searchQuery.trim();
 
-    if (searchFilter === 'all') {
-      // 全て：部分一致で全フィールド検索
-      results = ALL_ITEMS.filter((item) =>
-        item.name.toLowerCase().includes(query) ||
-        item.partNumber.toLowerCase().includes(query) ||
-        item.storageCase.toLowerCase().includes(query)
-      );
+    if (searchFilter === 'storageCase') {
+      storageCaseSearchMutation.mutate(query);
     } else if (searchFilter === 'partNumber') {
-      // 品番：部分一致
-      results = ALL_ITEMS.filter((item) =>
-        item.partNumber.toLowerCase().includes(query)
-      );
-    } else if (searchFilter === 'name') {
-      // 品名：部分一致
-      results = ALL_ITEMS.filter((item) =>
-        item.name.toLowerCase().includes(query)
-      );
-    } else if (searchFilter === 'genre') {
-      // ジャンル：部分一致
-      results = ALL_ITEMS.filter((item) =>
-        item.type === 'genre' && item.name.toLowerCase().includes(query)
-      );
-    } else if (searchFilter === 'storageCase') {
-      // ケース番号：完全一致
-      results = ALL_ITEMS.filter((item) =>
-        item.storageCase.toLowerCase() === query
-      );
+      partNumberSearchMutation.mutate(query);
     }
-
-    setSearchResults(results);
-    setHasSearched(true);
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
@@ -167,10 +102,10 @@ export const SearchPage = () => {
     }
   };
 
-  const handleItemClick = (item: typeof ALL_ITEMS[0]) => {
-    // ジャンルまたはパーツの詳細ページ（パーツリストページ）へ遷移
-    if (item.genreId) {
-      navigate(`/genres/${item.genreId}/parts`);
+  const handleItemClick = (result: SearchResult) => {
+    // パーツのジャンルページへ遷移
+    if (result.genre?.id) {
+      navigate(`/genres/${result.genre.id}/parts`);
     }
   };
 
@@ -184,9 +119,6 @@ export const SearchPage = () => {
   };
 
   const handleExportPDF = async () => {
-    // パーツのみをフィルタリング
-    const partsData = searchResults.filter(item => item.type === 'part');
-
     // 一時的なHTMLテーブルを作成
     const tableHTML = `
       <html>
@@ -228,7 +160,7 @@ export const SearchPage = () => {
           <h1>検索結果一覧 / Search Results</h1>
           <div class="info">
             <div>検索クエリ: ${searchQuery}</div>
-            <div>検索条件: ${searchFilter}</div>
+            <div>検索条件: ${searchFilter === 'storageCase' ? '収納ケース番号' : '品番'}</div>
             <div>結果件数: ${searchResults.length}件</div>
           </div>
           <table>
@@ -237,9 +169,7 @@ export const SearchPage = () => {
                 <th>ユニット番号<br/>Unit No.</th>
                 <th>品番<br/>Part No.</th>
                 <th>品名<br/>Part Name</th>
-                <th>数量<br/>Units</th>
                 <th>在庫数量<br/>Stock</th>
-                <th>価格<br/>List Price</th>
                 <th>収納ケース<br/>Storage</th>
                 <th>発注日<br/>Order Date</th>
                 <th>入荷予定日<br/>Arrival Date</th>
@@ -247,18 +177,16 @@ export const SearchPage = () => {
               </tr>
             </thead>
             <tbody>
-              ${partsData.map(item => `
+              ${searchResults.map(result => `
                 <tr>
-                  <td>${item.unitNumber}</td>
-                  <td>${item.partNumber}</td>
-                  <td>${item.name}</td>
-                  <td>${item.quantity}</td>
-                  <td class="${item.stockQuantity === 0 ? 'stock-zero' : ''}">${item.stockQuantity}</td>
-                  <td>¥${item.price.toLocaleString()}</td>
-                  <td>${item.storageCase}</td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
+                  <td>${result.part.unitNumber || ''}</td>
+                  <td>${result.part.partNumber || ''}</td>
+                  <td>${result.part.partName || ''}</td>
+                  <td class="${result.part.partMaster?.stockQuantity === 0 ? 'stock-zero' : ''}">${result.part.partMaster?.stockQuantity ?? 0}</td>
+                  <td>${result.part.storageCase || ''}</td>
+                  <td>${result.part.orderDate ? new Date(result.part.orderDate).toLocaleDateString('ja-JP') : ''}</td>
+                  <td>${result.part.expectedArrivalDate ? new Date(result.part.expectedArrivalDate).toLocaleDateString('ja-JP') : ''}</td>
+                  <td>${result.part.notes || ''}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -310,25 +238,20 @@ export const SearchPage = () => {
   };
 
   const handleExportCSV = () => {
-    // パーツのみをフィルタリング
-    const partsData = searchResults.filter(item => item.type === 'part');
-
     // TSVヘッダー（タブ区切り - 列が自動的に揃う）
-    const header = 'ユニット番号\t品番\t品名\t数量\t在庫数量\t価格\t収納ケース\t発注日\t入荷予定日\t備考\n';
+    const header = 'ユニット番号\t品番\t品名\t在庫数量\t収納ケース\t発注日\t入荷予定日\t備考\n';
 
     // TSVデータ（タブ区切り、数値を文字列として扱う）
-    const tsvData = partsData.map((item) => {
+    const tsvData = searchResults.map((result) => {
       return [
-        item.unitNumber,
-        item.partNumber,
-        item.name,
-        `="${item.quantity}"`, // ="値" 形式で文字列として扱う
-        `="${item.stockQuantity}"`, // ="値" 形式で文字列として扱う
-        `¥${item.price.toLocaleString()}`,
-        item.storageCase,
-        '', // 発注日
-        '', // 入荷予定日
-        '', // 備考
+        result.part.unitNumber || '',
+        result.part.partNumber || '',
+        result.part.partName || '',
+        `="${result.part.partMaster?.stockQuantity ?? 0}"`, // ="値" 形式で文字列として扱う
+        result.part.storageCase || '',
+        result.part.orderDate ? new Date(result.part.orderDate).toLocaleDateString('ja-JP') : '',
+        result.part.expectedArrivalDate ? new Date(result.part.expectedArrivalDate).toLocaleDateString('ja-JP') : '',
+        result.part.notes || '',
       ].join('\t'); // タブ区切り
     }).join('\n');
 
@@ -349,39 +272,32 @@ export const SearchPage = () => {
   };
 
   const handleExportExcel = () => {
-    // パーツのみをフィルタリング
-    const partsData = searchResults.filter(item => item.type === 'part');
-
     // ワークシートデータ作成（数値を文字列に変換して左寄せ）
     const wsData = [
       // ヘッダー行
-      ['ユニット番号', '品番', '品名', '数量', '在庫数量', '価格', '収納ケース', '発注日', '入荷予定日', '備考'],
+      ['ユニット番号', '品番', '品名', '在庫数量', '収納ケース', '発注日', '入荷予定日', '備考'],
       // データ行
-      ...partsData.map((item) => [
-        item.unitNumber,
-        item.partNumber,
-        item.name,
-        String(item.quantity), // 文字列に変換
-        String(item.stockQuantity), // 文字列に変換
-        `¥${item.price.toLocaleString()}`,
-        item.storageCase,
-        '', // 発注日
-        '', // 入荷予定日
-        '', // 備考
+      ...searchResults.map((result) => [
+        result.part.unitNumber || '',
+        result.part.partNumber || '',
+        result.part.partName || '',
+        String(result.part.partMaster?.stockQuantity ?? 0), // 文字列に変換
+        result.part.storageCase || '',
+        result.part.orderDate ? new Date(result.part.orderDate).toLocaleDateString('ja-JP') : '',
+        result.part.expectedArrivalDate ? new Date(result.part.expectedArrivalDate).toLocaleDateString('ja-JP') : '',
+        result.part.notes || '',
       ]),
     ];
 
     // ワークシート作成
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-    // 列幅設定（PDFと同じ比率で統一）
+    // 列幅設定
     ws['!cols'] = [
       { wch: 15 }, // ユニット番号
       { wch: 18 }, // 品番
       { wch: 40 }, // 品名
-      { wch: 10 }, // 数量
       { wch: 12 }, // 在庫数量
-      { wch: 15 }, // 価格
       { wch: 15 }, // 収納ケース
       { wch: 15 }, // 発注日
       { wch: 15 }, // 入荷予定日
@@ -401,9 +317,9 @@ export const SearchPage = () => {
         };
 
         // 在庫0のセルは赤字・太字（左寄せは維持）
-        if (C === 4 && R > 0) { // 在庫数量列（インデックス4）でヘッダー以外
-          const rowData = partsData[R - 1];
-          if (rowData && rowData.stockQuantity === 0) {
+        if (C === 3 && R > 0) { // 在庫数量列（インデックス3）でヘッダー以外
+          const result = searchResults[R - 1];
+          if (result && result.part.partMaster?.stockQuantity === 0) {
             ws[cellAddress].s = {
               font: { color: { rgb: 'D32F2F' }, bold: true },
               alignment: { horizontal: 'left', vertical: 'center' },
@@ -480,10 +396,11 @@ export const SearchPage = () => {
           <TextField
             fullWidth
             variant="outlined"
-            placeholder="品番、品名、ジャンル名、ケース番号で検索..."
+            placeholder={searchFilter === 'storageCase' ? '収納ケース番号で検索... (例: A-001)' : '品番で検索... (例: 12345-ABC-001)'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={handleKeyPress}
+            disabled={storageCaseSearchMutation.isPending || partNumberSearchMutation.isPending}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -518,6 +435,7 @@ export const SearchPage = () => {
                   setSearchFilter(newFilter);
                 }
               }}
+              disabled={storageCaseSearchMutation.isPending || partNumberSearchMutation.isPending}
               size="small"
               sx={{
                 backgroundColor: '#ffffff',
@@ -536,19 +454,17 @@ export const SearchPage = () => {
                 },
               }}
             >
-              <ToggleButton value="all">全て</ToggleButton>
+              <ToggleButton value="storageCase">収納ケース番号</ToggleButton>
               <ToggleButton value="partNumber">品番</ToggleButton>
-              <ToggleButton value="name">品名</ToggleButton>
-              <ToggleButton value="genre">ジャンル</ToggleButton>
-              <ToggleButton value="storageCase">ケース番号</ToggleButton>
             </ToggleButtonGroup>
           </Box>
 
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 2, alignItems: 'center' }}>
             <Button
               variant="contained"
               color="primary"
               onClick={handleSearch}
+              disabled={storageCaseSearchMutation.isPending || partNumberSearchMutation.isPending}
               size="large"
               sx={{
                 px: 6,
@@ -559,8 +475,20 @@ export const SearchPage = () => {
             >
               検索
             </Button>
+            {(storageCaseSearchMutation.isPending || partNumberSearchMutation.isPending) && (
+              <CircularProgress size={24} />
+            )}
           </Box>
         </Box>
+
+        {/* エラーメッセージ */}
+        {(storageCaseSearchMutation.isError || partNumberSearchMutation.isError) && (
+          <Box sx={{ width: '100%', maxWidth: 800, mb: 4 }}>
+            <Alert severity="error">
+              検索中にエラーが発生しました。もう一度お試しください。
+            </Alert>
+          </Box>
+        )}
 
         {/* 検索結果 */}
         {hasSearched && (
@@ -634,9 +562,9 @@ export const SearchPage = () => {
                   </Box>
                 </Box>
                 <Stack spacing={2}>
-                  {searchResults.map((item) => (
+                  {searchResults.map((result) => (
                     <Card
-                      key={item.id}
+                      key={result.part.id}
                       elevation={0}
                       sx={{
                         border: '2px solid #e0e0e0',
@@ -651,7 +579,7 @@ export const SearchPage = () => {
                       }}
                     >
                       <Box
-                        onClick={() => handleItemClick(item)}
+                        onClick={() => handleItemClick(result)}
                         sx={{
                           display: 'flex',
                           flexDirection: 'row',
@@ -662,7 +590,7 @@ export const SearchPage = () => {
                         }}
                       >
                         {/* 画像 */}
-                        {item.image && (
+                        {result.part.imageUrl && (
                           <Box
                             sx={{
                               width: 150,
@@ -671,7 +599,7 @@ export const SearchPage = () => {
                               overflow: 'hidden',
                               mr: 3,
                               flexShrink: 0,
-                              backgroundImage: `url(${item.image})`,
+                              backgroundImage: `url(${result.part.imageUrl})`,
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
                             }}
@@ -688,41 +616,36 @@ export const SearchPage = () => {
                               mb: 0.5,
                             }}
                           >
-                            {TYPE_LABELS[item.type]}
-                            {item.partNumber && ` / 品番: ${item.partNumber}`}
-                            {item.storageCase && ` / ケース: ${item.storageCase}`}
+                            {result.category.name} / {result.genre.name}
+                            {result.part.partNumber && ` / 品番: ${result.part.partNumber}`}
+                            {result.part.storageCase && ` / ケース: ${result.part.storageCase}`}
                           </Typography>
                           <Typography
                             variant="h6"
                             sx={{
                               fontWeight: 600,
                               color: '#212121',
-                              mb: item.type === 'part' ? 1 : 0,
+                              mb: 1,
                             }}
                           >
-                            {item.name}
+                            {result.part.partName}
                           </Typography>
-                          {item.type === 'part' && (
-                            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                              {item.unitNumber && (
-                                <Typography variant="body2" sx={{ color: '#424242' }}>
-                                  ユニット番号: {item.unitNumber}
-                                </Typography>
-                              )}
+                          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                            {result.part.unitNumber && (
                               <Typography variant="body2" sx={{ color: '#424242' }}>
-                                数量: {item.quantity}
+                                ユニット番号: {result.part.unitNumber}
                               </Typography>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  color: item.stockQuantity === 0 ? '#d32f2f' : '#424242',
-                                  fontWeight: item.stockQuantity === 0 ? 600 : 400,
-                                }}
-                              >
-                                在庫: {item.stockQuantity}
-                              </Typography>
-                            </Box>
-                          )}
+                            )}
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: result.part.partMaster?.stockQuantity === 0 ? '#d32f2f' : '#424242',
+                                fontWeight: result.part.partMaster?.stockQuantity === 0 ? 600 : 400,
+                              }}
+                            >
+                              在庫: {result.part.partMaster?.stockQuantity ?? 0}
+                            </Typography>
+                          </Box>
                         </Box>
                       </Box>
                     </Card>

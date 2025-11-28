@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 // ============================================================
 
 export const Header = () => {
-  const { admin, logout } = useAuth();
+  const { account, logout } = useAuth();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -43,9 +43,9 @@ export const Header = () => {
   return (
     <>
       <IconButton color="inherit" onClick={handleMenuOpen}>
-        {admin ? (
+        {account ? (
           <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-            {admin.email.charAt(0).toUpperCase()}
+            {account.email.charAt(0).toUpperCase()}
           </Avatar>
         ) : (
           <AccountCircle />

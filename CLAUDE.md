@@ -161,6 +161,11 @@ type:
     - POST /api/admin/images/upload - 画像アップロード（Cloudinary）
     - DELETE /api/admin/images/:id - 画像削除
 
+  展開図:
+    - GET /api/genres/:genreId/diagram - ジャンルの展開図取得
+    - PUT /api/admin/genres/:genreId/diagram - 展開図作成/更新
+    - DELETE /api/admin/genres/:genreId/diagram - 展開図削除
+
   アカウント:
     - PUT /api/admin/account/email - メールアドレス変更
     - PUT /api/admin/account/password - パスワード変更
@@ -307,6 +312,8 @@ Papa Parse:
   - 1箇所で変更すると全て自動反映
   - 別カテゴリーには影響しない
   - PartMasterが唯一の真実
+  - 在庫数0の場合は赤字表示（管理ページ）
+  - パーツダイアログ内で在庫数の編集可能（+/-ボタン付き）
 
 画像管理:
   - ジャンル画像: 各ジャンルに1枚（任意）
@@ -319,6 +326,16 @@ Papa Parse:
   - パーツ画像: 表示/非表示切り替え可能
   - 画像位置: 左端/右端選択可能
   - 設定は管理画面で変更
+
+ユニットフィルタリング:
+  - App.tsxのルートパラメータは :unitId を使用（:unitNumber ではない）
+  - UnitListPageからPartsListPageへの遷移時は unitId を使用
+  - バックエンドpartServiceはunit relationをincludeして返す
+
+ユニット番号表示:
+  - 管理ページ: 画像とユニット個別番号の間に表示
+  - 一般ページ: 管理ページと同じレイアウト
+  - 目的: パーツがどのユニットに属しているか確認用
 
 検索機能:
   - 収納ケース番号検索: 全ジャンルを横断検索
@@ -336,6 +353,13 @@ Papa Parse:
   - セッション有効期限: 7日間
   - ID/パスワード変更: 管理画面から変更可能
 
+UIコンポーネント設計:
+  - 数値入力フィールド: ブラウザデフォルトのスピンボタンを非表示化
+    - CSS: MozAppearance: 'textfield'
+    - CSS: ::-webkit-inner/outer-spin-button { WebkitAppearance: 'none' }
+  - 数量・在庫数量フィールド: +/-ボタンで1ずつ増減
+  - 価格フィールド: +/-ボタンなし、手入力のみ
+
 セキュリティ:
   - 管理者パスワード: bcryptでハッシュ化
   - セッション: express-session使用
@@ -348,31 +372,57 @@ Papa Parse:
   - 1アカウント = 1独立した在庫管理システム
 ```
 
+## 🚀 本番環境デプロイ情報（Phase 11完了）
+```yaml
+デプロイ完了日: 2025-11-18
+デプロイ方法: gcloud run deploy --source（Docker不要）
+
+本番環境URL:
+  フロントエンド: https://frontend-i32xqp6tw-tatsuyas-projects-20cab125.vercel.app
+  バックエンド: https://inventory-backend-72579044624.asia-northeast1.run.app
+  データベース: Neon PostgreSQL (inventory-system-prod)
+
+Google Cloud:
+  プロジェクトID: inventory-prod-7959116f
+  リージョン: asia-northeast1 (東京)
+  サービス名: inventory-backend
+
+Vercel:
+  プロジェクト名: frontend
+  環境変数: VITE_API_URL設定済み
+
+Neon:
+  プロジェクト名: inventory-system-prod
+  リージョン: ap-southeast-1 (シンガポール)
+  接続方式: Pooled接続
+```
+
 ## 📝 作業ログ（最新5件）
 ```yaml
-- 2025-11-13: 要件定義書作成完了（inventory-requirements.md）
-- 2025-11-13: 進捗管理ファイル作成完了（inventory-progress.md）
-- 2025-11-13: CLAUDE.md作成完了（INVENTORY_CLAUDE.md）
-- 2025-11-13: Phase 1（要件定義）完了
+- 2025-11-22: Phase 12進行中（在庫数量管理、条件付き赤字表示、ユニットフィルタリング修正完了）
+- 2025-11-22: Phase 12 UI/UX改善開始（quantity/price フィールド追加、ドラッグ&ドロップ並び替え）
+- 2025-11-18: Phase 11本番デプロイ完全成功 🎉
+- 2025-11-17: Phase 10デプロイ準備完了（Dockerfile、環境変数、マニュアル）
+- 2025-11-17: Phase 9 E2Eテスト完了
 ```
 
 ## 🎯 次のアクション
 ```yaml
-優先度: 高
-  1. GitHubリポジトリ作成（Phase 2）
-  2. Neonプロジェクト作成・接続
-  3. Cloudinaryアカウント作成・接続
-  4. Prismaスキーマ定義
+優先度: 高（Phase 12完了に向けて）
+  1. パーツ管理ダイアログに数量・価格入力欄を追加
+  2. 一般ページ（PartsListPage）のテーブル表示更新
+  3. 数量・価格フィールドのバリデーション追加
+  4. Phase 12完了後、本番環境へデプロイ
 
 優先度: 中
-  5. バックエンドAPI基盤構築（Express + Prisma）
-  6. 認証機能実装（bcrypt + express-session）
-  7. フロントエンド基盤構築（React + MUI + Vite）
+  5. ユーザーフィードバック収集
+  6. パフォーマンス最適化
+  7. セキュリティ監査
 
 優先度: 低
-  8. カテゴリー・ジャンル・パーツリスト各ページ実装
-  9. 管理画面実装（サイドバー式）
-  10. 画像管理・エクスポート機能実装
+  8. マルチテナント機能実装準備
+  9. 高度な検索機能追加
+  10. レポート機能実装
 ```
 
 ## 🔄 マイグレーション手順（重要）

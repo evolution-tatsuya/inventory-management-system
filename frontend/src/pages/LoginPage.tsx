@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -25,7 +25,20 @@ import { useAuth } from '@/hooks/useAuth';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, account, userType, loading: authLoading } = useAuth();
+
+  // 既にログイン済みの場合はリダイレクト
+  useEffect(() => {
+    if (!authLoading && account && userType) {
+      if (userType === 'admin') {
+        // 管理者の場合は管理ダッシュボードへ
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        // 一般ユーザーの場合はカテゴリー一覧へ
+        navigate('/categories', { replace: true });
+      }
+    }
+  }, [account, userType, authLoading, navigate]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,7 +52,8 @@ export const LoginPage = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
+      await login(email, password, 'user'); // 一般ユーザーとしてログイン
+      // 一般ユーザーページ（カテゴリー一覧）にリダイレクト
       navigate('/categories');
     } catch (err) {
       if (err instanceof Error) {
@@ -138,7 +152,7 @@ export const LoginPage = () => {
             email: admin@inventory-system.local
           </Typography>
           <Typography variant="caption" display="block" sx={{ fontFamily: 'monospace' }}>
-            password: InventoryAdmin2025!
+            password: Admin2025Pass
           </Typography>
         </Box>
       </Box>

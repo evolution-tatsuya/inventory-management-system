@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -16,875 +17,1490 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Container,
-  Avatar,
-  Checkbox,
-  Tooltip,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Edit,
   Delete,
   Add,
   DragIndicator,
-  DeleteOutline,
-  Image as ImageIcon,
 } from '@mui/icons-material';
-import { MainLayout } from '@/layouts/MainLayout';
-import { ImageEditorDialog } from '@/components/ImageEditorDialog';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { categoriesApi } from '@/services/api';
+import type { Category } from '@/types';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // ============================================================
-// CategoryManagementPage (A-002)
+// SortableRow - ドラッグ可能なテーブル行コンポーネント
 // ============================================================
-// カテゴリー管理ページ
-// - カテゴリー一覧表示
-// - 新規追加フォーム
-// - 編集フォーム
-// - 削除ボタン
-// - 並び替え機能（ドラッグ&ドロップ）
-// ============================================================
-
-interface Category {
-  id: string;
-  name: string;
-  imageUrl: string;
-  createdAt: string;
-  updatedAt: string;
+interface SortableRowProps {
+  category: Category;
+  onEdit: (category: Category) => void;
+  onDelete: (category: Category) => void;
 }
 
-// TODO: バックエンド実装後、APIから取得
-const MOCK_CATEGORIES: Category[] = [
-  {
-    id: '1',
-    name: 'GT3-048',
-    imageUrl: '',
-    createdAt: '2025-01-10T10:00:00Z',
-    updatedAt: '2025-01-10T10:00:00Z',
-  },
-  {
-    id: '2',
-    name: 'GT3-049',
-    imageUrl: '',
-    createdAt: '2025-01-11T11:00:00Z',
-    updatedAt: '2025-01-11T11:00:00Z',
-  },
-  {
-    id: '3',
-    name: '991 GT3 RS',
-    imageUrl: '',
-    createdAt: '2025-01-12T12:00:00Z',
-    updatedAt: '2025-01-12T12:00:00Z',
-  },
-  {
-    id: '4',
-    name: 'Cayman GT4',
-    imageUrl: '',
-    createdAt: '2025-01-13T13:00:00Z',
-    updatedAt: '2025-01-13T13:00:00Z',
-  },
-];
+const SortableRow = ({ category, onEdit, onDelete }: SortableRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: category.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      sx={{
+        '&:hover': { backgroundColor: '#fafafa' },
+        cursor: isDragging ? 'grabbing' : 'default',
+      }}
+    >
+      <TableCell sx={{ padding: '12px 8px', width: '40px', textAlign: 'center' }}>
+        <IconButton
+          {...attributes}
+          {...listeners}
+          size="small"
+          sx={{ cursor: 'grab', '&:active': { cursor: 'grabbing' } }}
+        >
+          <DragIndicator />
+        </IconButton>
+      </TableCell>
+      <TableCell sx={{ padding: '12px 16px', textAlign: 'center' }}>
+        {category.imageUrl ? (
+          <Box
+            component="img"
+            src={category.imageUrl}
+            alt={category.name}
+            sx={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '6px',
+              objectFit: 'cover',
+              objectPosition: `${(category.cropPositionX ?? 0.5) * 100}% ${(category.cropPositionY ?? 0.5) * 100}%`,
+              margin: '0 auto',
+              display: 'block',
+            }}
+          />
+        ) : (
+          <Box
+            sx={{
+              width: 60,
+              height: 60,
+              borderRadius: '6px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '12px',
+              fontWeight: 600,
+              margin: '0 auto',
+            }}
+          >
+            {category.name.substring(0, 2)}
+          </Box>
+        )}
+      </TableCell>
+      <TableCell sx={{ fontSize: '14px', color: '#666', textAlign: 'center' }}>
+        {category.categoryId || '-'}
+      </TableCell>
+      <TableCell sx={{ fontSize: '14px', fontWeight: 500, textAlign: 'center' }}>{category.name}</TableCell>
+      <TableCell sx={{ fontSize: '14px', color: '#666', textAlign: 'center' }}>
+        {category.subtitle || '-'}
+      </TableCell>
+      <TableCell sx={{ fontSize: '14px', color: '#666', textAlign: 'center' }}>
+        {(category as any).genres?.length || 0}
+      </TableCell>
+      <TableCell sx={{ fontSize: '14px', color: '#666', textAlign: 'center' }}>
+        {new Date(category.createdAt).toLocaleDateString('ja-JP')}
+      </TableCell>
+      <TableCell sx={{ textAlign: 'center' }}>
+        <Button
+          size="small"
+          variant="contained"
+          onClick={() => onEdit(category)}
+          sx={{
+            mr: 1,
+            background: '#2196f3',
+            minWidth: '70px',
+            '&:hover': {
+              background: '#1976d2',
+            },
+          }}
+        >
+          編集
+        </Button>
+        <Button
+          size="small"
+          variant="contained"
+          color="error"
+          onClick={() => onDelete(category)}
+          sx={{
+            minWidth: '70px',
+          }}
+        >
+          削除
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+};
+
+// ============================================================
+// CategoryManagementPage (A-001)
+// ============================================================
+// カテゴリー管理ページ - モックアップ準拠の全画面表示版
+// ============================================================
 
 export const CategoryManagementPage = () => {
-  const [categories, setCategories] = useState<Category[]>(MOCK_CATEGORIES);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [categoryId, setCategoryId] = useState('');
   const [categoryName, setCategoryName] = useState('');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [subtitle, setSubtitle] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState('');
-  const [tempCategoryImage, setTempCategoryImage] = useState(''); // 編集ダイアログ用の一時画像
-  const [originalCategoryImage, setOriginalCategoryImage] = useState(''); // 元の画像（編集前）
-  const [editorSettings, setEditorSettings] = useState<{ scale: number; position: { x: number; y: number }; backgroundColor: string }>({
-    scale: 1,
-    position: { x: 0, y: 0 },
-    backgroundColor: '#FFFFFF',
-  }); // 画像エディターの設定
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [cropPosition, setCropPosition] = useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 }); // 0.0 ~ 1.0 の割合
+  const [createdAt, setCreatedAt] = useState<string>(''); // 作成日
+  const [addError, setAddError] = useState<string>(''); // 追加エラーメッセージ
 
-  // Image editor state
-  const [openImageEditor, setOpenImageEditor] = useState(false);
-  const [editingImageUrl, setEditingImageUrl] = useState<string>('');
-  const [openImageDialog, setOpenImageDialog] = useState(false);
+  // カテゴリー一覧取得
+  const { data: categories = [], isLoading, isError, error } = useQuery({
+    queryKey: ['categories'],
+    queryFn: categoriesApi.getCategories,
+  });
 
-  // 新規追加ダイアログを開く
+  // カテゴリー作成
+  const createMutation = useMutation({
+    mutationFn: categoriesApi.createCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      setOpenAddDialog(false);
+      setCategoryName('');
+      setSubtitle('');
+      setCategoryId('');
+      setCreatedAt('');
+      setAddError('');
+    },
+    onError: (error: any) => {
+      console.error('カテゴリー作成エラー:', error);
+      if (error?.message?.includes('already exists')) {
+        setAddError('このカテゴリー名は既に使用されています');
+      } else {
+        setAddError('カテゴリー作成に失敗しました: ' + (error?.message || '不明なエラー'));
+      }
+    },
+  });
+
+  // カテゴリー更新
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof categoriesApi.updateCategory>[1] }) =>
+      categoriesApi.updateCategory(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      setOpenEditDialog(false);
+      setSelectedCategory(null);
+      setCategoryId('');
+      setCategoryName('');
+      setSubtitle('');
+      setImageFile(null);
+      setImagePreview('');
+    },
+  });
+
+  // カテゴリー削除
+  const deleteMutation = useMutation({
+    mutationFn: categoriesApi.deleteCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      setOpenDeleteDialog(false);
+      setSelectedCategory(null);
+    },
+  });
+
+  // カテゴリー並び順更新
+  const orderMutation = useMutation({
+    mutationFn: categoriesApi.updateCategoryOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    },
+  });
+
+  // ドラッグ＆ドロップセンサー設定
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // ドラッグ終了時のハンドラー
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = categories.findIndex((cat) => cat.id === active.id);
+      const newIndex = categories.findIndex((cat) => cat.id === over.id);
+      const newOrder = arrayMove(categories, oldIndex, newIndex);
+
+      // 楽観的更新
+      queryClient.setQueryData(['categories'], newOrder);
+
+      // サーバーに保存
+      orderMutation.mutate(newOrder.map((cat) => cat.id));
+    }
+  };
+
+  const handleLogout = () => {
+    navigate('/admin/login');
+  };
+
   const handleOpenAddDialog = () => {
+    setCategoryId('');
     setCategoryName('');
+    setSubtitle('');
     setImageFile(null);
     setImagePreview('');
-    setTempCategoryImage(''); // 一時画像をクリア
-    setOriginalCategoryImage(''); // 元の画像をクリア
-    setEditorSettings({ scale: 1, position: { x: 0, y: 0 }, backgroundColor: '#FFFFFF' }); // 設定をリセット
+    setCreatedAt(new Date().toISOString().split('T')[0]); // 今日の日付をデフォルト
+    setAddError(''); // エラーをクリア
     setOpenAddDialog(true);
   };
 
-  // 画像選択
+  const handleAdd = async () => {
+    createMutation.mutate({
+      name: categoryName,
+      categoryId: categoryId || undefined,
+      subtitle: subtitle || undefined,
+      createdAt: createdAt ? new Date(createdAt).toISOString() : undefined,
+    });
+  };
+
+  const handleOpenEditDialog = (category: Category) => {
+    setSelectedCategory(category);
+    setCategoryId(category.categoryId || category.name); // カテゴリーIDの初期値
+    setCategoryName(category.name);
+    setSubtitle(category.subtitle || ''); // サブタイトルの初期値
+    setCreatedAt(category.createdAt ? new Date(category.createdAt).toISOString().split('T')[0] : ''); // 作成日
+    setImageFile(null);
+    setImagePreview(category.imageUrl || ''); // 既存の画像URLがあれば設定
+
+    // データベースに保存されているクロップ位置を復元（デフォルトは中央）
+    setCropPosition({
+      x: category.cropPositionX ?? 0.5,
+      y: category.cropPositionY ?? 0.5
+    });
+
+    // 既存画像のサイズを取得してプレビュー表示
+    if (category.imageUrl) {
+      const img = new Image();
+      img.onload = () => {
+        setImageDimensions({ width: img.width, height: img.height });
+      };
+      img.src = category.imageUrl;
+    } else {
+      setImageDimensions(null); // 画像がない場合はリセット
+    }
+
+    setOpenEditDialog(true);
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        const imageUrl = reader.result as string;
-        setEditingImageUrl(imageUrl);
-        setOpenImageEditor(true);
+        const result = reader.result as string;
+        setImagePreview(result);
+
+        // 画像の実際のサイズを取得
+        const img = new Image();
+        img.onload = () => {
+          setImageDimensions({ width: img.width, height: img.height });
+          setCropPosition({ x: 0.5, y: 0.5 }); // 初期位置は中央
+        };
+        img.src = result;
       };
       reader.readAsDataURL(file);
     }
-    e.target.value = '';
   };
 
-  // 新規追加
-  const handleAdd = () => {
-    const newCategory: Category = {
-      id: Date.now().toString(),
-      name: categoryName,
-      imageUrl: tempCategoryImage || 'https://picsum.photos/seed/default/200/150',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setCategories([...categories, newCategory]);
-    setOpenAddDialog(false);
-    setCategoryName('');
-    setImageFile(null);
-    setImagePreview('');
-    setTempCategoryImage(''); // 一時画像をクリア
-    setOriginalCategoryImage(''); // 元の画像をクリア
-  };
-
-  // 編集ダイアログを開く
-  const handleOpenEditDialog = (category: Category) => {
-    setSelectedCategory(category);
-    setCategoryName(category.name);
-    setImagePreview(category.imageUrl);
-    setTempCategoryImage(category.imageUrl); // 一時画像に現在の画像をセット
-    setOriginalCategoryImage(category.imageUrl); // 元の画像を保存（編集用）
-    setImageFile(null);
-    setOpenEditDialog(true);
-  };
-
-  // 編集
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (!selectedCategory) return;
 
-    setCategories(
-      categories.map((cat) =>
-        cat.id === selectedCategory.id
-          ? {
-              ...cat,
-              name: categoryName,
-              imageUrl: tempCategoryImage || cat.imageUrl, // 空の場合は元の画像を保持
-              updatedAt: new Date().toISOString(),
-            }
-          : cat
-      )
-    );
-    setOpenEditDialog(false);
-    setSelectedCategory(null);
-    setCategoryName('');
-    setImageFile(null);
-    setImagePreview('');
-    setTempCategoryImage(''); // 一時画像をクリア
-    setOriginalCategoryImage(''); // 元の画像をクリア
+    let uploadedImageUrl = imagePreview;
+
+    // 新しい画像がアップロードされた場合、トリミングしてCloudinaryにアップロード
+    if (imageFile && imageDimensions) {
+      console.log('画像アップロード開始:', imageFile.name);
+      console.log('cropPosition:', cropPosition);
+
+      try {
+        // Canvasで画像をトリミング
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          alert('Canvas初期化エラー');
+          return;
+        }
+
+        // トリミング範囲を計算（objectFit: 'cover' と同じロジック）
+        const targetSize = 120;
+        const imgAspect = imageDimensions.width / imageDimensions.height;
+        const targetAspect = 1;
+
+        let visibleWidth, visibleHeight, cropLeft, cropTop;
+
+        if (imgAspect > targetAspect) {
+          // 横長の画像
+          visibleHeight = imageDimensions.height;
+          visibleWidth = imageDimensions.height * targetAspect;
+          const maxCropX = imageDimensions.width - visibleWidth;
+          cropLeft = maxCropX * cropPosition.x;
+          cropTop = 0;
+        } else {
+          // 縦長の画像
+          visibleWidth = imageDimensions.width;
+          visibleHeight = imageDimensions.width / targetAspect;
+          const maxCropY = imageDimensions.height - visibleHeight;
+          cropLeft = 0;
+          cropTop = maxCropY * cropPosition.y;
+        }
+
+        // Canvasサイズを正方形に設定
+        canvas.width = visibleWidth;
+        canvas.height = visibleHeight;
+
+        // 元画像を読み込んでトリミング
+        const img = new Image();
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = reject;
+          img.src = imagePreview;
+        });
+
+        // トリミングして描画
+        ctx.drawImage(
+          img,
+          cropLeft, cropTop, visibleWidth, visibleHeight,  // ソース範囲
+          0, 0, visibleWidth, visibleHeight                // 描画範囲
+        );
+
+        // CanvasをBlobに変換
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((b) => {
+            if (b) resolve(b);
+            else reject(new Error('Blob変換失敗'));
+          }, 'image/jpeg', 0.9);
+        });
+
+        // Cloudinaryにアップロード
+        const formData = new FormData();
+        formData.append('file', blob, 'cropped-image.jpg');
+        formData.append('upload_preset', 'ml_default');
+
+        console.log('Cloudinary URL:', `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`);
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+          {
+            method: 'POST',
+            body: formData,
+          }
+        );
+
+        const data = await response.json();
+        console.log('Cloudinaryレスポンス:', data);
+
+        // エラーチェック
+        if (data.error) {
+          console.error('Cloudinaryエラー:', data.error);
+          alert(`画像のアップロードに失敗しました: ${data.error.message}`);
+          return;
+        }
+
+        if (!data.secure_url) {
+          console.error('secure_urlが見つかりません:', data);
+          alert('画像のアップロードに失敗しました: URLが取得できませんでした');
+          return;
+        }
+
+        uploadedImageUrl = data.secure_url;
+        console.log('アップロード成功:', uploadedImageUrl);
+      } catch (error) {
+        console.error('画像アップロードエラー:', error);
+        alert('画像のアップロードに失敗しました');
+        return;
+      }
+    }
+
+    console.log('カテゴリー更新データ:', {
+      categoryId,
+      name: categoryName,
+      subtitle,
+      imageUrl: uploadedImageUrl,
+    });
+
+    updateMutation.mutate({
+      id: selectedCategory.id,
+      data: {
+        categoryId: categoryId,
+        name: categoryName,
+        subtitle: subtitle,
+        imageUrl: uploadedImageUrl || undefined,
+        cropPositionX: cropPosition.x,
+        cropPositionY: cropPosition.y,
+        createdAt: createdAt ? new Date(createdAt).toISOString() : undefined,
+      },
+    });
   };
 
-  // 削除確認ダイアログを開く
   const handleOpenDeleteDialog = (category: Category) => {
     setSelectedCategory(category);
     setOpenDeleteDialog(true);
   };
 
-  // 削除
   const handleDelete = () => {
     if (!selectedCategory) return;
-
-    setCategories(categories.filter((cat) => cat.id !== selectedCategory.id));
-    setOpenDeleteDialog(false);
-    setSelectedCategory(null);
-  };
-
-  // ドラッグ開始
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', index.toString());
-  };
-
-  // ドラッグオーバー
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  // ドロップ
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault();
-    const dragIndex = parseInt(e.dataTransfer.getData('text/html'), 10);
-
-    if (dragIndex === dropIndex) return;
-
-    const newCategories = [...categories];
-    const [removed] = newCategories.splice(dragIndex, 1);
-    newCategories.splice(dropIndex, 0, removed);
-
-    setCategories(newCategories);
-  };
-
-  // チェックボックス選択
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(categories.map((c) => c.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
-  const handleSelectOne = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedIds([...selectedIds, id]);
-    } else {
-      setSelectedIds(selectedIds.filter((selectedId) => selectedId !== id));
-    }
-  };
-
-  // 一括削除
-  const handleBulkDelete = () => {
-    if (selectedIds.length === 0) return;
-    setCategories(categories.filter((cat) => !selectedIds.includes(cat.id)));
-    setSelectedIds([]);
-  };
-
-  // 画像編集ダイアログを開く
-  const handleOpenImageDialog = () => {
-    setOpenImageDialog(true);
-  };
-
-  // 画像アップロード（画像編集ダイアログ内から）
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const imageUrl = e.target?.result as string;
-      setEditingImageUrl(imageUrl);
-      setOpenImageEditor(true);
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
-  };
-
-  // 編集ダイアログ内の画像アップロード
-  const handleEditDialogImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const imageUrl = e.target?.result as string;
-      setOriginalCategoryImage(imageUrl); // 新しい画像を元の画像として保存
-      setEditingImageUrl(imageUrl);
-      // 新しい画像の場合は設定をリセット
-      setEditorSettings({ scale: 1, position: { x: 0, y: 0 }, backgroundColor: '#FFFFFF' });
-      setOpenImageEditor(true);
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
-  };
-
-  // 画像エディターから保存
-  const handleSaveEditedImage = (editedImageUrl: string, settings?: { scale: number; position: { x: number; y: number }; backgroundColor: string }) => {
-    // 設定を保存
-    if (settings) {
-      setEditorSettings(settings);
-    }
-
-    // 編集ダイアログから呼ばれた場合は一時画像に保存
-    if (openEditDialog || openAddDialog) {
-      setTempCategoryImage(editedImageUrl);
-      // selectedCategoryはクリアしない（編集ダイアログで必要）
-    }
-    // テーブルから直接編集した場合（selectedCategoryがある＋編集ダイアログが開いていない）
-    else if (selectedCategory) {
-      setCategories(
-        categories.map((cat) =>
-          cat.id === selectedCategory.id
-            ? { ...cat, imageUrl: editedImageUrl, updatedAt: new Date().toISOString() }
-            : cat
-        )
-      );
-      setSelectedCategory(null);
-    }
-    // 画像編集専用ダイアログから呼ばれた場合
-    else {
-      setImagePreview(editedImageUrl);
-    }
-    setOpenImageEditor(false);
-  };
-
-  // 画像エディターキャンセル
-  const handleCancelImageEditor = () => {
-    setOpenImageEditor(false);
-    // 編集ダイアログが開いていない場合のみselectedCategoryをクリア
-    if (!openEditDialog && !openAddDialog) {
-      setSelectedCategory(null);
-    }
-  };
-
-  // 画像削除
-  const handleImageDelete = () => {
-    setImagePreview('');
-  };
-
-  // 編集ダイアログ用画像削除
-  const handleEditDialogImageDelete = () => {
-    setTempCategoryImage('');
-    setOriginalCategoryImage('');
-  };
-
-  // 編集キャンセル
-  const handleCancelEdit = () => {
-    setOpenEditDialog(false);
-    setSelectedCategory(null);
-    setCategoryName('');
-    setImageFile(null);
-    setImagePreview('');
-    setTempCategoryImage(''); // 一時画像をクリア
-    setOriginalCategoryImage(''); // 元の画像をクリア
-  };
-
-  // 追加キャンセル
-  const handleCancelAdd = () => {
-    setOpenAddDialog(false);
-    setCategoryName('');
-    setImageFile(null);
-    setImagePreview('');
-    setTempCategoryImage(''); // 一時画像をクリア
-    setOriginalCategoryImage(''); // 元の画像をクリア
-  };
-
-  // 画像ダイアログを閉じる
-  const handleCloseImageDialog = () => {
-    setOpenImageDialog(false);
+    deleteMutation.mutate(selectedCategory.id);
   };
 
   return (
-    <MainLayout>
-      <Container maxWidth="lg">
-        <Box sx={{ mb: 4 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Box>
-              <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-                カテゴリー管理
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                カテゴリーの追加、編集、削除、並び替えができます
-              </Typography>
-            </Box>
-          </Box>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        width: '100vw',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: 'auto',
+      }}
+    >
+      {/* ヘッダー */}
+      <Box
+        sx={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          padding: '20px 30px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: '22px',
+            fontWeight: 600,
+            letterSpacing: '0.5px',
+          }}
+        >
+          在庫管理システム - 管理画面
+        </Typography>
+        <Button
+          onClick={handleLogout}
+          sx={{
+            background: 'rgba(255, 255, 255, 0.2)',
+            border: '2px solid white',
+            color: 'white',
+            padding: '10px 24px',
+            borderRadius: '8px',
+            fontSize: '15px',
+            fontWeight: 600,
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              background: 'white',
+              color: '#667eea',
+              transform: 'translateY(-2px)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            },
+          }}
+        >
+          ログアウト
+        </Button>
+      </Box>
 
-          {/* アクションボタン */}
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={handleOpenAddDialog}
-              size="large"
-            >
-              新規追加
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              startIcon={<DeleteOutline />}
-              onClick={handleBulkDelete}
-              disabled={selectedIds.length === 0}
-              size="large"
-            >
-              一括削除 ({selectedIds.length})
-            </Button>
-          </Box>
+      {/* メインコンテンツ */}
+      <Box
+        sx={{
+          background: 'white',
+          minHeight: 'calc(100vh - 120px)',
+        }}
+      >
+        {/* ナビゲーションタブ */}
+        <Box
+          sx={{
+            display: 'flex',
+            background: '#f7f7f7',
+            borderBottom: '2px solid #e0e0e0',
+            overflowX: 'auto',
+            '&::-webkit-scrollbar': {
+              height: '8px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#ccc',
+              borderRadius: '4px',
+            },
+          }}
+        >
+          <Button
+            onClick={() => navigate('/admin/dashboard')}
+            sx={{
+              padding: '16px 32px',
+              background: '#f7f7f7',
+              color: '#666',
+              fontSize: '15px',
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: 0,
+              minWidth: 'fit-content',
+              '&:hover': {
+                background: '#e0e0e0',
+              },
+            }}
+          >
+            ダッシュボード
+          </Button>
+          <Button
+            onClick={() => navigate('/admin/categories')}
+            sx={{
+              padding: '16px 32px',
+              background: 'white',
+              borderBottom: '3px solid #667eea',
+              color: '#667eea',
+              fontSize: '15px',
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: 0,
+              minWidth: 'fit-content',
+              '&:hover': {
+                background: '#f0f0f0',
+              },
+            }}
+          >
+            カテゴリー管理
+          </Button>
+          <Button
+            onClick={() => navigate('/admin/genres')}
+            sx={{
+              padding: '16px 32px',
+              background: '#f7f7f7',
+              color: '#666',
+              fontSize: '15px',
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: 0,
+              minWidth: 'fit-content',
+              '&:hover': {
+                background: '#e0e0e0',
+              },
+            }}
+          >
+            ジャンル管理
+          </Button>
+          <Button
+            onClick={() => navigate('/admin/units')}
+            sx={{
+              padding: '16px 32px',
+              background: '#f7f7f7',
+              color: '#666',
+              fontSize: '15px',
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: 0,
+              minWidth: 'fit-content',
+              '&:hover': {
+                background: '#e0e0e0',
+              },
+            }}
+          >
+            ユニット管理
+          </Button>
+          <Button
+            onClick={() => navigate('/admin/parts')}
+            sx={{
+              padding: '16px 32px',
+              background: '#f7f7f7',
+              color: '#666',
+              fontSize: '15px',
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: 0,
+              minWidth: 'fit-content',
+              '&:hover': {
+                background: '#e0e0e0',
+              },
+            }}
+          >
+            パーツ管理
+          </Button>
+          <Button
+            onClick={() => navigate('/admin/account-settings')}
+            sx={{
+              padding: '16px 32px',
+              background: '#f7f7f7',
+              color: '#666',
+              fontSize: '15px',
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: 0,
+              minWidth: 'fit-content',
+              '&:hover': {
+                background: '#e0e0e0',
+              },
+            }}
+          >
+            アカウント設定
+          </Button>
+          <Button
+            onClick={() => navigate('/admin/qr')}
+            sx={{
+              padding: '16px 32px',
+              background: '#f7f7f7',
+              color: '#666',
+              fontSize: '15px',
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: 0,
+              minWidth: 'fit-content',
+              '&:hover': {
+                background: '#e0e0e0',
+              },
+            }}
+          >
+            QRコード
+          </Button>
         </Box>
 
-        <TableContainer component={Paper} elevation={2}>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ backgroundColor: 'grey.100' }}>
-                <TableCell padding="checkbox" width={50}>
-                  <Checkbox
-                    checked={selectedIds.length === categories.length && categories.length > 0}
-                    indeterminate={selectedIds.length > 0 && selectedIds.length < categories.length}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                  />
-                </TableCell>
-                <TableCell width={50}></TableCell>
-                <TableCell width={100} sx={{ fontWeight: 600 }}>画像</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>カテゴリー名</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>作成日時</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>更新日時</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600 }}>操作</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {categories.map((category, index) => (
-                <TableRow
-                  key={category.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, index)}
-                  sx={{
-                    cursor: 'move',
-                    '&:hover': { backgroundColor: 'grey.50' },
-                  }}
-                >
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedIds.includes(category.id)}
-                      onChange={(e) => handleSelectOne(category.id, e.target.checked)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <DragIndicator sx={{ color: 'grey.400' }} />
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip title="クリックして編集" arrow>
-                      <Avatar
-                        src={category.imageUrl}
-                        variant="rounded"
-                        imgProps={{
-                          style: { objectFit: 'contain' },
-                        }}
-                        sx={{
-                          width: 160,
-                          height: 90,
-                          cursor: 'pointer',
-                          bgcolor: 'grey.100',
-                          '&:hover': {
-                            opacity: 0.7,
-                            boxShadow: '0 0 0 2px #1976d2',
-                          },
-                        }}
-                        onClick={() => {
-                          if (category.imageUrl) {
-                            // 既存画像がある場合は編集
-                            setSelectedCategory(category);
-                            setEditingImageUrl(category.imageUrl);
-                            setOpenImageEditor(true);
-                          } else {
-                            // 画像がない場合は新規アップロードダイアログを開く
-                            setSelectedCategory(category);
-                            document.getElementById(`category-image-upload-${category.id}`)?.click();
-                          }
-                        }}
-                      >
-                        <ImageIcon />
-                      </Avatar>
-                    </Tooltip>
-                    {/* 非表示のファイル入力 */}
-                    <input
-                      id={`category-image-upload-${category.id}`}
-                      type="file"
-                      hidden
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                          const imageUrl = event.target?.result as string;
-                          setSelectedCategory(category);
-                          setEditingImageUrl(imageUrl);
-                          setOpenImageEditor(true);
-                        };
-                        reader.readAsDataURL(file);
-                        e.target.value = '';
+        {/* カテゴリー管理コンテンツ */}
+        <Box sx={{ padding: '30px' }}>
+          {/* ページタイトルとアクション */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <Typography
+              sx={{
+                fontSize: '24px',
+                fontWeight: 700,
+                color: '#333',
+              }}
+            >
+              カテゴリー管理
+            </Typography>
+            <Button
+              startIcon={<Add />}
+              onClick={handleOpenAddDialog}
+              sx={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: 600,
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4)',
+                },
+              }}
+            >
+              新規カテゴリー追加
+            </Button>
+          </Box>
+
+          {/* ローディング・エラー表示 */}
+          {isLoading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+
+          {isError && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              カテゴリーの取得に失敗しました: {error instanceof Error ? error.message : '不明なエラー'}
+            </Alert>
+          )}
+
+          {/* テーブル */}
+          {!isLoading && !isError && (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <TableContainer component={Paper} elevation={2} sx={{ borderRadius: '12px' }}>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                      <TableCell sx={{ fontWeight: 600, fontSize: '14px', padding: '16px', width: '40px', textAlign: 'center' }}></TableCell>
+                      <TableCell sx={{ fontWeight: 600, fontSize: '14px', padding: '16px', textAlign: 'center' }}>画像</TableCell>
+                      <TableCell sx={{ fontWeight: 600, fontSize: '14px', textAlign: 'center' }}>カテゴリーID</TableCell>
+                      <TableCell sx={{ fontWeight: 600, fontSize: '14px', textAlign: 'center' }}>カテゴリー名</TableCell>
+                      <TableCell sx={{ fontWeight: 600, fontSize: '14px', textAlign: 'center' }}>サブタイトル</TableCell>
+                      <TableCell sx={{ fontWeight: 600, fontSize: '14px', textAlign: 'center' }}>ジャンル数</TableCell>
+                      <TableCell sx={{ fontWeight: 600, fontSize: '14px', textAlign: 'center' }}>作成日</TableCell>
+                      <TableCell sx={{ fontWeight: 600, fontSize: '14px', textAlign: 'center' }}>
+                        操作
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <SortableContext
+                    items={categories.map((cat) => cat.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <TableBody>
+                      {categories.map((category) => (
+                        <SortableRow
+                          key={category.id}
+                          category={category}
+                          onEdit={handleOpenEditDialog}
+                          onDelete={handleOpenDeleteDialog}
+                        />
+                      ))}
+                    </TableBody>
+                  </SortableContext>
+                </Table>
+              </TableContainer>
+            </DndContext>
+          )}
+        </Box>
+      </Box>
+
+      {/* 新規追加ダイアログ */}
+      <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>カテゴリー新規追加</DialogTitle>
+        <DialogContent>
+          {addError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {addError}
+            </Alert>
+          )}
+          <TextField
+            autoFocus
+            margin="dense"
+            label="カテゴリーID"
+            fullWidth
+            variant="outlined"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            margin="dense"
+            label="カテゴリー名"
+            fullWidth
+            variant="outlined"
+            value={categoryName}
+            onChange={(e) => setCategoryName(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            margin="dense"
+            label="サブタイトル"
+            fullWidth
+            variant="outlined"
+            value={subtitle}
+            onChange={(e) => setSubtitle(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            margin="dense"
+            label="作成日"
+            type="date"
+            fullWidth
+            variant="outlined"
+            value={createdAt}
+            onChange={(e) => setCreatedAt(e.target.value)}
+            sx={{ mt: 2 }}
+            InputLabelProps={{ shrink: true }}
+          />
+          <Box sx={{ mt: 2 }}>
+            <Button
+              variant="outlined"
+              component="label"
+              fullWidth
+              sx={{ py: 1.5 }}
+            >
+              画像を選択
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+            </Button>
+            {imagePreview && imageDimensions && (() => {
+              // objectFit: 'cover' のトリミング計算
+              const targetSize = 120; // 表示サイズ
+              const imgAspect = imageDimensions.width / imageDimensions.height;
+              const targetAspect = 1; // 正方形
+
+              let visibleWidth, visibleHeight, cropLeft, cropTop, maxCropX, maxCropY;
+
+              if (imgAspect > targetAspect) {
+                // 横長の画像: 高さを基準に、左右がトリミングされる
+                visibleHeight = imageDimensions.height;
+                visibleWidth = imageDimensions.height * targetAspect;
+                maxCropX = imageDimensions.width - visibleWidth;
+                maxCropY = 0;
+                cropLeft = maxCropX * cropPosition.x;
+                cropTop = 0;
+              } else {
+                // 縦長の画像: 幅を基準に、上下がトリミングされる
+                visibleWidth = imageDimensions.width;
+                visibleHeight = imageDimensions.width / targetAspect;
+                maxCropX = 0;
+                maxCropY = imageDimensions.height - visibleHeight;
+                cropLeft = 0;
+                cropTop = maxCropY * cropPosition.y;
+              }
+
+              // プレビュー表示サイズの計算（最大300pxに収める）
+              const maxPreviewSize = 300;
+              const previewScale = Math.min(maxPreviewSize / imageDimensions.width, maxPreviewSize / imageDimensions.height);
+              const previewWidth = imageDimensions.width * previewScale;
+              const previewHeight = imageDimensions.height * previewScale;
+
+              // トリミング範囲のプレビュー上での位置とサイズ
+              const previewCropLeft = cropLeft * previewScale;
+              const previewCropTop = cropTop * previewScale;
+              const previewVisibleWidth = visibleWidth * previewScale;
+              const previewVisibleHeight = visibleHeight * previewScale;
+
+              // ドラッグハンドラー
+              const handleMouseDown = (e: React.MouseEvent) => {
+                e.preventDefault();
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const startPosX = cropPosition.x;
+                const startPosY = cropPosition.y;
+
+                const handleMouseMove = (moveEvent: MouseEvent) => {
+                  const deltaX = moveEvent.clientX - startX;
+                  const deltaY = moveEvent.clientY - startY;
+
+                  if (maxCropX > 0) {
+                    // 横長の画像: X方向に移動可能
+                    const newX = startPosX + deltaX / (maxCropX * previewScale);
+                    setCropPosition({ x: Math.max(0, Math.min(1, newX)), y: 0.5 });
+                  } else if (maxCropY > 0) {
+                    // 縦長の画像: Y方向に移動可能
+                    const newY = startPosY + deltaY / (maxCropY * previewScale);
+                    setCropPosition({ x: 0.5, y: Math.max(0, Math.min(1, newY)) });
+                  }
+                };
+
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              };
+
+              return (
+                <Box sx={{ mt: 2, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, justifyContent: 'center', alignItems: 'flex-start' }}>
+                  {/* 編集用プレビュー */}
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
+                      編集（青い枠をドラッグして表示範囲を調整）
+                    </Typography>
+                    <Box
+                      sx={{
+                        position: 'relative',
+                        display: 'inline-block',
+                        width: `${previewWidth}px`,
+                        height: `${previewHeight}px`,
                       }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography sx={{ fontWeight: 500 }}>{category.name}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(category.createdAt).toLocaleString('ja-JP')}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(category.updatedAt).toLocaleString('ja-JP')}
-                  </TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={() => handleOpenEditDialog(category)}
-                      sx={{ mr: 1 }}
                     >
-                      <Edit />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => handleOpenDeleteDialog(category)}
-                    >
-                      <Delete />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                      {/* 元画像 */}
+                      <Box
+                        component="img"
+                        src={imagePreview}
+                        alt="元画像"
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'block',
+                          borderRadius: '8px',
+                          userSelect: 'none',
+                        }}
+                      />
 
-        {/* 新規追加ダイアログ */}
-        <Dialog open={openAddDialog} onClose={handleCancelAdd} maxWidth="sm" fullWidth>
-          <DialogTitle>カテゴリー新規追加</DialogTitle>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="カテゴリー名"
-              fullWidth
-              variant="outlined"
-              value={categoryName}
-              onChange={(e) => setCategoryName(e.target.value)}
-              sx={{ mt: 2 }}
-            />
-
-            <Box sx={{ mt: 3 }}>
-              {/* 現在の画像 */}
-              <Typography variant="subtitle2" gutterBottom>
-                現在の画像
-              </Typography>
-              {tempCategoryImage ? (
-                <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                  <Box
-                    onClick={() => {
-                      setEditingImageUrl(tempCategoryImage);
-                      setOriginalCategoryImage(tempCategoryImage); // 編集済み画像を新しい元画像にする
-                      setEditorSettings({ scale: 1, position: { x: 0, y: 0 }, backgroundColor: '#FFFFFF' }); // 設定リセット
-                      setOpenImageEditor(true);
-                    }}
-                    sx={{
-                      cursor: 'pointer',
-                      position: 'relative',
-                      display: 'inline-block',
-                      '&:hover': {
-                        opacity: 0.8,
-                      },
-                      '&::after': {
-                        content: '"クリックして編集"',
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        bgcolor: 'rgba(0, 0, 0, 0.7)',
-                        color: 'white',
-                        padding: '8px 16px',
-                        borderRadius: 1,
-                        opacity: 0,
-                        transition: 'opacity 0.3s',
-                        pointerEvents: 'none',
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap',
-                      },
-                      '&:hover::after': {
-                        opacity: 1,
-                      },
-                    }}
-                  >
-                    <img
-                      src={tempCategoryImage}
-                      alt="プレビュー"
-                      style={{ width: '100%', height: 'auto', borderRadius: 4, display: 'block' }}
-                    />
-                  </Box>
-                  <Button
-                    sx={{
-                      position: 'absolute',
-                      top: 8,
-                      right: 8,
-                      bgcolor: 'background.paper',
-                      '&:hover': { bgcolor: 'error.light', color: 'white' },
-                      minWidth: 'auto',
-                      px: 1,
-                      zIndex: 1,
-                    }}
-                    size="small"
-                    onClick={handleEditDialogImageDelete}
-                    startIcon={<Delete />}
-                    title="画像を削除"
-                  >
-                    削除
-                  </Button>
-                </Box>
-              ) : (
-                <Box
-                  sx={{
-                    border: '2px dashed',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    p: 3,
-                    textAlign: 'center',
-                    color: 'text.secondary',
-                  }}
-                >
-                  <Typography variant="body2">画像が設定されていません</Typography>
-                </Box>
-              )}
-
-              <Button
-                variant="outlined"
-                component="label"
-                startIcon={<ImageIcon />}
-                fullWidth
-                sx={{ mt: 2 }}
-              >
-                {tempCategoryImage ? '画像を変更' : '画像をアップロード'}
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={handleEditDialogImageUpload}
-                />
-              </Button>
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCancelAdd}>キャンセル</Button>
-            <Button
-              onClick={handleAdd}
-              variant="contained"
-              disabled={!categoryName.trim()}
-            >
-              追加
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* 編集ダイアログ */}
-        <Dialog open={openEditDialog} onClose={handleCancelEdit} maxWidth="sm" fullWidth>
-          <DialogTitle>カテゴリー編集</DialogTitle>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="カテゴリー名"
-              fullWidth
-              variant="outlined"
-              value={categoryName}
-              onChange={(e) => setCategoryName(e.target.value)}
-              sx={{ mt: 2 }}
-            />
-
-            <Box sx={{ mt: 3 }}>
-              {/* 現在の画像 */}
-              <Typography variant="subtitle2" gutterBottom>
-                現在の画像
-              </Typography>
-              {tempCategoryImage ? (
-                <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                  <Box
-                    onClick={() => {
-                      setEditingImageUrl(tempCategoryImage);
-                      setOriginalCategoryImage(tempCategoryImage); // 編集済み画像を新しい元画像にする
-                      setEditorSettings({ scale: 1, position: { x: 0, y: 0 }, backgroundColor: '#FFFFFF' }); // 設定リセット
-                      setOpenImageEditor(true);
-                    }}
-                    sx={{
-                      cursor: 'pointer',
-                      position: 'relative',
-                      display: 'inline-block',
-                      '&:hover': {
-                        opacity: 0.8,
-                      },
-                      '&::after': {
-                        content: '"クリックして編集"',
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        bgcolor: 'rgba(0, 0, 0, 0.7)',
-                        color: 'white',
-                        padding: '8px 16px',
-                        borderRadius: 1,
-                        opacity: 0,
-                        transition: 'opacity 0.3s',
-                        pointerEvents: 'none',
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap',
-                      },
-                      '&:hover::after': {
-                        opacity: 1,
-                      },
-                    }}
-                  >
-                    <img
-                      src={tempCategoryImage}
-                      alt="プレビュー"
-                      style={{ width: '100%', height: 'auto', borderRadius: 4, display: 'block' }}
-                    />
-                  </Box>
-                  <Button
-                    sx={{
-                      position: 'absolute',
-                      top: 8,
-                      right: 8,
-                      bgcolor: 'background.paper',
-                      '&:hover': { bgcolor: 'error.light', color: 'white' },
-                      minWidth: 'auto',
-                      px: 1,
-                      zIndex: 1,
-                    }}
-                    size="small"
-                    onClick={handleEditDialogImageDelete}
-                    startIcon={<Delete />}
-                    title="画像を削除"
-                  >
-                    削除
-                  </Button>
-                </Box>
-              ) : (
-                <Box
-                  sx={{
-                    border: '2px dashed',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    p: 3,
-                    textAlign: 'center',
-                    color: 'text.secondary',
-                  }}
-                >
-                  <Typography variant="body2">画像が設定されていません</Typography>
-                </Box>
-              )}
-
-              <Button
-                variant="outlined"
-                component="label"
-                startIcon={<ImageIcon />}
-                fullWidth
-                sx={{ mt: 2 }}
-              >
-                {tempCategoryImage ? '画像を変更' : '画像をアップロード'}
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={handleEditDialogImageUpload}
-                />
-              </Button>
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCancelEdit}>キャンセル</Button>
-            <Button
-              onClick={handleEdit}
-              variant="contained"
-            >
-              保存
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* 削除確認ダイアログ */}
-        <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>カテゴリー削除確認</DialogTitle>
-          <DialogContent>
-            <Typography>
-              カテゴリー「{selectedCategory?.name}」を削除してもよろしいですか？
-            </Typography>
-            <Typography variant="body2" color="error" sx={{ mt: 2 }}>
-              ※ このカテゴリーに紐づくジャンルとパーツもすべて削除されます。
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenDeleteDialog(false)}>キャンセル</Button>
-            <Button onClick={handleDelete} variant="contained" color="error">
-              削除
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* 画像編集ダイアログ */}
-        <Dialog open={openImageDialog} onClose={handleCloseImageDialog} maxWidth="md" fullWidth>
-          <DialogTitle>カテゴリー画像を編集</DialogTitle>
-          <DialogContent>
-            <Box sx={{ pt: 2 }}>
-              {/* 現在の画像 */}
-              {imagePreview ? (
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    現在の画像
-                  </Typography>
-                  <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                    <img
-                      src={imagePreview}
-                      alt="現在の画像"
-                      style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 4 }}
-                    />
-                    <Button
+                    {/* 表示範囲の枠線（ドラッグ可能） - 最前面に配置 */}
+                    <Box
+                      onMouseDown={handleMouseDown}
                       sx={{
                         position: 'absolute',
-                        top: 8,
-                        right: 8,
-                        bgcolor: 'background.paper',
-                        '&:hover': { bgcolor: 'error.light', color: 'white' },
-                        minWidth: 'auto',
-                        px: 1,
+                        top: `${previewCropTop}px`,
+                        left: `${previewCropLeft}px`,
+                        width: `${previewVisibleWidth}px`,
+                        height: `${previewVisibleHeight}px`,
+                        border: '3px solid #667eea',
+                        borderRadius: '8px',
+                        boxSizing: 'border-box',
+                        cursor: maxCropX > 0 ? 'ew-resize' : maxCropY > 0 ? 'ns-resize' : 'default',
+                        transition: 'box-shadow 0.2s',
+                        zIndex: 10,
+                        '&:hover': {
+                          boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.2)',
+                        },
+                        '&:active': {
+                          boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.4)',
+                        },
                       }}
-                      size="small"
-                      onClick={handleImageDelete}
-                      startIcon={<Delete />}
-                      title="画像を削除"
                     >
-                      削除
-                    </Button>
+                      {/* ドラッグハンドル表示 */}
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                          color: 'white',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          pointerEvents: 'none',
+                          userSelect: 'none',
+                        }}
+                      >
+                        ドラッグ
+                      </Box>
+                    </Box>
+
+                    {/* トリミングマスク（斜線パターン） */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      {/* 横長の画像: 左右にグレー斜線 */}
+                      {maxCropX > 0 && (
+                        <>
+                          {/* 左側のグレー斜線 */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              bottom: 0,
+                              width: `${previewCropLeft}px`,
+                              background: `repeating-linear-gradient(
+                                45deg,
+                                rgba(128, 128, 128, 0.7),
+                                rgba(128, 128, 128, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 16px
+                              )`,
+                              borderRadius: '8px 0 0 8px',
+                            }}
+                          />
+
+                          {/* 右側のグレー斜線 */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              right: 0,
+                              bottom: 0,
+                              width: `${previewWidth - previewCropLeft - previewVisibleWidth}px`,
+                              background: `repeating-linear-gradient(
+                                45deg,
+                                rgba(128, 128, 128, 0.7),
+                                rgba(128, 128, 128, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 16px
+                              )`,
+                              borderRadius: '0 8px 8px 0',
+                            }}
+                          />
+                        </>
+                      )}
+
+                      {/* 縦長の画像: 上下にグレー斜線 */}
+                      {maxCropY > 0 && (
+                        <>
+                          {/* 上側のグレー斜線 */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: `${previewCropTop}px`,
+                              background: `repeating-linear-gradient(
+                                45deg,
+                                rgba(128, 128, 128, 0.7),
+                                rgba(128, 128, 128, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 16px
+                              )`,
+                              borderRadius: '8px 8px 0 0',
+                            }}
+                          />
+
+                          {/* 下側のグレー斜線 */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              height: `${previewHeight - previewCropTop - previewVisibleHeight}px`,
+                              background: `repeating-linear-gradient(
+                                45deg,
+                                rgba(128, 128, 128, 0.7),
+                                rgba(128, 128, 128, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 16px
+                              )`,
+                              borderRadius: '0 0 8px 8px',
+                            }}
+                          />
+                        </>
+                      )}
+                    </Box>
+                  </Box>
+                  </Box>
+
+                  {/* 実際の表示プレビュー */}
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
+                      実際の表示
+                    </Typography>
+                    <Box
+                      component="img"
+                      src={imagePreview}
+                      alt="実際の表示"
+                      sx={{
+                        width: '120px',
+                        height: '120px',
+                        objectFit: 'cover',
+                        objectPosition: `${cropPosition.x * 100}% ${cropPosition.y * 100}%`,
+                        borderRadius: '8px',
+                        border: '2px solid #e0e0e0',
+                      }}
+                    />
                   </Box>
                 </Box>
-              ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  画像が設定されていません
-                </Typography>
-              )}
+              );
+            })()}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAddDialog(false)}>キャンセル</Button>
+          <Button
+            onClick={handleAdd}
+            variant="contained"
+            disabled={!categoryName.trim() || createMutation.isPending}
+          >
+            {createMutation.isPending ? '追加中...' : '追加'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-              {/* 画像を変更ボタン */}
-              <Button
-                variant="contained"
-                component="label"
-                startIcon={<ImageIcon />}
-                fullWidth
-                size="large"
-              >
-                画像を変更
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                />
-              </Button>
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseImageDialog} variant="outlined">
-              キャンセル
+      {/* 編集ダイアログ */}
+      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>カテゴリー編集</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="カテゴリーID"
+            fullWidth
+            variant="outlined"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            margin="dense"
+            label="カテゴリー名"
+            fullWidth
+            variant="outlined"
+            value={categoryName}
+            onChange={(e) => setCategoryName(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            margin="dense"
+            label="サブタイトル"
+            fullWidth
+            variant="outlined"
+            value={subtitle}
+            onChange={(e) => setSubtitle(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            margin="dense"
+            label="作成日"
+            type="date"
+            fullWidth
+            variant="outlined"
+            value={createdAt}
+            onChange={(e) => setCreatedAt(e.target.value)}
+            sx={{ mt: 2 }}
+            InputLabelProps={{ shrink: true }}
+          />
+          <Box sx={{ mt: 2 }}>
+            <Button
+              variant="outlined"
+              component="label"
+              fullWidth
+              sx={{ py: 1.5 }}
+            >
+              画像を選択
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleImageChange}
+              />
             </Button>
-            <Button onClick={handleCloseImageDialog} variant="contained" color="primary">
-              保存
-            </Button>
-          </DialogActions>
-        </Dialog>
+            {imagePreview && imageDimensions && (() => {
+              // objectFit: 'cover' のトリミング計算
+              const targetSize = 120; // 表示サイズ
+              const imgAspect = imageDimensions.width / imageDimensions.height;
+              const targetAspect = 1; // 正方形
 
-        {/* ImageEditorDialog */}
-        <ImageEditorDialog
-          open={openImageEditor}
-          imageUrl={editingImageUrl}
-          onClose={handleCancelImageEditor}
-          onSave={handleSaveEditedImage}
-          title="カテゴリー画像を編集"
-          initialScale={editorSettings.scale}
-          initialPosition={editorSettings.position}
-          initialBackgroundColor={editorSettings.backgroundColor}
-        />
-      </Container>
-    </MainLayout>
+              let visibleWidth, visibleHeight, cropLeft, cropTop, maxCropX, maxCropY;
+
+              if (imgAspect > targetAspect) {
+                // 横長の画像: 高さを基準に、左右がトリミングされる
+                visibleHeight = imageDimensions.height;
+                visibleWidth = imageDimensions.height * targetAspect;
+                maxCropX = imageDimensions.width - visibleWidth;
+                maxCropY = 0;
+                cropLeft = maxCropX * cropPosition.x;
+                cropTop = 0;
+              } else {
+                // 縦長の画像: 幅を基準に、上下がトリミングされる
+                visibleWidth = imageDimensions.width;
+                visibleHeight = imageDimensions.width / targetAspect;
+                maxCropX = 0;
+                maxCropY = imageDimensions.height - visibleHeight;
+                cropLeft = 0;
+                cropTop = maxCropY * cropPosition.y;
+              }
+
+              // プレビュー表示サイズの計算（最大300pxに収める）
+              const maxPreviewSize = 300;
+              const previewScale = Math.min(maxPreviewSize / imageDimensions.width, maxPreviewSize / imageDimensions.height);
+              const previewWidth = imageDimensions.width * previewScale;
+              const previewHeight = imageDimensions.height * previewScale;
+
+              // トリミング範囲のプレビュー上での位置とサイズ
+              const previewCropLeft = cropLeft * previewScale;
+              const previewCropTop = cropTop * previewScale;
+              const previewVisibleWidth = visibleWidth * previewScale;
+              const previewVisibleHeight = visibleHeight * previewScale;
+
+              // ドラッグハンドラー
+              const handleMouseDown = (e: React.MouseEvent) => {
+                e.preventDefault();
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const startPosX = cropPosition.x;
+                const startPosY = cropPosition.y;
+
+                const handleMouseMove = (moveEvent: MouseEvent) => {
+                  const deltaX = moveEvent.clientX - startX;
+                  const deltaY = moveEvent.clientY - startY;
+
+                  if (maxCropX > 0) {
+                    // 横長の画像: X方向に移動可能
+                    const newX = startPosX + deltaX / (maxCropX * previewScale);
+                    setCropPosition({ x: Math.max(0, Math.min(1, newX)), y: 0.5 });
+                  } else if (maxCropY > 0) {
+                    // 縦長の画像: Y方向に移動可能
+                    const newY = startPosY + deltaY / (maxCropY * previewScale);
+                    setCropPosition({ x: 0.5, y: Math.max(0, Math.min(1, newY)) });
+                  }
+                };
+
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              };
+
+              return (
+                <Box sx={{ mt: 2, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, justifyContent: 'center', alignItems: 'flex-start' }}>
+                  {/* 編集用プレビュー */}
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
+                      編集（青い枠をドラッグして表示範囲を調整）
+                    </Typography>
+                    <Box
+                      sx={{
+                        position: 'relative',
+                        display: 'inline-block',
+                        width: `${previewWidth}px`,
+                        height: `${previewHeight}px`,
+                      }}
+                    >
+                      {/* 元画像 */}
+                      <Box
+                        component="img"
+                        src={imagePreview}
+                        alt="元画像"
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'block',
+                          borderRadius: '8px',
+                          userSelect: 'none',
+                        }}
+                      />
+
+                    {/* 表示範囲の枠線（ドラッグ可能） - 最前面に配置 */}
+                    <Box
+                      onMouseDown={handleMouseDown}
+                      sx={{
+                        position: 'absolute',
+                        top: `${previewCropTop}px`,
+                        left: `${previewCropLeft}px`,
+                        width: `${previewVisibleWidth}px`,
+                        height: `${previewVisibleHeight}px`,
+                        border: '3px solid #667eea',
+                        borderRadius: '8px',
+                        boxSizing: 'border-box',
+                        cursor: maxCropX > 0 ? 'ew-resize' : maxCropY > 0 ? 'ns-resize' : 'default',
+                        transition: 'box-shadow 0.2s',
+                        zIndex: 10,
+                        '&:hover': {
+                          boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.2)',
+                        },
+                        '&:active': {
+                          boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.4)',
+                        },
+                      }}
+                    >
+                      {/* ドラッグハンドル表示 */}
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                          color: 'white',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          pointerEvents: 'none',
+                          userSelect: 'none',
+                        }}
+                      >
+                        ドラッグ
+                      </Box>
+                    </Box>
+
+                    {/* トリミングマスク（斜線パターン） */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      {/* 横長の画像: 左右にグレー斜線 */}
+                      {maxCropX > 0 && (
+                        <>
+                          {/* 左側のグレー斜線 */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              bottom: 0,
+                              width: `${previewCropLeft}px`,
+                              background: `repeating-linear-gradient(
+                                45deg,
+                                rgba(128, 128, 128, 0.7),
+                                rgba(128, 128, 128, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 16px
+                              )`,
+                              borderRadius: '8px 0 0 8px',
+                            }}
+                          />
+
+                          {/* 右側のグレー斜線 */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              right: 0,
+                              bottom: 0,
+                              width: `${previewWidth - previewCropLeft - previewVisibleWidth}px`,
+                              background: `repeating-linear-gradient(
+                                45deg,
+                                rgba(128, 128, 128, 0.7),
+                                rgba(128, 128, 128, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 16px
+                              )`,
+                              borderRadius: '0 8px 8px 0',
+                            }}
+                          />
+                        </>
+                      )}
+
+                      {/* 縦長の画像: 上下にグレー斜線 */}
+                      {maxCropY > 0 && (
+                        <>
+                          {/* 上側のグレー斜線 */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: `${previewCropTop}px`,
+                              background: `repeating-linear-gradient(
+                                45deg,
+                                rgba(128, 128, 128, 0.7),
+                                rgba(128, 128, 128, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 16px
+                              )`,
+                              borderRadius: '8px 8px 0 0',
+                            }}
+                          />
+
+                          {/* 下側のグレー斜線 */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              height: `${previewHeight - previewCropTop - previewVisibleHeight}px`,
+                              background: `repeating-linear-gradient(
+                                45deg,
+                                rgba(128, 128, 128, 0.7),
+                                rgba(128, 128, 128, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 8px,
+                                rgba(160, 160, 160, 0.7) 16px
+                              )`,
+                              borderRadius: '0 0 8px 8px',
+                            }}
+                          />
+                        </>
+                      )}
+                    </Box>
+                  </Box>
+                  </Box>
+
+                  {/* 実際の表示プレビュー */}
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
+                      実際の表示
+                    </Typography>
+                    <Box
+                      component="img"
+                      src={imagePreview}
+                      alt="実際の表示"
+                      sx={{
+                        width: '120px',
+                        height: '120px',
+                        objectFit: 'cover',
+                        objectPosition: `${cropPosition.x * 100}% ${cropPosition.y * 100}%`,
+                        borderRadius: '8px',
+                        border: '2px solid #e0e0e0',
+                      }}
+                    />
+                  </Box>
+                </Box>
+              );
+            })()}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditDialog(false)}>キャンセル</Button>
+          <Button onClick={handleEdit} variant="contained" disabled={updateMutation.isPending}>
+            {updateMutation.isPending ? '保存中...' : '保存'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 削除確認ダイアログ */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={() => setOpenDeleteDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>カテゴリー削除確認</DialogTitle>
+        <DialogContent>
+          <Typography>カテゴリー「{selectedCategory?.name}」を削除してもよろしいですか?</Typography>
+          <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+            ※ このカテゴリーに紐づくジャンルとパーツもすべて削除されます。
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteDialog(false)}>キャンセル</Button>
+          <Button
+            onClick={handleDelete}
+            variant="contained"
+            color="error"
+            disabled={deleteMutation.isPending}
+          >
+            {deleteMutation.isPending ? '削除中...' : '削除'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };

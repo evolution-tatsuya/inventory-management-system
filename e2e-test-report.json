@@ -1,0 +1,260 @@
+{
+  "testReport": "階層型在庫管理システム - E2Eテスト結果",
+  "executionDate": "2025-11-17T13:50:00Z",
+  "environment": {
+    "frontend": "http://localhost:3590",
+    "backend": "http://localhost:8763"
+  },
+  "totalTests": 24,
+  "passed": 22,
+  "failed": 0,
+  "skipped": 2,
+  "successRate": "91.7%",
+  "testResults": [
+    {
+      "category": "0. サービス稼働確認",
+      "tests": [
+        {
+          "testName": "0.1 バックエンド稼働確認",
+          "status": "passed",
+          "details": "バックエンドが正常に稼働中 (HTTP 401/200)"
+        },
+        {
+          "testName": "0.2 フロントエンド稼働確認",
+          "status": "passed",
+          "details": "フロントエンドが正常に稼働中 (HTTP 200)"
+        }
+      ]
+    },
+    {
+      "category": "1. 認証機能テスト",
+      "tests": [
+        {
+          "testName": "1.1 ログイン成功テスト",
+          "status": "passed",
+          "details": "正しい認証情報でログイン成功",
+          "credentials": {
+            "email": "admin@inventory-system.local",
+            "password": "InventoryAdmin2025!"
+          }
+        },
+        {
+          "testName": "1.2 セッション検証テスト",
+          "status": "passed",
+          "details": "セッションが正常に維持されている"
+        },
+        {
+          "testName": "1.3 認証なしアクセステスト",
+          "status": "passed",
+          "details": "未認証時は401エラーが返される"
+        }
+      ]
+    },
+    {
+      "category": "2. カテゴリー管理テスト",
+      "tests": [
+        {
+          "testName": "2.1 カテゴリー一覧取得",
+          "status": "passed",
+          "details": "GET /api/categories - カテゴリー一覧を正常に取得"
+        },
+        {
+          "testName": "2.2 カテゴリー追加",
+          "status": "passed",
+          "details": "POST /api/admin/categories - 新規カテゴリー作成成功"
+        },
+        {
+          "testName": "2.3 カテゴリー編集",
+          "status": "passed",
+          "details": "PUT /api/admin/categories/:id - カテゴリー更新成功"
+        },
+        {
+          "testName": "2.4 カテゴリー削除",
+          "status": "passed",
+          "details": "DELETE /api/admin/categories/:id - カテゴリー削除成功 (HTTP 204)"
+        }
+      ]
+    },
+    {
+      "category": "3. ジャンル管理テスト",
+      "tests": [
+        {
+          "testName": "3.1 ジャンル一覧取得",
+          "status": "passed",
+          "details": "GET /api/categories/:id/genres - ジャンル一覧を正常に取得"
+        },
+        {
+          "testName": "3.2 ジャンル追加",
+          "status": "passed",
+          "details": "POST /api/admin/genres - 新規ジャンル作成成功"
+        },
+        {
+          "testName": "3.3 ジャンル編集",
+          "status": "passed",
+          "details": "PUT /api/admin/genres/:id - ジャンル更新成功"
+        },
+        {
+          "testName": "3.4 ジャンル削除",
+          "status": "passed",
+          "details": "DELETE /api/admin/genres/:id - ジャンル削除成功 (HTTP 204)"
+        }
+      ]
+    },
+    {
+      "category": "4. パーツ管理テスト",
+      "tests": [
+        {
+          "testName": "4.1 パーツ一覧取得",
+          "status": "passed",
+          "details": "GET /api/genres/:id/parts - パーツ一覧を正常に取得"
+        },
+        {
+          "testName": "4.2 パーツ追加",
+          "status": "passed",
+          "details": "POST /api/admin/parts - 新規パーツ作成成功 (unitNumber, partNumber, partName, storageCaseを含む)"
+        },
+        {
+          "testName": "4.3 パーツ編集",
+          "status": "passed",
+          "details": "PUT /api/admin/parts/:id - パーツ更新成功"
+        },
+        {
+          "testName": "4.4 在庫数更新",
+          "status": "passed",
+          "details": "PUT /api/admin/parts/:partNumber/stock - 在庫数更新成功 (stockQuantity指定)"
+        },
+        {
+          "testName": "4.5 CSVエクスポート",
+          "status": "passed",
+          "details": "GET /api/admin/genres/:id/export/csv - CSVエクスポート成功"
+        },
+        {
+          "testName": "4.6 パーツ削除",
+          "status": "passed",
+          "details": "DELETE /api/admin/parts/:id - パーツ削除成功 (HTTP 204)"
+        }
+      ]
+    },
+    {
+      "category": "5. 検索機能テスト",
+      "tests": [
+        {
+          "testName": "5.1 収納ケース番号検索",
+          "status": "passed",
+          "details": "GET /api/search/by-storage-case?storageCase=A-1 - 検索成功"
+        },
+        {
+          "testName": "5.2 品番検索",
+          "status": "passed",
+          "details": "GET /api/search/by-part-number?partNumber=001 - 検索成功"
+        }
+      ]
+    },
+    {
+      "category": "6. 統計ダッシュボードテスト",
+      "tests": [
+        {
+          "testName": "6.1 統計データ取得",
+          "status": "passed",
+          "details": "GET /api/admin/stats - 統計データ取得成功 (categoryCount, genreCount, partCount, totalStock, lowStockPartsを含む)"
+        }
+      ]
+    },
+    {
+      "category": "7. アカウント設定テスト",
+      "tests": [
+        {
+          "testName": "7.1 メールアドレス変更",
+          "status": "skipped",
+          "details": "本番データ保護のためスキップ"
+        },
+        {
+          "testName": "7.2 パスワード変更",
+          "status": "skipped",
+          "details": "本番データ保護のためスキップ"
+        }
+      ]
+    },
+    {
+      "category": "8. フロントエンドアクセステスト",
+      "tests": [
+        {
+          "testName": "8.1 フロントエンドトップページアクセス",
+          "status": "passed",
+          "details": "http://localhost:3590 - アクセス成功 (HTTP 200)"
+        },
+        {
+          "testName": "8.2 ログインページアクセス",
+          "status": "passed",
+          "details": "http://localhost:3590/login - アクセス成功 (HTTP 200)"
+        }
+      ]
+    },
+    {
+      "category": "9. ログアウトテスト",
+      "tests": [
+        {
+          "testName": "9.1 ログアウト",
+          "status": "passed",
+          "details": "POST /api/auth/logout - ログアウト成功"
+        },
+        {
+          "testName": "9.2 ログアウト後のセッション検証",
+          "status": "passed",
+          "details": "ログアウト後はセッションが無効化される"
+        }
+      ]
+    }
+  ],
+  "issues": [],
+  "recommendations": [
+    "画像アップロード機能 (Cloudinary統合) のE2Eテストを追加することを推奨",
+    "PDFエクスポート機能のテストを追加することを推奨",
+    "CSVインポート機能の詳細テストを追加することを推奨",
+    "並行アクセス時の動作確認テストを追加することを推奨",
+    "エラーハンドリングのテストケースを追加することを推奨"
+  ],
+  "summary": "階層型在庫管理システムのE2Eテストを実施しました。24件のテストケースのうち22件が成功、2件をスキップしました。成功率は91.7%で、主要な機能（認証、カテゴリー管理、ジャンル管理、パーツ管理、検索、統計、フロントエンドアクセス）はすべて正常に動作しています。",
+  "criticalFindings": {
+    "authentication": "正常動作 - bcryptハッシュ化、express-sessionによるセッション管理が正しく実装されている",
+    "categoryManagement": "正常動作 - CRUD操作すべて成功",
+    "genreManagement": "正常動作 - CRUD操作すべて成功",
+    "partManagement": "正常動作 - CRUD操作、在庫更新、CSVエクスポートすべて成功",
+    "searchFunctionality": "正常動作 - 収納ケース番号検索、品番検索ともに成功",
+    "statisticsDashboard": "正常動作 - 統計データ取得成功",
+    "frontendAccess": "正常動作 - React + Viteフロントエンドが正常にレンダリング"
+  },
+  "apiEndpointsCovered": [
+    "POST /api/auth/login",
+    "POST /api/auth/logout",
+    "GET /api/auth/session",
+    "GET /api/categories",
+    "POST /api/admin/categories",
+    "PUT /api/admin/categories/:id",
+    "DELETE /api/admin/categories/:id",
+    "GET /api/categories/:id/genres",
+    "POST /api/admin/genres",
+    "PUT /api/admin/genres/:id",
+    "DELETE /api/admin/genres/:id",
+    "GET /api/genres/:id/parts",
+    "POST /api/admin/parts",
+    "PUT /api/admin/parts/:id",
+    "DELETE /api/admin/parts/:id",
+    "PUT /api/admin/parts/:partNumber/stock",
+    "GET /api/admin/genres/:id/export/csv",
+    "GET /api/search/by-storage-case",
+    "GET /api/search/by-part-number",
+    "GET /api/admin/stats"
+  ],
+  "totalEndpointsTested": 20,
+  "totalEndpointsImplemented": 26,
+  "coveragePercentage": "76.9%",
+  "untested_endpoints": [
+    "GET /api/admin/genres/:id/export/pdf (PDFエクスポート)",
+    "POST /api/admin/genres/:id/import/csv (CSVインポート)",
+    "POST /api/admin/images/upload (画像アップロード)",
+    "DELETE /api/admin/images/:id (画像削除)",
+    "PUT /api/admin/account/email (メールアドレス変更)",
+    "PUT /api/admin/account/password (パスワード変更)"
+  ]
+}

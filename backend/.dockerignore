@@ -1,0 +1,52 @@
+# ============================================
+# Docker Build除外リスト
+# ============================================
+
+# Node.js
+node_modules
+npm-debug.log
+yarn-error.log
+
+# TypeScriptビルド成果物（Dockerfile内で再ビルドするため）
+dist
+
+# 環境変数ファイル（機密情報）
+.env
+.env.local
+.env.*.local
+
+# ドキュメント
+*.md
+docs/
+mockups/
+
+# Git関連
+.git
+.gitignore
+.gitattributes
+
+# エディタ/IDE設定
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db
+
+# テスト関連
+*.test.ts
+*.spec.ts
+__tests__/
+coverage/
+
+# ログファイル
+*.log
+logs/
+
+# その他
+*.bak
+*.tmp
+.cache/
