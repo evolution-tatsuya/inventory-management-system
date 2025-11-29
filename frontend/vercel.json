@@ -5,6 +5,11 @@
   "installCommand": "npm install",
   "framework": "vite",
   "outputDirectory": "dist",
+  "build": {
+    "env": {
+      "VERCEL_FORCE_NO_BUILD_CACHE": "1"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
