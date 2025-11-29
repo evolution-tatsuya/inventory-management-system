@@ -35,8 +35,11 @@ const allowedOrigins = [
   'http://localhost:3590',
   'http://localhost:3591',
   'http://localhost:3592', // フロントエンド起動ポート
+  'https://frontend-tatsuyas-projects-20cab125.vercel.app', // Vercel本番URL
   process.env.FRONTEND_URL,
 ].filter(Boolean) as string[];
+
+console.log('✅ CORS許可オリジン:', allowedOrigins);
 
 app.use(cors({
   origin: (origin, callback) => {
