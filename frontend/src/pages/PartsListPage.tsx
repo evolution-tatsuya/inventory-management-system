@@ -81,8 +81,10 @@ export const PartsListPage = () => {
   const genreName = genre?.name || 'ジャンル';
   const diagramUrl = diagramImage?.imageUrl || ''; // DiagramImageから展開図URLを取得
 
-  // ユニット番号を取得（unitIdでフィルタリングされている場合）
-  const unitNumber = unitId && parts.length > 0 ? (parts[0] as any).unit?.unitNumber : null;
+  // ユニット情報を取得（unitIdでフィルタリングされている場合）
+  const unit = unitId && parts.length > 0 ? (parts[0] as any).unit : null;
+  const unitNumber = unit?.unitNumber || null;
+  const unitName = unit?.unitName || null;
 
   const [showDiagram, setShowDiagram] = useState(true);
   const [showPartImages, setShowPartImages] = useState(true);
@@ -579,11 +581,16 @@ export const PartsListPage = () => {
           </Box>
         )}
 
-        {/* ジャンル名とユニットコード */}
+        {/* ジャンル名とユニット情報 */}
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" sx={{ color: '#757575', mb: 0.5 }}>
             {genreName}
           </Typography>
+          {unitName && (
+            <Typography variant="h6" sx={{ color: '#333', fontWeight: 600, mb: 0.5 }}>
+              {unitName}
+            </Typography>
+          )}
           {unitNumber && (
             <Typography variant="body2" sx={{ color: '#757575' }}>
               Unit Code: {unitNumber}
