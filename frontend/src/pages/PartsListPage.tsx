@@ -86,6 +86,16 @@ export const PartsListPage = () => {
   const unitNumber = unit?.unitNumber || null;
   const unitName = unit?.unitName || null;
 
+  // デバッグログ（本番環境で確認用）
+  console.log('🔍 PartsListPage Debug:', {
+    unitId,
+    partsCount: parts.length,
+    firstPart: parts[0],
+    unit,
+    unitNumber,
+    unitName,
+  });
+
   const [showDiagram, setShowDiagram] = useState(true);
   const [showPartImages, setShowPartImages] = useState(true);
   const [imagePosition, setImagePosition] = useState<'left' | 'right'>('left');
