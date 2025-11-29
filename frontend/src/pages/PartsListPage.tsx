@@ -87,14 +87,14 @@ export const PartsListPage = () => {
   const unitName = unit?.unitName || null;
 
   // デバッグログ（本番環境で確認用）
-  console.log('🔍 PartsListPage Debug:', {
-    unitId,
-    partsCount: parts.length,
-    firstPart: parts[0],
-    unit,
-    unitNumber,
-    unitName,
-  });
+  if (parts.length > 0) {
+    console.log('🔍 Unit Info:', {
+      unitId,
+      unitNumber,
+      unitName,
+      '✅ Unit取得成功': !!unit,
+    });
+  }
 
   const [showDiagram, setShowDiagram] = useState(true);
   const [showPartImages, setShowPartImages] = useState(true);
@@ -509,6 +509,11 @@ export const PartsListPage = () => {
             <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>
               {genreName}
             </Typography>
+            {unitName && (
+              <Typography variant="body1" sx={{ color: '#ffffff', fontWeight: 500, mt: 0.5 }}>
+                {unitName} {unitNumber && `(Unit Code: ${unitNumber})`}
+              </Typography>
+            )}
           </Box>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
@@ -596,11 +601,9 @@ export const PartsListPage = () => {
           <Typography variant="body2" sx={{ color: '#757575', mb: 0.5 }}>
             {genreName}
           </Typography>
-          {unitName && (
-            <Typography variant="h6" sx={{ color: '#333', fontWeight: 600, mb: 0.5 }}>
-              {unitName}
-            </Typography>
-          )}
+          <Typography variant="h6" sx={{ color: '#333', fontWeight: 600, mb: 0.5 }}>
+            {unitName || 'ユニット名なし'}
+          </Typography>
           {unitNumber && (
             <Typography variant="body2" sx={{ color: '#757575' }}>
               Unit Code: {unitNumber}
