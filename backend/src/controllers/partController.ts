@@ -61,6 +61,7 @@ export const partController = {
         expectedArrivalDate,
         imageUrl,
         notes,
+        stockQuantity, // 在庫数量を追加
       } = req.body;
 
       // バリデーション
@@ -82,6 +83,9 @@ export const partController = {
       if (imageUrl && !validateUrl(imageUrl)) {
         return res.status(400).json({ error: 'Invalid image URL' });
       }
+      if (stockQuantity !== undefined && !validateStockQuantity(stockQuantity)) {
+        return res.status(400).json({ error: 'Invalid stock quantity' });
+      }
 
       const part = await partService.create({
         genreId,
@@ -95,6 +99,7 @@ export const partController = {
         orderDate,
         expectedArrivalDate,
         imageUrl,
+        stockQuantity, // 在庫数量を渡す
         notes,
       });
 
@@ -119,6 +124,9 @@ export const partController = {
         expectedArrivalDate,
         imageUrl,
         notes,
+        cropPositionX,
+        cropPositionY,
+        stockQuantity, // 在庫数量を追加
       } = req.body;
 
       if (!validateId(id)) {
@@ -136,6 +144,9 @@ export const partController = {
       if (imageUrl && !validateUrl(imageUrl)) {
         return res.status(400).json({ error: 'Invalid image URL' });
       }
+      if (stockQuantity !== undefined && !validateStockQuantity(stockQuantity)) {
+        return res.status(400).json({ error: 'Invalid stock quantity' });
+      }
 
       const part = await partService.update(id, {
         unitNumber,
@@ -148,6 +159,9 @@ export const partController = {
         expectedArrivalDate,
         imageUrl,
         notes,
+        cropPositionX,
+        cropPositionY,
+        stockQuantity, // 在庫数量を渡す
       });
 
       res.json(part);

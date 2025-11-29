@@ -12,7 +12,7 @@ export default defineConfig({
     ['list']
   ],
   use: {
-    baseURL: 'http://localhost:3589',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3589',
     screenshot: {
       mode: 'only-on-failure',
       fullPage: true,
@@ -25,7 +25,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
+  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
     command: 'npm run dev',
     url: 'http://localhost:3589',
     reuseExistingServer: !process.env.CI,

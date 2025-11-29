@@ -65,21 +65,20 @@ model Category {
 // Genre: ジャンル
 // ============================================================
 model Genre {
-  id            String         @id @default(cuid())
-  genreId       String?        // ジャンルID（ユーザー定義）
+  id            String   @id @default(cuid())
+  genreId       String?  // ジャンルID（ユーザー定義）
   categoryId    String
   name          String
-  subtitle      String?        // サブタイトル
+  subtitle      String?  // サブタイトル
   imageUrl      String?
-  cropPositionX Float?         @default(0.5) // 画像のクロップ位置X (0.0 ~ 1.0)
-  cropPositionY Float?         @default(0.5) // 画像のクロップ位置Y (0.0 ~ 1.0)
-  order         Int            @default(0)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  cropPositionX Float?   @default(0.5) // 画像のクロップ位置X (0.0 ~ 1.0)
+  cropPositionY Float?   @default(0.5) // 画像のクロップ位置Y (0.0 ~ 1.0)
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   units         Unit[]
   parts         Part[]
-  diagramImage  DiagramImage[]
 
   @@index([categoryId])
   @@index([order])
@@ -90,19 +89,20 @@ model Genre {
 // Unit: ユニット（新規追加）
 // ============================================================
 model Unit {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   genreId       String
   unitNumber    String
   unitName      String
   imageUrl      String?
-  cropPositionX Float?   @default(0.5) // 画像のクロップ位置X (0.0 ~ 1.0)
-  cropPositionY Float?   @default(0.5) // 画像のクロップ位置Y (0.0 ~ 1.0)
-  partsCount    Int      @default(0)
-  sortOrder     Int      @default(0)   // 並び順
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  genre         Genre    @relation(fields: [genreId], references: [id], onDelete: Cascade)
-  parts         Part[]   // このユニットに属するパーツ
+  cropPositionX Float?         @default(0.5) // 画像のクロップ位置X (0.0 ~ 1.0)
+  cropPositionY Float?         @default(0.5) // 画像のクロップ位置Y (0.0 ~ 1.0)
+  partsCount    Int            @default(0)
+  sortOrder     Int            @default(0)   // 並び順
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  genre         Genre          @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  parts         Part[]         // このユニットに属するパーツ
+  diagramImage  DiagramImage[] // ユニット専用の展開図
 
   @@unique([genreId, unitNumber])
   @@index([genreId])
@@ -161,17 +161,17 @@ model PartMaster {
 }
 
 // ============================================================
-// DiagramImage: 展開図
+// DiagramImage: 展開図（ユニット単位で管理）
 // ============================================================
 model DiagramImage {
   id        String   @id @default(cuid())
-  genreId   String
+  unitId    String   // genreIdからunitIdに変更
   imageUrl  String
   imageType String   @default("diagram")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  genre     Genre    @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  unit      Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
-  @@index([genreId])
+  @@index([unitId])
   @@map("diagram_images")
 }

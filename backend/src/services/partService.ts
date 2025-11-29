@@ -62,21 +62,26 @@ export const partService = {
     expectedArrivalDate?: string;
     imageUrl?: string;
     notes?: string;
+    stockQuantity?: number; // 在庫数量（PartMaster用）
   }) {
     return await prisma.$transaction(async (tx) => {
-      // PartMasterが存在しない場合は作成（upsertで冪等性確保）
+      // PartMasterが存在しない場合は作成、既存の場合は在庫数量を更新
       const partMaster = await tx.partMaster.upsert({
         where: { partNumber: data.partNumber },
-        update: {}, // 既存の場合は何もしない
+        update: {
+          // 在庫数量が指定されている場合は更新
+          ...(data.stockQuantity !== undefined && { stockQuantity: data.stockQuantity })
+        },
         create: {
           partNumber: data.partNumber,
-          stockQuantity: 0, // 初期在庫は0
+          stockQuantity: data.stockQuantity ?? 0, // 指定がない場合は0
         },
       });
 
-      // 日付文字列をDateTimeに変換
+      // 日付文字列をDateTimeに変換、stockQuantityは除外（PartMasterのみで管理）
+      const { stockQuantity, ...partDataWithoutStock } = data;
       const partData = {
-        ...data,
+        ...partDataWithoutStock,
         orderDate: data.orderDate ? new Date(data.orderDate) : undefined,
         expectedArrivalDate: data.expectedArrivalDate ? new Date(data.expectedArrivalDate) : undefined,
       };
@@ -108,24 +113,42 @@ export const partService = {
       notes?: string;
       cropPositionX?: number;
       cropPositionY?: number;
+      stockQuantity?: number; // 在庫数量を追加
     }
   ) {
     return await prisma.$transaction(async (tx) => {
-      // 品番が変更される場合、新しいPartMasterを確保
+      // 品番が変更される場合、または在庫数量が指定されている場合、PartMasterを更新
       if (data.partNumber) {
         await tx.partMaster.upsert({
           where: { partNumber: data.partNumber },
-          update: {}, // 既存の場合は何もしない
+          update: {
+            // 在庫数量が指定されている場合は更新
+            ...(data.stockQuantity !== undefined && { stockQuantity: data.stockQuantity })
+          },
           create: {
             partNumber: data.partNumber,
-            stockQuantity: 0, // 新規品番の初期在庫は0
+            stockQuantity: data.stockQuantity ?? 0, // 指定がない場合は0
           },
         });
+      } else if (data.stockQuantity !== undefined) {
+        // 品番変更なしで在庫数量のみ更新する場合
+        // 現在のパーツの品番を取得
+        const currentPart = await tx.part.findUnique({
+          where: { id },
+          select: { partNumber: true },
+        });
+        if (currentPart) {
+          await tx.partMaster.update({
+            where: { partNumber: currentPart.partNumber },
+            data: { stockQuantity: data.stockQuantity },
+          });
+        }
       }
 
-      // 日付文字列をDateTimeに変換
+      // 日付文字列をDateTimeに変換、stockQuantityは除外（PartMasterのみで管理）
+      const { stockQuantity, ...dataWithoutStock } = data;
       const updateData = {
-        ...data,
+        ...dataWithoutStock,
         orderDate: data.orderDate ? new Date(data.orderDate) : undefined,
         expectedArrivalDate: data.expectedArrivalDate ? new Date(data.expectedArrivalDate) : undefined,
       };

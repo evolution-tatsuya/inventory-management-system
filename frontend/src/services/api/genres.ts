@@ -39,7 +39,15 @@ export async function getAllGenres(): Promise<GenresResponse> {
 export async function createGenre(data: {
   categoryId: string;
   name: string;
+  genreId?: string;
+  subtitle?: string;
   imageUrl?: string;
+  cropPositionX?: number;
+  cropPositionY?: number;
+  diagramImageUrl?: string;
+  showDiagram?: boolean;
+  showPartImages?: boolean;
+  imagePosition?: string;
 }): Promise<GenreResponse> {
   return post<GenreResponse>(GENRE_ENDPOINTS.CREATE, data);
 }
@@ -54,7 +62,19 @@ export async function createGenre(data: {
  */
 export async function updateGenre(
   id: string,
-  data: { name?: string; imageUrl?: string },
+  data: {
+    name?: string;
+    genreId?: string;
+    subtitle?: string;
+    categoryId?: string;
+    imageUrl?: string;
+    cropPositionX?: number;
+    cropPositionY?: number;
+    diagramImageUrl?: string;
+    showDiagram?: boolean;
+    showPartImages?: boolean;
+    imagePosition?: string;
+  },
 ): Promise<GenreResponse> {
   return put<GenreResponse>(GENRE_ENDPOINTS.UPDATE(id), data);
 }

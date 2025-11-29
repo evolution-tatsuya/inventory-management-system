@@ -70,11 +70,11 @@ export const PartsListPage = () => {
     enabled: !!genreId && parts.length > 0,
   });
 
-  // 展開図取得（DiagramImage API使用）
+  // 展開図取得（DiagramImage API使用、ユニットIDで取得）
   const { data: diagramImage } = useQuery({
-    queryKey: ['diagram-image', genreId],
-    queryFn: () => diagramImagesApi.getDiagramImage(genreId!),
-    enabled: !!genreId,
+    queryKey: ['diagram-image', unitId],
+    queryFn: () => diagramImagesApi.getDiagramImage(unitId!),
+    enabled: !!unitId,
   });
 
   const genre = genres?.[0] || parts[0]?.genre;

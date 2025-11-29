@@ -224,7 +224,7 @@ export const GenreManagementPage = () => {
 
   // ジャンル更新
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name: string; categoryId: string; imageUrl?: string; cropPositionX?: number; cropPositionY?: number } }) =>
+    mutationFn: ({ id, data }: { id: string; data: { genreId?: string; name: string; subtitle?: string; categoryId: string; imageUrl?: string; cropPositionX?: number; cropPositionY?: number } }) =>
       genresApi.updateGenre(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['genres'] });

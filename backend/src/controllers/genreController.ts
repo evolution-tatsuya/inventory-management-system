@@ -42,13 +42,17 @@ export const genreController = {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const {
+        genreId,
         name,
+        subtitle,
         categoryId,
         imageUrl,
         diagramImageUrl,
         showDiagram,
         showPartImages,
         imagePosition,
+        cropPositionX,
+        cropPositionY,
       } = req.body;
 
       // バリデーション
@@ -66,13 +70,17 @@ export const genreController = {
       }
 
       const genre = await genreService.create({
+        genreId,
         name,
+        subtitle,
         categoryId,
         imageUrl,
         diagramImageUrl,
         showDiagram,
         showPartImages,
         imagePosition,
+        cropPositionX,
+        cropPositionY,
       });
 
       res.status(201).json(genre);
@@ -89,11 +97,14 @@ export const genreController = {
         genreId,
         name,
         subtitle,
+        categoryId,
         imageUrl,
         diagramImageUrl,
         showDiagram,
         showPartImages,
         imagePosition,
+        cropPositionX,
+        cropPositionY,
       } = req.body;
 
       if (!validateId(id)) {
@@ -101,6 +112,9 @@ export const genreController = {
       }
       if (name && !validateGenreName(name)) {
         return res.status(400).json({ error: 'Invalid genre name' });
+      }
+      if (categoryId && !validateId(categoryId)) {
+        return res.status(400).json({ error: 'Invalid category ID' });
       }
       if (imageUrl && !validateUrl(imageUrl)) {
         return res.status(400).json({ error: 'Invalid image URL' });
@@ -113,11 +127,14 @@ export const genreController = {
         genreId,
         name,
         subtitle,
+        categoryId,
         imageUrl,
         diagramImageUrl,
         showDiagram,
         showPartImages,
         imagePosition,
+        cropPositionX,
+        cropPositionY,
       });
 
       res.json(genre);

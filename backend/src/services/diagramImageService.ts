@@ -10,26 +10,26 @@ const prisma = new PrismaClient();
 
 export const diagramImageService = {
   /**
-   * ジャンルの展開図を取得
-   * @param genreId ジャンルID
+   * ユニットの展開図を取得
+   * @param unitId ユニットID
    * @returns 展開図（存在しない場合null）
    */
-  async getDiagramImageByGenreId(genreId: string) {
+  async getDiagramImageByUnitId(unitId: string) {
     return await prisma.diagramImage.findFirst({
-      where: { genreId },
+      where: { unitId },
     });
   },
 
   /**
    * 展開図を作成または更新
-   * @param genreId ジャンルID
+   * @param unitId ユニットID
    * @param imageUrl 画像URL
    * @returns 作成または更新された展開図
    */
-  async upsertDiagramImage(genreId: string, imageUrl: string) {
+  async upsertDiagramImage(unitId: string, imageUrl: string) {
     // 既存の展開図を確認
     const existing = await prisma.diagramImage.findFirst({
-      where: { genreId },
+      where: { unitId },
     });
 
     if (existing) {
@@ -42,7 +42,7 @@ export const diagramImageService = {
       // 新規作成
       return await prisma.diagramImage.create({
         data: {
-          genreId,
+          unitId,
           imageUrl,
           imageType: 'diagram',
         },
@@ -52,11 +52,11 @@ export const diagramImageService = {
 
   /**
    * 展開図を削除
-   * @param genreId ジャンルID
+   * @param unitId ユニットID
    */
-  async deleteDiagramImage(genreId: string) {
+  async deleteDiagramImage(unitId: string) {
     const existing = await prisma.diagramImage.findFirst({
-      where: { genreId },
+      where: { unitId },
     });
 
     if (existing) {

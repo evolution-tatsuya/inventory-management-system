@@ -29,12 +29,12 @@ COPY . .
 # TypeScriptをJavaScriptにコンパイル
 RUN npm run build
 
-# ポート8763を公開
-EXPOSE 8763
+# ポート8080を公開（Cloud Runのデフォルト）
+EXPOSE 8080
 
 # ヘルスチェック（Cloud Run用）
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8763/api/auth/session', (r) => {process.exit(r.statusCode === 200 || r.statusCode === 401 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:8080/api/auth/session', (r) => {process.exit(r.statusCode === 200 || r.statusCode === 401 ? 0 : 1)})"
 
 # アプリケーションを起動
 CMD ["node", "dist/index.js"]

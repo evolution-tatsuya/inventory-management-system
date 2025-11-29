@@ -38,14 +38,18 @@ export async function getAllParts(): Promise<PartsResponse> {
  */
 export async function createPart(data: {
   genreId: string;
+  unitId?: string;
   unitNumber: string;
   partNumber: string;
   partName: string;
+  quantity?: number;
+  price?: number;
   storageCase?: string;
   notes?: string;
   orderDate?: string;
   expectedArrivalDate?: string;
   imageUrl?: string;
+  stockQuantity?: number; // 在庫数量を追加
 }): Promise<PartResponse> {
   return post<PartResponse>(PART_ENDPOINTS.CREATE, data);
 }
@@ -61,14 +65,20 @@ export async function createPart(data: {
 export async function updatePart(
   id: string,
   data: {
+    unitId?: string;
     unitNumber?: string;
     partNumber?: string;
     partName?: string;
+    quantity?: number;
+    price?: number;
     storageCase?: string;
     notes?: string;
     orderDate?: string;
     expectedArrivalDate?: string;
     imageUrl?: string;
+    cropPositionX?: number;
+    cropPositionY?: number;
+    stockQuantity?: number; // 在庫数量を追加
   },
 ): Promise<PartResponse> {
   return put<PartResponse>(PART_ENDPOINTS.UPDATE(id), data);

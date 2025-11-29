@@ -28,21 +28,32 @@ async function main() {
   console.log('✅ 管理者アカウント作成完了:', admin.email);
 
   // ============================================================
-  // カテゴリー作成
+  // 一般ユーザーアカウント作成
   // ============================================================
-  const category1 = await prisma.category.upsert({
-    where: { name: 'GT3-048' },
+  const userHashedPassword = await bcrypt.hash('UserDemo2025!', 10);
+  const user = await prisma.user.upsert({
+    where: { email: 'user@inventory-system.local' },
     update: {},
     create: {
+      email: 'user@inventory-system.local',
+      password: userHashedPassword,
+      name: 'デモユーザー',
+    },
+  });
+  console.log('✅ 一般ユーザーアカウント作成完了:', user.email);
+
+  // ============================================================
+  // カテゴリー作成
+  // ============================================================
+  const category1 = await prisma.category.create({
+    data: {
       name: 'GT3-048',
       order: 1,
     },
   });
 
-  const category2 = await prisma.category.upsert({
-    where: { name: 'GT3-049' },
-    update: {},
-    create: {
+  const category2 = await prisma.category.create({
+    data: {
       name: 'GT3-049',
       order: 2,
     },

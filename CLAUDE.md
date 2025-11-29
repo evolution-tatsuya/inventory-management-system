@@ -372,38 +372,65 @@ UIコンポーネント設計:
   - 1アカウント = 1独立した在庫管理システム
 ```
 
-## 🚀 本番環境デプロイ情報（Phase 11完了）
+## 🚀 本番環境デプロイ情報（完全新規デプロイ - 2025-11-28）
 ```yaml
-デプロイ完了日: 2025-11-18
-デプロイ方法: gcloud run deploy --source（Docker不要）
+デプロイ完了日: 2025-11-28
+デプロイ方法: Dockerfile + Cloud Build + Secret Manager + Vercel
 
 本番環境URL:
-  フロントエンド: https://frontend-i32xqp6tw-tatsuyas-projects-20cab125.vercel.app
+  フロントエンド: https://frontend-tatsuyas-projects-20cab125.vercel.app
   バックエンド: https://inventory-backend-72579044624.asia-northeast1.run.app
-  データベース: Neon PostgreSQL (inventory-system-prod)
+  データベース: Neon PostgreSQL (neondb)
 
 Google Cloud:
   プロジェクトID: inventory-prod-7959116f
   リージョン: asia-northeast1 (東京)
   サービス名: inventory-backend
+  ビルド方法: Cloud Build (Dockerfile使用)
+  環境変数管理: Secret Manager (9個のシークレット)
 
 Vercel:
   プロジェクト名: frontend
-  環境変数: VITE_API_URL設定済み
+  環境変数: VITE_API_URL設定済み (バックエンドURL)
+  デプロイURL: https://frontend-tatsuyas-projects-20cab125.vercel.app
 
 Neon:
-  プロジェクト名: inventory-system-prod
+  データベース名: neondb
   リージョン: ap-southeast-1 (シンガポール)
   接続方式: Pooled接続
+  データ: シードデータ投入済み（管理者アカウント、テストカテゴリー/ジャンル/パーツ）
+
+デプロイ構成:
+  - バックエンド: Cloud Run (512MB RAM, 1 CPU, 0-10インスタンス)
+  - フロントエンド: Vercel (静的ホスティング)
+  - データベース: Neon PostgreSQL (Pooled接続、プロダクション用)
+  - 画像ストレージ: Cloudinary (有効)
+
+セキュリティ:
+  - Secret Manager使用（全環境変数を暗号化保存）
+  - CORS設定: フロントエンドURLのみ許可
+  - セッション管理: express-session + bcrypt
+
+デプロイ手順:
+  1. TypeScriptエラー0件確認
+  2. ビルド検証（フロント・バック）
+  3. 既存環境削除（クリーン状態から再構築）
+  4. Dockerfile作成・更新（ポート8080対応）
+  5. Secret Manager自動登録（9個の環境変数）
+  6. バックエンドデプロイ（Cloud Build + Cloud Run）
+  7. フロントエンドデプロイ（Vercel）
+  8. CORS設定更新（バックエンド再デプロイ）
+  9. データベースマイグレーション（スキーマ + シード）
+  10. Playwright自動検証（2テスト成功）
 ```
 
 ## 📝 作業ログ（最新5件）
 ```yaml
+- 2025-11-28: 完全新規デプロイ成功（Dockerfile + Cloud Build + Secret Manager）
 - 2025-11-22: Phase 12進行中（在庫数量管理、条件付き赤字表示、ユニットフィルタリング修正完了）
 - 2025-11-22: Phase 12 UI/UX改善開始（quantity/price フィールド追加、ドラッグ&ドロップ並び替え）
 - 2025-11-18: Phase 11本番デプロイ完全成功 🎉
 - 2025-11-17: Phase 10デプロイ準備完了（Dockerfile、環境変数、マニュアル）
-- 2025-11-17: Phase 9 E2Eテスト完了
 ```
 
 ## 🎯 次のアクション

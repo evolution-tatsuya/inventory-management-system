@@ -259,11 +259,11 @@ export const PartsManagementPage = () => {
     queryFn: unitsApi.getAllUnits,
   });
 
-  // 展開図取得（選択されたジャンルに基づく）
+  // 展開図取得（選択されたユニットに基づく）
   const { data: diagramImage } = useQuery({
-    queryKey: ['diagram-image', filterGenreId],
-    queryFn: () => diagramImagesApi.getDiagramImage(filterGenreId),
-    enabled: !!filterGenreId,
+    queryKey: ['diagram-image', filterUnitId],
+    queryFn: () => diagramImagesApi.getDiagramImage(filterUnitId),
+    enabled: !!filterUnitId,
   });
 
   // フィルターされたジャンル一覧（選択されたカテゴリーに属するジャンルのみ）
@@ -362,7 +362,7 @@ export const PartsManagementPage = () => {
   const deleteDiagramMutation = useMutation({
     mutationFn: diagramImagesApi.deleteDiagramImage,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['diagram-image', filterGenreId] });
+      queryClient.invalidateQueries({ queryKey: ['diagram-image', filterUnitId] });
       setDiagramFile(null);
       setDiagramPreview('');
     },
@@ -531,7 +531,7 @@ export const PartsManagementPage = () => {
       }
     }
 
-    // パーツを作成
+    // パーツを作成（在庫数量も一緒に送る）
     createMutation.mutate({
       genreId,
       unitId: filterUnitId || undefined,
@@ -545,18 +545,8 @@ export const PartsManagementPage = () => {
       expectedArrivalDate: expectedArrivalDate || undefined,
       imageUrl: uploadedImageUrl || undefined,
       notes: notes || undefined,
+      stockQuantity: stockQuantity ? parseInt(stockQuantity) : undefined, // 在庫数量を追加
     });
-
-    // 在庫数量を更新（品番が指定されている場合のみ）
-    if (partNumber) {
-      try {
-        await partsApi.updateStock(partNumber, parseInt(stockQuantity || '0'));
-        queryClient.invalidateQueries({ queryKey: ['parts'] });
-      } catch (error) {
-        console.error('在庫数量の更新に失敗しました:', error);
-        alert('在庫数量の更新に失敗しました');
-      }
-    }
   };
 
   const handleOpenEditDialog = (part: Part) => {
@@ -576,7 +566,7 @@ export const PartsManagementPage = () => {
     const partMaster = (part as any).partMaster;
     setStockQuantity(partMaster?.stockQuantity?.toString() || '0');
     setPrice(part.price?.toString() || '');
-    setStorageCase(part.storageCase);
+    setStorageCase(part.storageCase || '');
     setOrderDate(part.orderDate || '');
     setExpectedArrivalDate(part.expectedArrivalDate || '');
     setImageUrl(part.imageUrl || '');
@@ -712,19 +702,9 @@ export const PartsManagementPage = () => {
         notes: notes || undefined,
         cropPositionX: cropPosition.x,
         cropPositionY: cropPosition.y,
+        stockQuantity: stockQuantity ? parseInt(stockQuantity) : undefined, // 在庫数量を追加
       },
     });
-
-    // 在庫数量を更新（品番が指定されている場合のみ）
-    if (partNumber) {
-      try {
-        await partsApi.updateStock(partNumber, parseInt(stockQuantity || '0'));
-        queryClient.invalidateQueries({ queryKey: ['parts'] });
-      } catch (error) {
-        console.error('在庫数量の更新に失敗しました:', error);
-        alert('在庫数量の更新に失敗しました');
-      }
-    }
   };
 
   const handleOpenDeleteDialog = (part: Part) => {
@@ -773,7 +753,7 @@ export const PartsManagementPage = () => {
 
   // 展開図アップロードハンドラー
   const handleUploadDiagram = async () => {
-    if (!diagramFile || !filterGenreId) return;
+    if (!diagramFile || !filterUnitId) return;
 
     setUploadingDiagram(true);
     try {
@@ -793,9 +773,9 @@ export const PartsManagementPage = () => {
         return;
       }
 
-      // DBに保存
-      await diagramImagesApi.upsertDiagramImage(filterGenreId, data.secure_url);
-      queryClient.invalidateQueries({ queryKey: ['diagram-image', filterGenreId] });
+      // DBに保存（unitIdで保存）
+      await diagramImagesApi.upsertDiagramImage(filterUnitId, data.secure_url);
+      queryClient.invalidateQueries({ queryKey: ['diagram-image', filterUnitId] });
 
       setDiagramFile(null);
       setDiagramPreview('');
@@ -810,8 +790,8 @@ export const PartsManagementPage = () => {
 
   // 展開図削除ハンドラー
   const handleDeleteDiagram = async () => {
-    if (!filterGenreId || !confirm('展開図を削除してもよろしいですか?')) return;
-    deleteDiagramMutation.mutate(filterGenreId);
+    if (!filterUnitId || !confirm('展開図を削除してもよろしいですか?')) return;
+    deleteDiagramMutation.mutate(filterUnitId);
   };
 
   return (

@@ -19,25 +19,25 @@ const router = express.Router();
 // ============================================================
 
 /**
- * GET /api/genres/:genreId/diagram
- * ジャンルの展開図を取得
+ * GET /api/units/:unitId/diagram
+ * ユニットの展開図を取得
  */
-router.get('/genres/:genreId/diagram', getDiagramImage);
+router.get('/units/:unitId/diagram', getDiagramImage);
 
 // ============================================================
 // Admin Routes（認証必須）
 // ============================================================
 
 /**
- * PUT /api/admin/genres/:genreId/diagram
+ * PUT /api/admin/units/:unitId/diagram
  * 展開図を作成または更新
  */
-router.put('/admin/genres/:genreId/diagram', requireAuth, upsertDiagramImage);
+router.put('/admin/units/:unitId/diagram', requireAuth, upsertDiagramImage);
 
 /**
- * DELETE /api/admin/genres/:genreId/diagram
+ * DELETE /api/admin/units/:unitId/diagram
  * 展開図を削除
  */
-router.delete('/admin/genres/:genreId/diagram', requireAuth, deleteDiagramImage);
+router.delete('/admin/units/:unitId/diagram', requireAuth, deleteDiagramImage);
 
 export default router;
