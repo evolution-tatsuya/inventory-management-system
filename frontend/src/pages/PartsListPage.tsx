@@ -91,6 +91,11 @@ export const PartsListPage = () => {
   const [imagePosition, setImagePosition] = useState<'left' | 'right'>('left');
 
   const handleExportPDF = async () => {
+    // ユニット情報を取得（PDF用）
+    const pdfUnit = unitId && parts.length > 0 ? (parts[0] as any).unit : null;
+    const pdfUnitNumber = pdfUnit?.unitNumber || null;
+    const pdfUnitName = pdfUnit?.unitName || null;
+
     // 展開図のHTML（showDiagramがtrueの場合のみ）
     const diagramHTML = showDiagram && diagramUrl ? `
       <div style="margin-bottom: 10px; text-align: center;">
@@ -147,7 +152,7 @@ export const PartsListPage = () => {
           <h1>${genreName} パーツリスト / Parts List</h1>
           <div class="info">
             <div>ジャンル: ${genreName}</div>
-            ${unitName ? `<div>ユニット: ${unitName} (Unit Code: ${unitNumber})</div>` : ''}
+            ${pdfUnitName ? `<div>ユニット: ${pdfUnitName} (Unit Code: ${pdfUnitNumber})</div>` : ''}
             <div>件数: ${parts.length}件</div>
           </div>
           ${diagramHTML}
