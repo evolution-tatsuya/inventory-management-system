@@ -39,12 +39,17 @@ export const exportController = {
   async exportPDF(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
+      const { unitId } = req.query;
 
       if (!validateId(id)) {
         return res.status(400).json({ error: 'Invalid genre ID' });
       }
 
-      const pdfStream = await exportService.exportToPDF(id);
+      if (unitId && typeof unitId !== 'string') {
+        return res.status(400).json({ error: 'Invalid unit ID' });
+      }
+
+      const pdfStream = await exportService.exportToPDF(id, unitId as string | undefined);
 
       // PDFファイルとしてダウンロード（タイムスタンプ付きでキャッシュ回避）
       const timestamp = new Date().getTime();

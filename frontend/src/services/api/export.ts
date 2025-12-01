@@ -30,11 +30,17 @@ export async function exportCSV(genreId: string): Promise<Blob> {
  * PDFエクスポート
  *
  * @param genreId - ジャンルID
+ * @param unitId - ユニットID（オプション）
  * @returns PDFファイルのBlobデータ
  * @throws ApiError
  */
-export async function exportPDF(genreId: string): Promise<Blob> {
-  const response = await get<Response>(EXPORT_ENDPOINTS.PDF(genreId));
+export async function exportPDF(genreId: string, unitId?: string): Promise<Blob> {
+  let url = EXPORT_ENDPOINTS.PDF(genreId);
+  if (unitId) {
+    url += `?unitId=${encodeURIComponent(unitId)}`;
+  }
+
+  const response = await get<Response>(url);
 
   // Response オブジェクトからBlobを取得
   if (response instanceof Response) {

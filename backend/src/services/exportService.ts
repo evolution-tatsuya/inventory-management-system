@@ -60,8 +60,8 @@ export const exportService = {
     return '\uFEFF' + csv;
   },
 
-  // PDFエクスポート（ジャンル内のパーツ一覧）
-  async exportToPDF(genreId: string): Promise<PDFKit.PDFDocument> {
+  // PDFエクスポート（ジャンル内のパーツ一覧またはユニット別パーツ一覧）
+  async exportToPDF(genreId: string, unitId?: string): Promise<PDFKit.PDFDocument> {
     // ジャンルの存在確認
     const genre = await prisma.genre.findUnique({
       where: { id: genreId },
@@ -74,11 +74,22 @@ export const exportService = {
       throw new Error('Genre not found');
     }
 
+    // ユニット情報取得（unitIdが指定されている場合）
+    let unit = null;
+    if (unitId) {
+      unit = await prisma.unit.findUnique({
+        where: { id: unitId },
+      });
+    }
+
     // パーツ一覧取得
     const parts = await prisma.part.findMany({
-      where: { genreId },
+      where: unitId ? { genreId, unitId } : { genreId },
       include: {
         partMaster: true,
+        unit: {
+          select: { id: true, unitNumber: true, unitName: true },
+        },
       },
       orderBy: { unitNumber: 'asc' },
     });
@@ -94,7 +105,16 @@ export const exportService = {
     // doc.font('path/to/japanese-font.ttf');
 
     // タイトル
-    doc.fontSize(16).text(`パーツリスト: ${genre.category.name} > ${genre.name}`, {
+    let title = `パーツリスト: ${genre.category.name} > ${genre.name}`;
+    if (unit) {
+      title += ` > ${unit.unitName} (Unit Code: ${unit.unitNumber})`;
+    } else if (parts.length > 0 && parts[0].unit) {
+      // ユニットIDが指定されていなくても、パーツにユニット情報がある場合は表示
+      const firstUnit = parts[0].unit;
+      title += ` > ${firstUnit.unitName} (Unit Code: ${firstUnit.unitNumber})`;
+    }
+
+    doc.fontSize(16).text(title, {
       align: 'center',
     });
 

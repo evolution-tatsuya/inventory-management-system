@@ -147,6 +147,7 @@ export const PartsListPage = () => {
           <h1>${genreName} パーツリスト / Parts List</h1>
           <div class="info">
             <div>ジャンル: ${genreName}</div>
+            ${unitName ? `<div>ユニット: ${unitName} (Unit Code: ${unitNumber})</div>` : ''}
             <div>件数: ${parts.length}件</div>
           </div>
           ${diagramHTML}
