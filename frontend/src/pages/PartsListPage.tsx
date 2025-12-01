@@ -92,9 +92,9 @@ export const PartsListPage = () => {
 
   const handleExportPDF = async () => {
     // ユニット情報を取得（PDF用）
-    const pdfUnit = unitId && parts.length > 0 ? (parts[0] as any).unit : null;
-    const pdfUnitNumber = pdfUnit?.unitNumber || null;
-    const pdfUnitName = pdfUnit?.unitName || null;
+    // ページの状態から直接取得（parts[0].unitが存在しない場合に備えて）
+    const pdfUnitNumber = unitNumber;
+    const pdfUnitName = unitName;
 
     // 展開図のHTML（showDiagramがtrueの場合のみ）
     const diagramHTML = showDiagram && diagramUrl ? `
