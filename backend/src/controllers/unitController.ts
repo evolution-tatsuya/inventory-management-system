@@ -21,7 +21,7 @@ export async function getAllUnits(
 ): Promise<void> {
   try {
     const units = await prisma.unit.findMany({
-      orderBy: [{ genreId: 'asc' }, { sortOrder: 'asc' }, { unitNumber: 'asc' }],
+      orderBy: [{ genreId: 'asc' }, { createdAt: 'asc' }],
       include: {
         genre: {
           select: { id: true, name: true },
@@ -70,7 +70,7 @@ export async function getUnits(
 
     const units = await prisma.unit.findMany({
       where: { genreId },
-      orderBy: [{ sortOrder: 'asc' }, { unitNumber: 'asc' }],
+      orderBy: [{ createdAt: 'asc' }],
     });
 
     res.json(units);
