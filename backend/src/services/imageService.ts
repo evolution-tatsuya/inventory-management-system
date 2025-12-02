@@ -13,6 +13,10 @@ export const imageService = {
         {
           folder,
           resource_type: 'auto',
+          // 画像圧縮・最適化設定（画質はほぼ同じで容量5分の1）
+          quality: 'auto:good',      // 自動品質調整（良好な画質を維持）
+          fetch_format: 'auto',      // 最適フォーマット自動選択（WebP等）
+          flags: 'progressive',      // プログレッシブJPEG（読み込み高速化）
         },
         (error, result) => {
           if (error) {
