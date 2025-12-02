@@ -48,14 +48,20 @@ export const searchService = {
     });
 
     return parts.map((part) => ({
-      id: part.id,
-      unitNumber: part.unitNumber,
-      partNumber: part.partNumber,
-      partName: part.partName,
-      storageCase: part.storageCase,
-      stockQuantity: part.partMaster.stockQuantity,
-      imageUrl: part.imageUrl,
-      notes: part.notes,
+      part: {
+        id: part.id,
+        unitNumber: part.unitNumber,
+        partNumber: part.partNumber,
+        partName: part.partName,
+        storageCase: part.storageCase,
+        imageUrl: part.imageUrl,
+        notes: part.notes,
+        orderDate: part.orderDate,
+        expectedArrivalDate: part.expectedArrivalDate,
+        partMaster: {
+          stockQuantity: part.partMaster.stockQuantity,
+        },
+      },
       genre: {
         id: part.genre.id,
         name: part.genre.name,
@@ -104,14 +110,20 @@ export const searchService = {
     });
 
     return parts.map((part) => ({
-      id: part.id,
-      unitNumber: part.unitNumber,
-      partNumber: part.partNumber,
-      partName: part.partName,
-      storageCase: part.storageCase,
-      stockQuantity: part.partMaster.stockQuantity,
-      imageUrl: part.imageUrl,
-      notes: part.notes,
+      part: {
+        id: part.id,
+        unitNumber: part.unitNumber,
+        partNumber: part.partNumber,
+        partName: part.partName,
+        storageCase: part.storageCase,
+        imageUrl: part.imageUrl,
+        notes: part.notes,
+        orderDate: part.orderDate,
+        expectedArrivalDate: part.expectedArrivalDate,
+        partMaster: {
+          stockQuantity: part.partMaster.stockQuantity,
+        },
+      },
       genre: {
         id: part.genre.id,
         name: part.genre.name,

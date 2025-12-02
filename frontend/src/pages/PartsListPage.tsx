@@ -96,10 +96,19 @@ export const PartsListPage = () => {
     let pdfUnitNumber: string | null = null;
     let pdfUnitName: string | null = null;
 
+    // デバッグログ
+    console.log('PDF Export - parts length:', parts.length);
+    if (parts.length > 0) {
+      console.log('PDF Export - first part:', parts[0]);
+      console.log('PDF Export - first part unit:', (parts[0] as any).unit);
+    }
+
     if (parts.length > 0 && (parts[0] as any).unit) {
       const firstUnit = (parts[0] as any).unit;
       pdfUnitNumber = firstUnit.unitNumber || null;
       pdfUnitName = firstUnit.unitName || null;
+      console.log('PDF Export - pdfUnitNumber:', pdfUnitNumber);
+      console.log('PDF Export - pdfUnitName:', pdfUnitName);
     }
 
     // 展開図のHTML（showDiagramがtrueの場合のみ）
