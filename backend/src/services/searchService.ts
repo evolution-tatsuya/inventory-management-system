@@ -50,6 +50,7 @@ export const searchService = {
     return parts.map((part) => ({
       part: {
         id: part.id,
+        unitId: part.unitId,
         unitNumber: part.unitNumber,
         partNumber: part.partNumber,
         partName: part.partName,
@@ -112,6 +113,7 @@ export const searchService = {
     return parts.map((part) => ({
       part: {
         id: part.id,
+        unitId: part.unitId,
         unitNumber: part.unitNumber,
         partNumber: part.partNumber,
         partName: part.partName,
