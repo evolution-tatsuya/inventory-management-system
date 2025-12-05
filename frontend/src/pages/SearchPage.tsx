@@ -103,9 +103,17 @@ export const SearchPage = () => {
   };
 
   const handleItemClick = (result: SearchResult) => {
-    // パーツのジャンルページへ遷移
-    if (result.genre?.id) {
-      navigate(`/genres/${result.genre.id}/parts`);
+    // パーツのジャンル・ユニットページへ遷移
+    const categoryId = result.category?.id;
+    const genreId = result.genre?.id;
+    const unitId = result.part.unitId;
+
+    if (categoryId && genreId && unitId) {
+      // カテゴリー、ジャンル、ユニットIDがすべてある場合は、パーツリストに直接移動
+      navigate(`/categories/${categoryId}/genres/${genreId}/units/${unitId}/parts`);
+    } else if (categoryId && genreId) {
+      // ユニットIDがない場合は、ユニット一覧ページに移動
+      navigate(`/categories/${categoryId}/genres/${genreId}/units`);
     }
   };
 
