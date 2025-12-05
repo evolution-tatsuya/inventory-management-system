@@ -88,6 +88,7 @@ export interface Unit {
 export interface Part {
   id: string;
   genreId: string;
+  unitId?: string;         // ユニットID
   unitNumber: string;
   partNumber: string;
   partName: string;
