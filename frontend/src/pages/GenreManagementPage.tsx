@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -26,8 +26,8 @@ import {
 } from '@mui/material';
 import { Add, DragIndicator } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { genresApi, categoriesApi } from '@/services/api';
-import type { Genre } from '@/types';
+import { genresApi, categoriesApi, systemSettingsApi } from '@/services/api';
+import type { Genre, SystemSettings } from '@/types';
 import {
   DndContext,
   closestCenter,
@@ -175,6 +175,7 @@ const SortableRow = ({ genre, categoryName, onEdit, onDelete, sortable = true }:
 export const GenreManagementPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -184,6 +185,27 @@ export const GenreManagementPage = () => {
   const [subtitle, setSubtitle] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [filterCategoryId, setFilterCategoryId] = useState<string>(''); // カテゴリーフィルター用
+
+  // システム設定取得
+  useEffect(() => {
+    const fetchSystemSettings = async () => {
+      try {
+        const settings = await systemSettingsApi.getSystemSettings();
+        setSystemSettings(settings);
+      } catch (error) {
+        console.error('システム設定取得エラー:', error);
+        setSystemSettings({
+          id: '',
+          systemName: '階層型在庫管理システム',
+          logoUrl: null,
+          headerColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          createdAt: '',
+          updatedAt: '',
+        });
+      }
+    };
+    fetchSystemSettings();
+  }, []);
 
   // 画像クロップ用
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -490,7 +512,7 @@ export const GenreManagementPage = () => {
       {/* ヘッダー */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: systemSettings?.headerColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           padding: '20px 30px',
           display: 'flex',
@@ -499,6 +521,19 @@ export const GenreManagementPage = () => {
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         }}
       >
+        {systemSettings?.logoUrl && (
+          <Box
+            component="img"
+            src={systemSettings.logoUrl}
+            alt="Logo"
+            sx={{
+              maxHeight: '50px',
+              maxWidth: '200px',
+              objectFit: 'contain',
+              mr: 2,
+            }}
+          />
+        )}
         <Typography
           sx={{
             fontSize: '22px',
@@ -506,7 +541,7 @@ export const GenreManagementPage = () => {
             letterSpacing: '0.5px',
           }}
         >
-          在庫管理システム - 管理画面
+          {systemSettings?.systemName || '階層型在庫管理システム'} - 管理画面
         </Typography>
         <Button
           onClick={handleLogout}

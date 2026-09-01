@@ -42,10 +42,10 @@
 **環境変数**:
 ```yaml
 DATABASE_URL: postgresql://neondb_owner:***@ep-bold-poetry-a15tad2c-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&pgbouncer=true
-SESSION_SECRET: kUhQ2c1wxs0i4crGUjZfjDBi3saplKrsKEwj5Q3UgPA=
+SESSION_SECRET: <REDACTED>
 NODE_ENV: production
 CLOUDINARY_CLOUD_NAME: dg30ioxcx
-CLOUDINARY_API_KEY: 755568141878345
+CLOUDINARY_API_KEY: <REDACTED>
 CLOUDINARY_API_SECRET: EJUA-***
 CORS_ORIGIN: https://frontend-i32xqp6tw-tatsuyas-projects-20cab125.vercel.app
 FRONTEND_URL: https://frontend-i32xqp6tw-tatsuyas-projects-20cab125.vercel.app

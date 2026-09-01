@@ -65,7 +65,7 @@ docker images | grep inventory-backend-test
 
 **生成済みシークレット**:
 ```
-kUhQ2c1wxs0i4crGUjZfjDBi3saplKrsKEwj5Q3UgPA=
+<REDACTED>
 ```
 
 **用途**: Cloud Runの環境変数`SESSION_SECRET`に設定
@@ -225,8 +225,8 @@ CPU時間: 100時間/月
 
 ```yaml
 Cloud Name: dg30ioxcx
-API Key: 755568141878345
-API Secret: EJUA-lzdxfWuJzTn7GHcIviK3tA
+API Key: <REDACTED>
+API Secret: <REDACTED>
 プラン: 無料
 クレジット: 25/月
 ストレージ: 25GB
@@ -242,10 +242,10 @@ API Secret: EJUA-lzdxfWuJzTn7GHcIviK3tA
 | 変数名 | 値 | 設定先 |
 |-------|---|-------|
 | `DATABASE_URL` | `postgresql://...?pgbouncer=true` | Cloud Run |
-| `SESSION_SECRET` | `kUhQ2c1wxs0i4crGUjZfjDBi3saplKrsKEwj5Q3UgPA=` | Cloud Run |
+| `SESSION_SECRET` | `<REDACTED>` | Cloud Run |
 | `CLOUDINARY_CLOUD_NAME` | `dg30ioxcx` | Cloud Run |
-| `CLOUDINARY_API_KEY` | `755568141878345` | Cloud Run |
-| `CLOUDINARY_API_SECRET` | `EJUA-lzdxfWuJzTn7GHcIviK3tA` | Cloud Run |
+| `CLOUDINARY_API_KEY` | `<REDACTED>` | Cloud Run |
+| `CLOUDINARY_API_SECRET` | `<REDACTED>` | Cloud Run |
 | `CORS_ORIGIN` | `https://inventory-system.vercel.app` | Cloud Run |
 | `NODE_ENV` | `production` | Cloud Run |
 | `PORT` | `8763` | Cloud Run |
@@ -309,7 +309,7 @@ API Secret: EJUA-lzdxfWuJzTn7GHcIviK3tA
 | Dockerfile作成 | ✅ 完了 | `backend/Dockerfile` |
 | .dockerignore作成 | ✅ 完了 | `backend/.dockerignore` |
 | Vercel設定作成 | ✅ 完了 | `frontend/vercel.json` |
-| SESSION_SECRET生成 | ✅ 完了 | `kUhQ2c1wxs0i4crGUjZfjDBi3saplKrsKEwj5Q3UgPA=` |
+| SESSION_SECRET生成 | ✅ 完了 | `<REDACTED>` |
 | デプロイマニュアル作成 | ✅ 完了 | `DEPLOYMENT_MANUAL.md` |
 | Phase 10レポート作成 | ✅ 完了 | このファイル |
 | **Phase 10準備完了率** | **100%** | 手動デプロイ待ち |

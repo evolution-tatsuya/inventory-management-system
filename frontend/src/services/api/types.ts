@@ -88,8 +88,10 @@ export interface ImageUploadResponse {
 
 export interface ImportResponse {
   success: boolean;
-  imported: number;
-  failed: number;
+  message: string;
+  created: number;
+  updated: number;
+  errors: string[];
 }
 
 // ============================================================
@@ -103,4 +105,23 @@ export interface UpdateEmailResponse {
 
 export interface UpdatePasswordResponse {
   success: boolean;
+}
+
+// ============================================================
+// システム設定
+// ============================================================
+
+export interface SystemSettings {
+  id: string;
+  systemName: string;
+  logoUrl: string | null;
+  headerColor: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateSystemSettingsRequest {
+  systemName?: string;
+  logoUrl?: string | null;
+  headerColor?: string;
 }

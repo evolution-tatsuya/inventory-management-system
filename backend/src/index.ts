@@ -20,6 +20,7 @@ import accountRoutes from './routes/account';
 import imageRoutes from './routes/image';
 import exportRoutes from './routes/export';
 import diagramImageRoutes from './routes/diagramImage';
+import systemSettingsRoutes from './routes/systemSettings';
 
 // 環境変数読み込み（backendディレクトリの.env.localから）
 dotenv.config({ path: '.env.local' });
@@ -90,6 +91,7 @@ app.use('/api/admin/account', accountRoutes);
 app.use('/api', imageRoutes);
 app.use('/api', exportRoutes);
 app.use('/api', diagramImageRoutes);
+app.use('/api', systemSettingsRoutes);
 
 // ============================================================
 // エラーハンドリング

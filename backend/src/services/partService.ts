@@ -16,7 +16,7 @@ export const partService = {
   // 全パーツ一覧取得（管理画面用）
   async getAll() {
     return await prisma.part.findMany({
-      orderBy: [{ genreId: 'asc' }, { unitNumber: 'asc' }, { sortOrder: 'asc' }],
+      orderBy: [{ genreId: 'asc' }, { sortOrder: 'asc' }],
       include: {
         partMaster: {
           select: { stockQuantity: true },
@@ -35,7 +35,7 @@ export const partService = {
   async getByGenre(genreId: string) {
     return await prisma.part.findMany({
       where: { genreId },
-      orderBy: [{ unitNumber: 'asc' }, { sortOrder: 'asc' }],
+      orderBy: [{ sortOrder: 'asc' }],
       include: {
         partMaster: {
           select: { stockQuantity: true },

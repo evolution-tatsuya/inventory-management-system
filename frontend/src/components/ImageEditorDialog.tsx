@@ -50,44 +50,115 @@ export const ImageEditorDialog = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
+  // モード: 'move'=移動/拡大, 'cut'=ラインでカット（自由曲線トリミング）
+  const [mode, setMode] = useState<'move' | 'cut'>('move');
+  // カット用: 描いた線のパス（コンテナ座標）
+  const [cutPath, setCutPath] = useState<{ x: number; y: number }[]>([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
+  // 画像を枠にフィットさせる基準スケール（これを1.0倍とみなす）
+  const [fitScale, setFitScale] = useState(1);
+
   // ダイアログが開いたときに初期化
   useEffect(() => {
     if (open) {
-      setScale(initialScale);
       setPosition(initialPosition);
       setBackgroundColor(initialBackgroundColor);
+      setMode('move');
+      setCutPath([]);
 
-      // 画像のサイズを取得
+      // 画像のサイズを取得し、枠にフィットする初期スケールを計算
       const img = new Image();
       img.onload = () => {
         setImageSize({ width: img.width, height: img.height });
+        // コンテナ（枠）のサイズに画像全体が収まるスケールを計算
+        const container = containerRef.current;
+        if (container && img.width > 0 && img.height > 0) {
+          const cw = container.clientWidth;
+          const ch = container.clientHeight;
+          const fit = Math.min(cw / img.width, ch / img.height);
+          setFitScale(fit);
+          // initialScale指定があればそれを優先、なければフィットスケール（画像全体が枠に収まる）
+          setScale(initialScale && initialScale !== 1 ? initialScale : fit);
+        } else {
+          setFitScale(1);
+          setScale(initialScale);
+        }
       };
       img.src = imageUrl;
     }
-  }, [open, imageUrl, initialScale, initialPosition, initialBackgroundColor]);
+    // ダイアログが開いた時・画像が変わった時だけ初期化する。
+    // initialPosition等のオブジェクトを依存に入れると毎レンダー新規生成で無限ループになるため除外。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, imageUrl]);
 
-  // マウスダウン（ドラッグ開始）
+  // コンテナ内のマウス座標を取得
+  const getLocalPoint = (e: React.MouseEvent) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+
+  // マウスダウン
   const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    });
+    if (mode === 'cut') {
+      // カットモード: 新しい線を描き始める
+      setIsDrawing(true);
+      setCutPath([getLocalPoint(e)]);
+    } else {
+      // 移動モード: ドラッグ開始
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    }
   };
 
-  // マウスムーブ（ドラッグ中）
+  // マウスムーブ
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setPosition({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    });
+    if (mode === 'cut') {
+      if (!isDrawing) return;
+      setCutPath((prev) => [...prev, getLocalPoint(e)]);
+    } else {
+      if (!isDragging) return;
+      setPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    }
   };
 
-  // マウスアップ（ドラッグ終了）
+  // マウスアップ
   const handleMouseUp = () => {
     setIsDragging(false);
+    setIsDrawing(false);
   };
+
+  // カット線をオーバーレイに描画
+  useEffect(() => {
+    const canvas = overlayRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (cutPath.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(cutPath[0].x, cutPath[0].y);
+      for (const p of cutPath.slice(1)) ctx.lineTo(p.x, p.y);
+      // 描画中でなければ閉じる
+      if (!isDrawing) ctx.closePath();
+      ctx.strokeStyle = '#e53935';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.stroke();
+      // 囲み領域を薄く塗る
+      if (!isDrawing) {
+        ctx.fillStyle = 'rgba(229, 57, 53, 0.08)';
+        ctx.fill();
+      }
+    }
+  }, [cutPath, isDrawing]);
+
+  // カット線をクリア
+  const clearCut = () => setCutPath([]);
 
   // 保存処理
   const handleSave = async () => {
@@ -125,8 +196,21 @@ export const ImageEditorDialog = ({
       const drawX = centerX - scaledWidth / 2 + position.x;
       const drawY = centerY - scaledHeight / 2 + position.y;
 
-      // 画像を描画
-      ctx.drawImage(image, drawX, drawY, scaledWidth, scaledHeight);
+      // カットパスがある場合: パス内側だけを残す（クリッピング）
+      if (cutPath.length > 2) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(cutPath[0].x, cutPath[0].y);
+        for (const p of cutPath.slice(1)) ctx.lineTo(p.x, p.y);
+        ctx.closePath();
+        ctx.clip();
+        // クリップ内に画像を描画
+        ctx.drawImage(image, drawX, drawY, scaledWidth, scaledHeight);
+        ctx.restore();
+      } else {
+        // 通常描画
+        ctx.drawImage(image, drawX, drawY, scaledWidth, scaledHeight);
+      }
 
       // Base64に変換
       const base64 = canvas.toDataURL('image/jpeg', 0.9);
@@ -141,6 +225,8 @@ export const ImageEditorDialog = ({
     setScale(1);
     setPosition({ x: 0, y: 0 });
     setBackgroundColor('#FFFFFF');
+    setMode('move');
+    setCutPath([]);
     onClose();
   };
 
@@ -149,6 +235,31 @@ export const ImageEditorDialog = ({
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 2 }}>
+          {/* モード切替: 移動/拡大 か ラインでカット */}
+          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+            <ToggleButtonGroup
+              value={mode}
+              exclusive
+              onChange={(_, value) => {
+                if (value !== null) setMode(value);
+              }}
+              size="small"
+            >
+              <ToggleButton value="move">移動・拡大</ToggleButton>
+              <ToggleButton value="cut">ラインでカット</ToggleButton>
+            </ToggleButtonGroup>
+            {mode === 'cut' && (
+              <>
+                <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>
+                  画像上をなぞって残したい範囲を囲んでください
+                </Typography>
+                <Button size="small" onClick={clearCut} variant="outlined" color="error">
+                  線をクリア
+                </Button>
+              </>
+            )}
+          </Box>
+
           {/* 画像エディター */}
           <Box
             sx={{
@@ -166,7 +277,7 @@ export const ImageEditorDialog = ({
                 bgcolor: backgroundColor,
                 borderRadius: 1,
                 overflow: 'hidden',
-                cursor: isDragging ? 'grabbing' : 'grab',
+                cursor: mode === 'cut' ? 'crosshair' : isDragging ? 'grabbing' : 'grab',
                 border: '3px solid',
                 borderColor: 'primary.main',
                 boxShadow: '0 0 0 4px rgba(25, 118, 210, 0.1)',
@@ -247,6 +358,19 @@ export const ImageEditorDialog = ({
                   pointerEvents: 'none',
                 }}
               />
+
+              {/* カット用オーバーレイcanvas（描いた線を表示） */}
+              <canvas
+                ref={overlayRef}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: 'none',
+                }}
+              />
             </Box>
 
             {/* 説明テキスト */}
@@ -260,7 +384,9 @@ export const ImageEditorDialog = ({
                 fontWeight: 600,
               }}
             >
-              青い枠内の領域が保存されます
+              {mode === 'cut'
+                ? '赤い線で囲んだ内側だけが残ります（線を閉じるように囲んでください）'
+                : '青い枠内の領域が保存されます'}
             </Typography>
           </Box>
 
@@ -270,11 +396,12 @@ export const ImageEditorDialog = ({
               拡大・縮小
             </Typography>
             <Slider
-              value={scale}
-              min={0.3}
-              max={3}
-              step={0.1}
-              onChange={(_, value) => setScale(value as number)}
+              // フィット状態を100%として、その倍率(0.5〜4倍)で拡大縮小
+              value={fitScale > 0 ? scale / fitScale : 1}
+              min={0.5}
+              max={4}
+              step={0.05}
+              onChange={(_, value) => setScale((value as number) * fitScale)}
               valueLabelDisplay="auto"
               valueLabelFormat={(value) => `${Math.round(value * 100)}%`}
             />

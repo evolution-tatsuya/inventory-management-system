@@ -17,11 +17,13 @@ import {
   InputLabel,
   InputAdornment,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
-import { Logout, Visibility, VisibilityOff } from '@mui/icons-material';
+import { Logout, Visibility, VisibilityOff, Upload } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { accountApi, authApi } from '@/services/api';
+import { accountApi, authApi, systemSettingsApi, imagesApi } from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
+import type { SystemSettings } from '@/services/api/types';
 
 // ============================================================
 // AccountSettingsPage (A-005)
@@ -54,6 +56,14 @@ export const AccountSettingsPage = () => {
   const [showAccountDetails, setShowAccountDetails] = useState(false); // 詳細表示フラグ
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // システム設定
+  const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
+  const [systemName, setSystemName] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>('');
+  const [headerColor, setHeaderColor] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // アカウント一覧取得
   const { data: accountList } = useQuery({
@@ -115,6 +125,22 @@ export const AccountSettingsPage = () => {
       setEmail(accountData.email || '');
     }
   }, [accountData]);
+
+  // システム設定取得
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settings = await systemSettingsApi.getSystemSettings();
+        setSystemSettings(settings);
+        setSystemName(settings.systemName);
+        setLogoPreview(settings.logoUrl || '');
+        setHeaderColor(settings.headerColor);
+      } catch (error) {
+        console.error('システム設定取得エラー:', error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   // ログアウト
   const handleLogout = async () => {
@@ -210,6 +236,59 @@ export const AccountSettingsPage = () => {
     }
   };
 
+  // ロゴアップロード処理
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 2MB制限
+    if (file.size > 2 * 1024 * 1024) {
+      setErrorMessage('ファイルサイズは2MB以下にしてください');
+      return;
+    }
+
+    // プレビュー表示
+    const reader = new FileReader();
+    reader.onload = () => {
+      setLogoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    setLogoFile(file);
+  };
+
+  // システム設定更新処理
+  const handleUpdateSystemSettings = async () => {
+    try {
+      let logoUrl = systemSettings?.logoUrl || null;
+
+      // ロゴ画像をアップロード
+      if (logoFile) {
+        setUploadingLogo(true);
+        const uploadResponse = await imagesApi.uploadImage(logoFile);
+        logoUrl = uploadResponse.imageUrl;
+        setUploadingLogo(false);
+      }
+
+      // システム設定を更新
+      const updated = await systemSettingsApi.updateSystemSettings({
+        systemName,
+        logoUrl,
+        headerColor,
+      });
+
+      setSystemSettings(updated);
+      setSuccessMessage('システム設定を更新しました');
+
+      // ページリロードしてヘッダーを更新
+      window.location.reload();
+    } catch (error) {
+      console.error('システム設定更新エラー:', error);
+      setErrorMessage('システム設定の更新に失敗しました');
+      setUploadingLogo(false);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -227,7 +306,7 @@ export const AccountSettingsPage = () => {
       {/* ヘッダー */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: systemSettings?.headerColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           padding: '20px 30px',
           display: 'flex',
@@ -236,6 +315,19 @@ export const AccountSettingsPage = () => {
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         }}
       >
+        {systemSettings?.logoUrl && (
+          <Box
+            component="img"
+            src={systemSettings.logoUrl}
+            alt="Logo"
+            sx={{
+              maxHeight: '50px',
+              maxWidth: '200px',
+              objectFit: 'contain',
+              mr: 2,
+            }}
+          />
+        )}
         <Typography
           sx={{
             fontSize: '22px',
@@ -243,7 +335,7 @@ export const AccountSettingsPage = () => {
             letterSpacing: '0.5px',
           }}
         >
-          階層型在庫管理システム
+          {systemSettings?.systemName || '階層型在庫管理システム'}
         </Typography>
         <Button
           onClick={handleLogout}
@@ -845,6 +937,179 @@ export const AccountSettingsPage = () => {
                 }}
               >
                 パスワードを変更
+              </Button>
+            </Box>
+          </Box>
+          )}
+
+          {/* システム設定セクション（詳細表示時のみ） */}
+          {showAccountDetails && (
+          <Box
+            sx={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '19px',
+              marginTop: '13px',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: '19px',
+                fontWeight: 700,
+                marginBottom: '13px',
+                color: '#333',
+              }}
+            >
+              システム設定
+            </Typography>
+
+            {/* システム名 */}
+            <Box sx={{ marginBottom: '13px' }}>
+              <Typography
+                sx={{
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  marginBottom: '5px',
+                  color: '#333',
+                }}
+              >
+                システム名
+              </Typography>
+              <TextField
+                fullWidth
+                value={systemName}
+                onChange={(e) => setSystemName(e.target.value)}
+                inputProps={{ maxLength: 50 }}
+                helperText={`${systemName.length}/50文字`}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    padding: '13px 11px',
+                  },
+                }}
+              />
+            </Box>
+
+            {/* ロゴ画像 */}
+            <Box sx={{ marginBottom: '13px' }}>
+              <Typography
+                sx={{
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  marginBottom: '5px',
+                  color: '#333',
+                }}
+              >
+                ロゴ画像（任意、2MB以下）
+              </Typography>
+              <Button
+                component="label"
+                variant="outlined"
+                startIcon={uploadingLogo ? <CircularProgress size={16} /> : <Upload />}
+                disabled={uploadingLogo}
+                sx={{
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                }}
+              >
+                ロゴをアップロード
+                <input
+                  type="file"
+                  hidden
+                  accept="image/jpeg,image/png,image/svg+xml"
+                  onChange={handleLogoUpload}
+                />
+              </Button>
+              {logoPreview && (
+                <Box sx={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <img
+                    src={logoPreview}
+                    alt="Logo preview"
+                    style={{ maxWidth: '200px', maxHeight: '60px', objectFit: 'contain' }}
+                  />
+                  <Button
+                    size="small"
+                    color="error"
+                    onClick={() => {
+                      setLogoFile(null);
+                      setLogoPreview('');
+                    }}
+                    sx={{
+                      fontSize: '12px',
+                      padding: '4px 12px',
+                    }}
+                  >
+                    削除
+                  </Button>
+                </Box>
+              )}
+            </Box>
+
+            {/* ヘッダー背景色 */}
+            <Box sx={{ marginBottom: '16px' }}>
+              <Typography
+                sx={{
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  marginBottom: '5px',
+                  color: '#333',
+                }}
+              >
+                ヘッダー背景色
+              </Typography>
+              <TextField
+                fullWidth
+                value={headerColor}
+                onChange={(e) => setHeaderColor(e.target.value)}
+                placeholder="例: #667eea または linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                helperText="単色の場合は#667eea、グラデーションの場合はlinear-gradient(...)形式で入力"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    padding: '13px 11px',
+                  },
+                }}
+              />
+              <Box
+                sx={{
+                  marginTop: '10px',
+                  width: '100%',
+                  height: '40px',
+                  background: headerColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '4px',
+                  border: '1px solid #ddd',
+                }}
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="contained"
+                onClick={handleUpdateSystemSettings}
+                disabled={uploadingLogo}
+                sx={{
+                  padding: '11px 32px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #5568d3 0%, #63358b 100%)',
+                  },
+                }}
+              >
+                システム設定を保存
               </Button>
             </Box>
           </Box>

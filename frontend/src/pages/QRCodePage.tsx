@@ -1,8 +1,10 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Box, Typography, Button } from '@mui/material';
 import { Logout, Print, Download, ContentCopy } from '@mui/icons-material';
+import { systemSettingsApi } from '@/services/api';
+import type { SystemSettings } from '@/types';
 
 // ============================================================
 // QRCodePage (A-006)
@@ -13,9 +15,31 @@ import { Logout, Print, Download, ContentCopy } from '@mui/icons-material';
 export const QRCodePage = () => {
   const navigate = useNavigate();
   const qrCodeRef = useRef<HTMLCanvasElement>(null);
+  const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
 
   // ログインページURL
   const loginUrl = `${window.location.protocol}//${window.location.host}/login`;
+
+  // システム設定取得
+  useEffect(() => {
+    const fetchSystemSettings = async () => {
+      try {
+        const settings = await systemSettingsApi.getSystemSettings();
+        setSystemSettings(settings);
+      } catch (error) {
+        console.error('システム設定取得エラー:', error);
+        setSystemSettings({
+          id: '',
+          systemName: '階層型在庫管理システム',
+          logoUrl: null,
+          headerColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          createdAt: '',
+          updatedAt: '',
+        });
+      }
+    };
+    fetchSystemSettings();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -75,7 +99,7 @@ export const QRCodePage = () => {
       {/* ヘッダー */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: systemSettings?.headerColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           padding: '20px 30px',
           display: 'flex',
@@ -84,6 +108,19 @@ export const QRCodePage = () => {
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         }}
       >
+        {systemSettings?.logoUrl && (
+          <Box
+            component="img"
+            src={systemSettings.logoUrl}
+            alt="Logo"
+            sx={{
+              maxHeight: '50px',
+              maxWidth: '200px',
+              objectFit: 'contain',
+              mr: 2,
+            }}
+          />
+        )}
         <Typography
           sx={{
             fontSize: '22px',
@@ -91,7 +128,7 @@ export const QRCodePage = () => {
             letterSpacing: '0.5px',
           }}
         >
-          階層型在庫管理システム
+          {systemSettings?.systemName || '階層型在庫管理システム'}
         </Typography>
         <Button
           onClick={handleLogout}

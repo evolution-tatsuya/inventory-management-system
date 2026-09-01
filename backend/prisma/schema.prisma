@@ -175,3 +175,17 @@ model DiagramImage {
   @@index([unitId])
   @@map("diagram_images")
 }
+
+// ============================================================
+// SystemSettings: システム設定（システム名・ロゴ・ヘッダー色）
+// ============================================================
+model SystemSettings {
+  id               String   @id @default(cuid())
+  systemName       String   @default("階層型在庫管理システム")
+  logoUrl          String?  // ロゴ画像URL（任意）
+  headerColor      String   @default("linear-gradient(135deg, #667eea 0%, #764ba2 100%)")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("system_settings")
+}

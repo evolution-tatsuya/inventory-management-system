@@ -157,10 +157,10 @@ docker push gcr.io/$PROJECT_ID/inventory-backend:v1.0.0
 ```bash
 # 環境変数を準備
 DATABASE_URL="<Neonの接続文字列（Pooled）>"
-SESSION_SECRET="kUhQ2c1wxs0i4crGUjZfjDBi3saplKrsKEwj5Q3UgPA="  # 生成済み
+SESSION_SECRET="<REDACTED>"  # 生成済み
 CLOUDINARY_CLOUD_NAME="dg30ioxcx"
-CLOUDINARY_API_KEY="755568141878345"
-CLOUDINARY_API_SECRET="EJUA-lzdxfWuJzTn7GHcIviK3tA"
+CLOUDINARY_API_KEY="<REDACTED>"
+CLOUDINARY_API_SECRET="<REDACTED>"
 CORS_ORIGIN="https://inventory-system.vercel.app"  # Vercel URLで後で更新
 
 # Cloud Runにデプロイ
@@ -408,15 +408,15 @@ gcloud run services describe inventory-backend --region asia-northeast1 --format
 
 # 正しい値:
 # CLOUDINARY_CLOUD_NAME: dg30ioxcx
-# CLOUDINARY_API_KEY: 755568141878345
-# CLOUDINARY_API_SECRET: EJUA-lzdxfWuJzTn7GHcIviK3tA
+# CLOUDINARY_API_KEY: <REDACTED>
+# CLOUDINARY_API_SECRET: <REDACTED>
 ```
 
 ---
 
 ## セキュリティチェックリスト
 
-- [ ] **SESSION_SECRET**: 開発環境と異なる値を使用（`kUhQ2c1wxs0i4crGUjZfjDBi3saplKrsKEwj5Q3UgPA=`）
+- [ ] **SESSION_SECRET**: 開発環境と異なる値を使用（`<REDACTED>`）
 - [ ] **管理者パスワード**: 強力なパスワードに変更済み
 - [ ] **HTTPS接続**: Cloud RunとVercelは自動的にHTTPS
 - [ ] **CORS設定**: `CORS_ORIGIN`がVercel URLと一致

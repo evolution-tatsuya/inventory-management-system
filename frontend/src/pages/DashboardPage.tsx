@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Card, CardContent, Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { statsApi } from '@/services/api';
+import { statsApi, systemSettingsApi } from '@/services/api';
+import type { SystemSettings } from '@/types';
 
 // ============================================================
 // DashboardPage (A-000)
@@ -11,6 +13,7 @@ import { statsApi } from '@/services/api';
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
+  const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
 
   // 統計データ取得（5分間隔で自動更新）
   const { data: stats } = useQuery({
@@ -18,6 +21,28 @@ export const DashboardPage = () => {
     queryFn: statsApi.getStats,
     refetchInterval: 5 * 60 * 1000, // 5分間隔
   });
+
+  // システム設定取得
+  useEffect(() => {
+    const fetchSystemSettings = async () => {
+      try {
+        const settings = await systemSettingsApi.getSystemSettings();
+        setSystemSettings(settings);
+      } catch (error) {
+        console.error('システム設定取得エラー:', error);
+        // エラー時はデフォルト値を使用
+        setSystemSettings({
+          id: '',
+          systemName: '階層型在庫管理システム',
+          logoUrl: null,
+          headerColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          createdAt: '',
+          updatedAt: '',
+        });
+      }
+    };
+    fetchSystemSettings();
+  }, []);
 
   const handleLogout = () => {
     // ログアウト処理
@@ -41,7 +66,7 @@ export const DashboardPage = () => {
       {/* ヘッダー */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: systemSettings?.headerColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           padding: '20px 30px',
           display: 'flex',
@@ -50,6 +75,19 @@ export const DashboardPage = () => {
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         }}
       >
+        {systemSettings?.logoUrl && (
+          <Box
+            component="img"
+            src={systemSettings.logoUrl}
+            alt="Logo"
+            sx={{
+              maxHeight: '50px',
+              maxWidth: '200px',
+              objectFit: 'contain',
+              mr: 2,
+            }}
+          />
+        )}
         <Typography
           sx={{
             fontSize: '22px',
@@ -57,7 +95,7 @@ export const DashboardPage = () => {
             letterSpacing: '0.5px',
           }}
         >
-          在庫管理システム - 管理画面
+          {systemSettings?.systemName || '階層型在庫管理システム'} - 管理画面
         </Typography>
         <Button
           onClick={handleLogout}
@@ -232,6 +270,24 @@ export const DashboardPage = () => {
             }}
           >
             QRコード
+          </Button>
+          <Button
+            onClick={() => navigate('/categories')}
+            sx={{
+              padding: '16px 32px',
+              background: '#e8f5e9',
+              color: '#2e7d32',
+              fontSize: '15px',
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: 0,
+              minWidth: 'fit-content',
+              '&:hover': {
+                background: '#c8e6c9',
+              },
+            }}
+          >
+            ユーザー画面を見る
           </Button>
         </Box>
 

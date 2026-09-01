@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -27,8 +27,8 @@ import {
   DragIndicator,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { categoriesApi } from '@/services/api';
-import type { Category } from '@/types';
+import { categoriesApi, systemSettingsApi } from '@/services/api';
+import type { Category, SystemSettings } from '@/types';
 import {
   DndContext,
   closestCenter,
@@ -181,6 +181,7 @@ const SortableRow = ({ category, onEdit, onDelete }: SortableRowProps) => {
 export const CategoryManagementPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -194,6 +195,27 @@ export const CategoryManagementPage = () => {
   const [cropPosition, setCropPosition] = useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 }); // 0.0 ~ 1.0 の割合
   const [createdAt, setCreatedAt] = useState<string>(''); // 作成日
   const [addError, setAddError] = useState<string>(''); // 追加エラーメッセージ
+
+  // システム設定取得
+  useEffect(() => {
+    const fetchSystemSettings = async () => {
+      try {
+        const settings = await systemSettingsApi.getSystemSettings();
+        setSystemSettings(settings);
+      } catch (error) {
+        console.error('システム設定取得エラー:', error);
+        setSystemSettings({
+          id: '',
+          systemName: '階層型在庫管理システム',
+          logoUrl: null,
+          headerColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          createdAt: '',
+          updatedAt: '',
+        });
+      }
+    };
+    fetchSystemSettings();
+  }, []);
 
   // カテゴリー一覧取得
   const { data: categories = [], isLoading, isError, error } = useQuery({
@@ -514,7 +536,7 @@ export const CategoryManagementPage = () => {
       {/* ヘッダー */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: systemSettings?.headerColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           padding: '20px 30px',
           display: 'flex',
@@ -523,6 +545,19 @@ export const CategoryManagementPage = () => {
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         }}
       >
+        {systemSettings?.logoUrl && (
+          <Box
+            component="img"
+            src={systemSettings.logoUrl}
+            alt="Logo"
+            sx={{
+              maxHeight: '50px',
+              maxWidth: '200px',
+              objectFit: 'contain',
+              mr: 2,
+            }}
+          />
+        )}
         <Typography
           sx={{
             fontSize: '22px',
@@ -530,7 +565,7 @@ export const CategoryManagementPage = () => {
             letterSpacing: '0.5px',
           }}
         >
-          在庫管理システム - 管理画面
+          {systemSettings?.systemName || '階層型在庫管理システム'} - 管理画面
         </Typography>
         <Button
           onClick={handleLogout}

@@ -1,7 +1,13 @@
 # 環境変数
 .env
+.env.*
 .env.local
+.env.development
 .env.production
+# 機密情報を含むバックアップ・スナップショット（コミット厳禁）
+*.backup-production
+*.prod-snapshot
+**/.env.vercel.production
 
 # 依存関係
 node_modules/
@@ -36,3 +42,13 @@ coverage/
 *.tmp
 *.temp
 .cache/
+
+# バックアップ
+backend/backups/
+*.sql
+
+# アカウント情報（機密情報）
+ACCOUNT_INFO.md
+
+# 本番DBパスワードがハードコードされているためコミット禁止
+backend/scripts/backup-production.sh

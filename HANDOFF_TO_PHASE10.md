@@ -103,8 +103,8 @@
 ### 外部サービス
 - **画像ストレージ**: Cloudinary（設定済み）
   - Cloud Name: `dg30ioxcx`
-  - API Key: `755568141878345`
-  - API Secret: `EJUA-lzdxfWuJzTn7GHcIviK3tA`
+  - API Key: `<REDACTED>`
+  - API Secret: `<REDACTED>`
 
 ---
 
@@ -250,10 +250,10 @@
 ### .env.local（開発環境）
 ```bash
 # データベース接続
-DATABASE_URL="postgresql://neondb_owner:npg_43jONMpfeVav@ep-bold-poetry-a15tad2c-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&pgbouncer=true"
+DATABASE_URL="postgresql://neondb_owner:<REDACTED>@ep-bold-poetry-a15tad2c-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&pgbouncer=true"
 
 # 認証システム
-SESSION_SECRET="ylaRsDF5kEvaLVQkgvPRr1vNiPPKwuQmadA8jUGU2tA="
+SESSION_SECRET="<REDACTED>"
 
 # アプリケーション設定
 NODE_ENV="development"
@@ -268,8 +268,8 @@ VITE_API_URL="http://localhost:8763"
 
 # Cloudinary設定
 CLOUDINARY_CLOUD_NAME="dg30ioxcx"
-CLOUDINARY_API_KEY="755568141878345"
-CLOUDINARY_API_SECRET="EJUA-lzdxfWuJzTn7GHcIviK3tA"
+CLOUDINARY_API_KEY="<REDACTED>"
+CLOUDINARY_API_SECRET="<REDACTED>"
 ```
 
 ---
@@ -353,8 +353,8 @@ gcloud run deploy inventory-backend \
   --set-env-vars DATABASE_URL="your-database-url" \
   --set-env-vars SESSION_SECRET="your-session-secret" \
   --set-env-vars CLOUDINARY_CLOUD_NAME="dg30ioxcx" \
-  --set-env-vars CLOUDINARY_API_KEY="755568141878345" \
-  --set-env-vars CLOUDINARY_API_SECRET="EJUA-lzdxfWuJzTn7GHcIviK3tA" \
+  --set-env-vars CLOUDINARY_API_KEY="<REDACTED>" \
+  --set-env-vars CLOUDINARY_API_SECRET="<REDACTED>" \
   --set-env-vars CORS_ORIGIN="https://your-vercel-app.vercel.app"
 ```
 

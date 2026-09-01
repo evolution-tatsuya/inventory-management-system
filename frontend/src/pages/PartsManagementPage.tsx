@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -28,10 +28,10 @@ import {
   CardContent,
   CardActions,
 } from '@mui/material';
-import { Add, DragIndicator, Upload, Delete } from '@mui/icons-material';
+import { Add, DragIndicator, Upload, Delete, FileDownload, FileUpload, Edit as EditIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { partsApi, genresApi, categoriesApi, unitsApi, diagramImagesApi } from '@/services/api';
-import type { Part } from '@/types';
+import { partsApi, genresApi, categoriesApi, unitsApi, diagramImagesApi, exportApi, systemSettingsApi } from '@/services/api';
+import type { Part, SystemSettings } from '@/types';
 import {
   DndContext,
   closestCenter,
@@ -49,6 +49,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { ImageEditorDialog } from '@/components/ImageEditorDialog';
 
 // ============================================================
 // SortableRow - ドラッグ可能なテーブル行コンポーネント
@@ -203,6 +204,7 @@ const SortableRow = ({ part, onEdit, onDelete, sortable = true }: SortableRowPro
 export const PartsManagementPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -224,6 +226,27 @@ export const PartsManagementPage = () => {
   const [filterGenreId, setFilterGenreId] = useState<string>(''); // ジャンルフィルター用
   const [filterUnitId, setFilterUnitId] = useState<string>(''); // ユニットフィルター用
 
+  // システム設定取得
+  useEffect(() => {
+    const fetchSystemSettings = async () => {
+      try {
+        const settings = await systemSettingsApi.getSystemSettings();
+        setSystemSettings(settings);
+      } catch (error) {
+        console.error('システム設定取得エラー:', error);
+        setSystemSettings({
+          id: '',
+          systemName: '階層型在庫管理システム',
+          logoUrl: null,
+          headerColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          createdAt: '',
+          updatedAt: '',
+        });
+      }
+    };
+    fetchSystemSettings();
+  }, []);
+
   // 画像クロップ用
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -234,6 +257,19 @@ export const PartsManagementPage = () => {
   const [diagramFile, setDiagramFile] = useState<File | null>(null);
   const [diagramPreview, setDiagramPreview] = useState<string>('');
   const [uploadingDiagram, setUploadingDiagram] = useState(false);
+  // 展開図の画像編集ダイアログ
+  const [openDiagramEditor, setOpenDiagramEditor] = useState(false);
+
+  // インポート/エクスポート用
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    success: boolean;
+    message: string;
+    created: number;
+    updated: number;
+    errors: string[];
+  } | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   // パーツ一覧取得（全パーツ）
   const { data: parts = [], isLoading, isError, error } = useQuery({
@@ -421,6 +457,158 @@ export const PartsManagementPage = () => {
 
   const handleLogout = () => {
     navigate('/admin/login');
+  };
+
+  // CSVエクスポート
+  const handleExportCSV = async () => {
+    if (!filterUnitId) {
+      alert('ユニットを選択してください');
+      return;
+    }
+
+    // ユニットが属するジャンルIDを取得
+    const unit = units.find((u: any) => u.id === filterUnitId);
+    if (!unit || !unit.genreId) {
+      alert('ジャンルIDを取得できませんでした');
+      return;
+    }
+
+    // ジャンル情報を取得
+    const genre = genres.find((g) => g.id === unit.genreId);
+    if (!genre) {
+      alert('ジャンル情報を取得できませんでした');
+      return;
+    }
+
+    // カテゴリー情報を取得
+    const category = categories.find((c) => c.id === genre.categoryId);
+    if (!category) {
+      alert('カテゴリー情報を取得できませんでした');
+      return;
+    }
+
+    // ファイル名を作成: カテゴリー-ジャンル-ユニット
+    const fileName = `${category.name}-${genre.name}-${unit.unitName}`;
+
+    try {
+      const blob = await exportApi.exportCSV(unit.genreId, filterUnitId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${fileName}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('CSVエクスポートエラー:', error);
+      alert('CSVエクスポートに失敗しました');
+    }
+  };
+
+  // PDFエクスポート
+  const handleExportPDF = async () => {
+    if (!filterUnitId) {
+      alert('ユニットを選択してください');
+      return;
+    }
+
+    // ユニットが属するジャンルIDを取得
+    const unit = units.find((u: any) => u.id === filterUnitId);
+    if (!unit || !unit.genreId) {
+      alert('ジャンルIDを取得できませんでした');
+      return;
+    }
+
+    // ジャンル情報を取得
+    const genre = genres.find((g) => g.id === unit.genreId);
+    if (!genre) {
+      alert('ジャンル情報を取得できませんでした');
+      return;
+    }
+
+    // カテゴリー情報を取得
+    const category = categories.find((c) => c.id === genre.categoryId);
+    if (!category) {
+      alert('カテゴリー情報を取得できませんでした');
+      return;
+    }
+
+    // ファイル名を作成: カテゴリー-ジャンル-ユニット
+    const fileName = `${category.name}-${genre.name}-${unit.unitName}`;
+
+    try {
+      const blob = await exportApi.exportPDF(unit.genreId, filterUnitId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${fileName}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('PDFエクスポートエラー:', error);
+      alert('PDFエクスポートに失敗しました');
+    }
+  };
+
+  // インポート
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!filterUnitId) {
+      alert('ユニットを選択してください');
+      event.target.value = '';
+      return;
+    }
+
+    // ファイル形式チェック
+    const validExtensions = ['.csv', '.xls', '.xlsx'];
+    const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+    if (!validExtensions.includes(fileExtension)) {
+      alert('CSV または Excel ファイルを選択してください');
+      event.target.value = '';
+      return;
+    }
+
+    // ユニットが属するジャンルIDを取得
+    const unit = units.find((u: any) => u.id === filterUnitId);
+    if (!unit || !unit.genreId) {
+      alert('ジャンルIDを取得できませんでした');
+      event.target.value = '';
+      return;
+    }
+
+    setImporting(true);
+    setImportResult(null);
+
+    try {
+      const result = await exportApi.importCSV(unit.genreId, file, filterUnitId);
+      setImportResult(result);
+      setShowImportDialog(true);
+
+      // 成功時はパーツリストとユニット一覧を再取得
+      if (result.success || result.updated > 0 || result.created > 0) {
+        await queryClient.invalidateQueries({ queryKey: ['parts'] });
+        await queryClient.invalidateQueries({ queryKey: ['units'] });
+        await queryClient.refetchQueries({ queryKey: ['parts'] });
+      }
+    } catch (error: any) {
+      console.error('インポートエラー:', error);
+      setImportResult({
+        success: false,
+        message: error.message || 'インポートに失敗しました',
+        created: 0,
+        updated: 0,
+        errors: [error.message || '不明なエラーが発生しました'],
+      });
+      setShowImportDialog(true);
+    } finally {
+      setImporting(false);
+      event.target.value = '';
+    }
   };
 
   const handleOpenAddDialog = () => {
@@ -794,6 +982,36 @@ export const PartsManagementPage = () => {
     deleteDiagramMutation.mutate(filterUnitId);
   };
 
+  // 展開図の画像編集を保存（Base64 → Cloudinary → DB更新）
+  const handleSaveDiagramEdit = async (editedImageUrl: string) => {
+    if (!filterUnitId) return;
+    setUploadingDiagram(true);
+    try {
+      // 編集後のBase64画像をCloudinaryにアップロード
+      const formData = new FormData();
+      formData.append('file', editedImageUrl); // data:URLをそのまま送れる
+      formData.append('upload_preset', 'ml_default');
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        { method: 'POST', body: formData }
+      );
+      const data = await response.json();
+      if (data.error) {
+        alert(`画像の保存に失敗しました: ${data.error.message}`);
+        return;
+      }
+      await diagramImagesApi.upsertDiagramImage(filterUnitId, data.secure_url);
+      queryClient.invalidateQueries({ queryKey: ['diagram-image', filterUnitId] });
+      setDiagramPreview('');
+      alert('展開図を編集して保存しました');
+    } catch (error) {
+      console.error('展開図編集の保存エラー:', error);
+      alert('展開図の保存に失敗しました');
+    } finally {
+      setUploadingDiagram(false);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -811,7 +1029,7 @@ export const PartsManagementPage = () => {
       {/* Header */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: systemSettings?.headerColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           padding: '20px 30px',
           display: 'flex',
@@ -820,6 +1038,19 @@ export const PartsManagementPage = () => {
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         }}
       >
+        {systemSettings?.logoUrl && (
+          <Box
+            component="img"
+            src={systemSettings.logoUrl}
+            alt="Logo"
+            sx={{
+              maxHeight: '50px',
+              maxWidth: '200px',
+              objectFit: 'contain',
+              mr: 2,
+            }}
+          />
+        )}
         <Typography
           sx={{
             fontSize: '22px',
@@ -827,7 +1058,7 @@ export const PartsManagementPage = () => {
             letterSpacing: '0.5px',
           }}
         >
-          階層型在庫管理システム
+          {systemSettings?.systemName || '階層型在庫管理システム'}
         </Typography>
         <Button
           onClick={handleLogout}
@@ -1025,31 +1256,119 @@ export const PartsManagementPage = () => {
           >
             {pageTitle}
           </Typography>
-          <Button
-            onClick={handleOpenAddDialog}
-            startIcon={<Add />}
-            disabled={!filterCategoryId || !filterGenreId || !filterUnitId}
-            sx={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              padding: '12px 24px',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 600,
-              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4)',
-              },
-              '&.Mui-disabled': {
-                background: '#e0e0e0',
-                color: '#9e9e9e',
-              },
-            }}
-          >
-            新規パーツ追加
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            {/* CSVエクスポート */}
+            <Button
+              onClick={handleExportCSV}
+              startIcon={<FileDownload />}
+              disabled={!filterUnitId}
+              sx={{
+                background: '#28a745',
+                color: 'white',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  background: '#218838',
+                  transform: 'translateY(-2px)',
+                },
+                '&.Mui-disabled': {
+                  background: '#e0e0e0',
+                  color: '#9e9e9e',
+                },
+              }}
+            >
+              CSV
+            </Button>
+
+            {/* PDFエクスポート */}
+            <Button
+              onClick={handleExportPDF}
+              startIcon={<FileDownload />}
+              disabled={!filterUnitId}
+              sx={{
+                background: '#dc3545',
+                color: 'white',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  background: '#c82333',
+                  transform: 'translateY(-2px)',
+                },
+                '&.Mui-disabled': {
+                  background: '#e0e0e0',
+                  color: '#9e9e9e',
+                },
+              }}
+            >
+              PDF
+            </Button>
+
+            {/* インポート */}
+            <Button
+              component="label"
+              startIcon={importing ? <CircularProgress size={16} color="inherit" /> : <FileUpload />}
+              disabled={!filterUnitId || importing}
+              sx={{
+                background: '#17a2b8',
+                color: 'white',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  background: '#138496',
+                  transform: 'translateY(-2px)',
+                },
+                '&.Mui-disabled': {
+                  background: '#e0e0e0',
+                  color: '#9e9e9e',
+                },
+              }}
+            >
+              {importing ? 'インポート中...' : 'インポート'}
+              <input
+                type="file"
+                accept=".csv,.xls,.xlsx"
+                hidden
+                onChange={handleImport}
+                disabled={!filterUnitId || importing}
+              />
+            </Button>
+
+            {/* 新規パーツ追加 */}
+            <Button
+              onClick={handleOpenAddDialog}
+              startIcon={<Add />}
+              disabled={!filterCategoryId || !filterGenreId || !filterUnitId}
+              sx={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: 600,
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4)',
+                },
+                '&.Mui-disabled': {
+                  background: '#e0e0e0',
+                  color: '#9e9e9e',
+                },
+              }}
+            >
+              新規パーツ追加
+            </Button>
+          </Box>
         </Box>
 
         {/* カテゴリー・ジャンル・ユニット選択 */}
@@ -1219,7 +1538,19 @@ export const PartsManagementPage = () => {
                       border: '1px solid #e0e0e0',
                     }}
                   />
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Button
+                      variant="contained"
+                      startIcon={<EditIcon />}
+                      onClick={() => setOpenDiagramEditor(true)}
+                      disabled={uploadingDiagram}
+                      sx={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      }}
+                    >
+                      画像を編集（トリミング・カット）
+                    </Button>
+
                     <Button
                       variant="outlined"
                       component="label"
@@ -1315,6 +1646,17 @@ export const PartsManagementPage = () => {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* 展開図の画像編集ダイアログ（トリミング・拡大・ラインカット） */}
+        {diagramImage && (
+          <ImageEditorDialog
+            open={openDiagramEditor}
+            imageUrl={diagramImage.imageUrl}
+            onClose={() => setOpenDiagramEditor(false)}
+            onSave={handleSaveDiagramEdit}
+            title={`展開図を編集 - ${selectedUnit?.unitName || 'ユニット'}`}
+          />
         )}
 
         {/* Error Alert */}
@@ -1504,11 +1846,13 @@ export const PartsManagementPage = () => {
                         sortable={!!filterUnitId}
                       />
                     ))}
-                    {parts.length === 0 && (
+                    {filteredParts.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={9} sx={{ textAlign: 'center', padding: '40px' }}>
                           <Typography sx={{ color: '#999', fontSize: '14px' }}>
-                            パーツがありません
+                            {filterUnitId || filterGenreId || filterCategoryId
+                              ? 'このユニット/ジャンル/カテゴリーにはパーツがありません'
+                              : 'パーツがありません'}
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -2049,6 +2393,71 @@ export const PartsManagementPage = () => {
           <Button onClick={() => setOpenDeleteDialog(false)}>キャンセル</Button>
           <Button onClick={handleDelete} variant="contained" color="error">
             削除
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Import Result Dialog */}
+      <Dialog
+        open={showImportDialog}
+        onClose={() => setShowImportDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontSize: '20px', fontWeight: 700 }}>
+          インポート結果
+        </DialogTitle>
+        <DialogContent>
+          {importResult && (
+            <Box>
+              <Alert
+                severity={importResult.errors.length > 0 ? 'warning' : 'success'}
+                sx={{ mb: 2 }}
+              >
+                {importResult.message}
+              </Alert>
+
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body1" sx={{ mb: 1 }}>
+                  <strong>作成:</strong> {importResult.created}件
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 1 }}>
+                  <strong>更新:</strong> {importResult.updated}件
+                </Typography>
+              </Box>
+
+              {importResult.errors.length > 0 && (
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 1, fontSize: '16px', fontWeight: 600 }}>
+                    エラー詳細:
+                  </Typography>
+                  <Box
+                    sx={{
+                      maxHeight: '300px',
+                      overflow: 'auto',
+                      background: '#f8d7da',
+                      padding: '12px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    {importResult.errors.map((error, index) => (
+                      <Typography
+                        key={index}
+                        variant="body2"
+                        sx={{ color: '#721c24', fontFamily: 'monospace', mb: 0.5 }}
+                      >
+                        {error}
+                      </Typography>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ padding: '16px 24px' }}>
+          <Button onClick={() => setShowImportDialog(false)} variant="contained">
+            閉じる
           </Button>
         </DialogActions>
       </Dialog>

@@ -12,11 +12,17 @@ import type { ImportResponse } from './types';
  * CSVエクスポート
  *
  * @param genreId - ジャンルID
+ * @param unitId - ユニットID（オプション）
  * @returns CSVファイルのBlobデータ
  * @throws ApiError
  */
-export async function exportCSV(genreId: string): Promise<Blob> {
-  const response = await get<Response>(EXPORT_ENDPOINTS.CSV(genreId));
+export async function exportCSV(genreId: string, unitId?: string): Promise<Blob> {
+  let url = EXPORT_ENDPOINTS.CSV(genreId);
+  if (unitId) {
+    url += `?unitId=${encodeURIComponent(unitId)}`;
+  }
+
+  const response = await get<Response>(url);
 
   // Response オブジェクトからBlobを取得
   if (response instanceof Response) {
@@ -55,15 +61,22 @@ export async function exportPDF(genreId: string, unitId?: string): Promise<Blob>
  *
  * @param genreId - ジャンルID
  * @param file - CSVファイル
+ * @param unitId - ユニットID（オプション、指定した場合はそのユニットのみ）
  * @returns インポート結果
  * @throws ApiError
  */
 export async function importCSV(
   genreId: string,
   file: File,
+  unitId?: string,
 ): Promise<ImportResponse> {
   const formData = new FormData();
   formData.append('file', file);
 
-  return postFormData<ImportResponse>(EXPORT_ENDPOINTS.IMPORT_CSV(genreId), formData);
+  let url = EXPORT_ENDPOINTS.IMPORT_CSV(genreId);
+  if (unitId) {
+    url += `?unitId=${encodeURIComponent(unitId)}`;
+  }
+
+  return postFormData<ImportResponse>(url, formData);
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -26,8 +26,8 @@ import {
 } from '@mui/material';
 import { Add, DragIndicator } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { unitsApi, genresApi, categoriesApi } from '@/services/api';
-import type { Unit } from '@/types';
+import { unitsApi, genresApi, categoriesApi, systemSettingsApi } from '@/services/api';
+import type { Unit, SystemSettings } from '@/types';
 import {
   DndContext,
   closestCenter,
@@ -190,6 +190,7 @@ const SortableRow = ({ unit, onEdit, onDelete, sortable = true }: SortableRowPro
 export const UnitManagementPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -199,6 +200,27 @@ export const UnitManagementPage = () => {
   const [genreId, setGenreId] = useState('');
   const [filterCategoryId, setFilterCategoryId] = useState<string>(''); // カテゴリーフィルター用
   const [filterGenreId, setFilterGenreId] = useState<string>(''); // ジャンルフィルター用
+
+  // システム設定取得
+  useEffect(() => {
+    const fetchSystemSettings = async () => {
+      try {
+        const settings = await systemSettingsApi.getSystemSettings();
+        setSystemSettings(settings);
+      } catch (error) {
+        console.error('システム設定取得エラー:', error);
+        setSystemSettings({
+          id: '',
+          systemName: '階層型在庫管理システム',
+          logoUrl: null,
+          headerColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          createdAt: '',
+          updatedAt: '',
+        });
+      }
+    };
+    fetchSystemSettings();
+  }, []);
 
   // 画像クロップ用
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -526,7 +548,7 @@ export const UnitManagementPage = () => {
       {/* Header */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: systemSettings?.headerColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           padding: '20px 30px',
           display: 'flex',
@@ -535,6 +557,19 @@ export const UnitManagementPage = () => {
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         }}
       >
+        {systemSettings?.logoUrl && (
+          <Box
+            component="img"
+            src={systemSettings.logoUrl}
+            alt="Logo"
+            sx={{
+              maxHeight: '50px',
+              maxWidth: '200px',
+              objectFit: 'contain',
+              mr: 2,
+            }}
+          />
+        )}
         <Typography
           sx={{
             fontSize: '22px',
@@ -542,7 +577,7 @@ export const UnitManagementPage = () => {
             letterSpacing: '0.5px',
           }}
         >
-          階層型在庫管理システム
+          {systemSettings?.systemName || '階層型在庫管理システム'}
         </Typography>
         <Button
           onClick={handleLogout}

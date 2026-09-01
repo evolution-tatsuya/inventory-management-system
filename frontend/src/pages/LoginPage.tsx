@@ -53,7 +53,7 @@ export const LoginPage = () => {
 
     try {
       await login(email, password, 'user'); // 一般ユーザーとしてログイン
-      // 一般ユーザーページ（カテゴリー一覧）にリダイレクト
+      // カテゴリー一覧（閲覧画面）にリダイレクト
       navigate('/categories');
     } catch (err) {
       if (err instanceof Error) {
@@ -149,10 +149,10 @@ export const LoginPage = () => {
             デモアカウント
           </Typography>
           <Typography variant="caption" display="block" sx={{ fontFamily: 'monospace' }}>
-            email: admin@inventory-system.local
+            email: user@inventory-system.local
           </Typography>
           <Typography variant="caption" display="block" sx={{ fontFamily: 'monospace' }}>
-            password: Admin2025Pass
+            password: UserDemo2025!
           </Typography>
         </Box>
       </Box>

@@ -106,6 +106,14 @@ export const ACCOUNT_ENDPOINTS = {
 } as const;
 
 /**
+ * システム設定エンドポイント（2）
+ */
+export const SYSTEM_SETTINGS_ENDPOINTS = {
+  GET: '/api/system-settings',
+  UPDATE: '/api/admin/system-settings',
+} as const;
+
+/**
  * 全エンドポイント一覧（エクスポート用）
  */
 export const API_ENDPOINTS = {
@@ -119,4 +127,5 @@ export const API_ENDPOINTS = {
   EXPORT: EXPORT_ENDPOINTS,
   IMAGES: IMAGE_ENDPOINTS,
   ACCOUNT: ACCOUNT_ENDPOINTS,
+  SYSTEM_SETTINGS: SYSTEM_SETTINGS_ENDPOINTS,
 } as const;

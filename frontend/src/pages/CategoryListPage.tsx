@@ -6,7 +6,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { Search } from '@mui/icons-material';
+import { Search, AdminPanelSettings } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { categoriesApi } from '@/services/api';
@@ -22,7 +22,7 @@ import { categoriesApi } from '@/services/api';
 
 export const CategoryListPage = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, userType } = useAuth();
 
   // カテゴリー一覧取得
   const { data: categories = [], isLoading, error } = useQuery({
@@ -82,6 +82,30 @@ export const CategoryListPage = () => {
           在庫管理システム - Inventory Management System
         </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
+          {userType === 'admin' && (
+            <Button
+              onClick={() => navigate('/admin/dashboard')}
+              startIcon={<AdminPanelSettings />}
+              sx={{
+                background: 'rgba(102, 126, 234, 0.1)',
+                border: '2px solid #667eea',
+                color: '#667eea',
+                padding: '10px 24px',
+                borderRadius: '8px',
+                fontSize: '15px',
+                fontWeight: 600,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  background: '#667eea',
+                  color: 'white',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                },
+              }}
+            >
+              管理画面へ戻る
+            </Button>
+          )}
           <Button
             onClick={() => navigate('/search')}
             startIcon={<Search />}

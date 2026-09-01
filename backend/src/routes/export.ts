@@ -5,7 +5,7 @@
 // ============================================================
 
 import { Router } from 'express';
-import { exportController } from '../controllers/exportController';
+import { exportController, uploadCSVMiddleware } from '../controllers/exportController';
 import { requireAuth } from '../middleware/requireAuth';
 
 const router = Router();
@@ -19,7 +19,12 @@ router.get('/admin/genres/:id/export/csv', requireAuth, exportController.exportC
 // PDFエクスポート
 router.get('/admin/genres/:id/export/pdf', requireAuth, exportController.exportPDF);
 
-// CSV一括インポート
-router.post('/admin/genres/:id/import/csv', requireAuth, exportController.importCSV);
+// CSV/Excel一括インポート（FormData対応、multerミドルウェア使用）
+router.post(
+  '/admin/genres/:id/import/csv',
+  requireAuth,
+  uploadCSVMiddleware,
+  exportController.importCSV,
+);
 
 export default router;

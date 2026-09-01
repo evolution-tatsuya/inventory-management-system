@@ -171,3 +171,15 @@ export interface UpdatePasswordRequest {
   newPassword: string;
   userType?: 'admin' | 'user';
 }
+
+// ============================================================
+// システム設定
+// ============================================================
+export interface SystemSettings {
+  id: string;
+  systemName: string;
+  logoUrl: string | null;
+  headerColor: string;
+  createdAt: Date;
+  updatedAt: Date;
+}

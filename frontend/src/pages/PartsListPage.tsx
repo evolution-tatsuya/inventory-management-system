@@ -56,20 +56,6 @@ export const PartsListPage = () => {
     ? allParts.filter((part: any) => part.unitId === unitId)
     : allParts;
 
-  // ジャンル情報取得（展開図URL・ジャンル名取得用）
-  const { data: genres } = useQuery({
-    queryKey: ['genres'],
-    queryFn: async () => {
-      // すべてのカテゴリーのジャンルを取得する必要があるため、
-      // まずgenreIdから逆引きする方法を使う
-      // 実際にはgenreの詳細取得APIがあればそちらを使うべき
-      if (!genreId) return [];
-      const genre = parts.find((p) => p.genreId === genreId)?.genre;
-      return genre ? [genre] : [];
-    },
-    enabled: !!genreId && parts.length > 0,
-  });
-
   // 展開図取得（DiagramImage API使用、ユニットIDで取得）
   const { data: diagramImage } = useQuery({
     queryKey: ['diagram-image', unitId],
@@ -77,7 +63,10 @@ export const PartsListPage = () => {
     enabled: !!unitId,
   });
 
-  const genre = genres?.[0] || parts[0]?.genre;
+  // ジャンル名は、このジャンルのパーツに紐づくジャンル情報から取得する
+  // （固定キャッシュを使わず、表示中のパーツから直接引くことで別ジャンルの誤表示を防ぐ）
+  const genre =
+    parts.find((p) => p.genreId === genreId)?.genre || parts[0]?.genre;
   const genreName = genre?.name || 'ジャンル';
   const diagramUrl = diagramImage?.imageUrl || ''; // DiagramImageから展開図URLを取得
 

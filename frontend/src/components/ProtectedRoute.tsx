@@ -42,12 +42,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/login" replace />;
   }
 
-  // 管理者が一般ページに来た場合は/admin/dashboardにリダイレクト
-  if (userType === 'admin') {
-    console.warn('⚠️ 管理者が一般ページにアクセスしようとしました。/admin/dashboardにリダイレクトします。');
-    return <Navigate to="/admin/dashboard" replace />;
-  }
-
-  // 一般ユーザーの場合は子要素を表示
+  // 管理者・一般ユーザーともに閲覧画面へアクセス可能
+  // （運営者は1ログインで管理・ユーザー・総括を自由に行き来できる）
   return <>{children}</>;
 };

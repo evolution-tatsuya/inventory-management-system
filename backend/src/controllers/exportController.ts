@@ -5,8 +5,40 @@
 // ============================================================
 
 import { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import { exportService } from '../services/exportService';
 import { validateId } from '../utils/validators';
+
+// ============================================================
+// Multer設定 - CSV/Excelファイルアップロード
+// ============================================================
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB制限
+  },
+  fileFilter: (req, file, cb) => {
+    // CSV, Excel形式のみ許可
+    const allowedMimes = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
+    const allowedExtensions = ['.csv', '.xls', '.xlsx'];
+    const hasValidMime = allowedMimes.includes(file.mimetype);
+    const hasValidExtension = allowedExtensions.some((ext) =>
+      file.originalname.toLowerCase().endsWith(ext),
+    );
+
+    if (hasValidMime || hasValidExtension) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV and Excel files are allowed'));
+    }
+  },
+});
+
+export const uploadCSVMiddleware = upload.single('file');
 
 // ============================================================
 // エクスポートコントローラー
@@ -16,12 +48,17 @@ export const exportController = {
   async exportCSV(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
+      const { unitId } = req.query;
 
       if (!validateId(id)) {
         return res.status(400).json({ error: 'Invalid genre ID' });
       }
 
-      const csvContent = await exportService.exportToCSV(id);
+      if (unitId && typeof unitId !== 'string') {
+        return res.status(400).json({ error: 'Invalid unit ID' });
+      }
+
+      const csvContent = await exportService.exportToCSV(id, unitId as string | undefined);
 
       // CSVファイルとしてダウンロード
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -67,21 +104,54 @@ export const exportController = {
     }
   },
 
-  // CSV一括インポート
+  // CSV一括インポート（FormData対応）
   async importCSV(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const { csvContent } = req.body;
+      const { unitId } = req.query;
+      const file = req.file;
 
       if (!validateId(id)) {
         return res.status(400).json({ error: 'Invalid genre ID' });
       }
 
-      if (!csvContent || typeof csvContent !== 'string') {
-        return res.status(400).json({ error: 'CSV content is required' });
+      if (unitId && typeof unitId !== 'string') {
+        return res.status(400).json({ error: 'Invalid unit ID' });
       }
 
-      const result = await exportService.importFromCSV(id, csvContent);
+      if (!file) {
+        return res.status(400).json({ error: 'CSV or Excel file is required' });
+      }
+
+      // ファイル形式に応じて処理
+      let csvContent: string;
+
+      // Excelファイルの場合、CSV形式に変換
+      const isExcel =
+        file.mimetype ===
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+        file.mimetype === 'application/vnd.ms-excel' ||
+        file.originalname.toLowerCase().endsWith('.xlsx') ||
+        file.originalname.toLowerCase().endsWith('.xls');
+
+      if (isExcel) {
+        try {
+          csvContent = exportService.convertExcelToCSV(file.buffer);
+        } catch (error) {
+          return res.status(400).json({
+            error: error instanceof Error ? error.message : 'Excel conversion failed',
+          });
+        }
+      } else {
+        // CSVファイルの場合、そのまま文字列として取得
+        csvContent = file.buffer.toString('utf-8');
+      }
+
+      if (!csvContent || csvContent.trim().length === 0) {
+        return res.status(400).json({ error: 'File is empty' });
+      }
+
+      const result = await exportService.importFromCSV(id, csvContent, unitId as string | undefined);
 
       if (result.errors.length > 0) {
         return res.status(207).json({
@@ -106,6 +176,9 @@ export const exportController = {
       }
       if (error instanceof Error && error.message.startsWith('CSV parse error')) {
         return res.status(400).json({ error: error.message });
+      }
+      if (error instanceof Error && error.message === 'Only CSV and Excel files are allowed') {
+        return res.status(400).json({ error: 'Only CSV and Excel files are allowed' });
       }
       next(error);
     }

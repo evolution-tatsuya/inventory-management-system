@@ -18,6 +18,15 @@ import { unitsApi, genresApi, categoriesApi } from '@/services/api';
 // ユニット一覧ページ（P-004）
 // ============================================================
 
+// ユニット名の長さに応じてフォントサイズを自動調整（枠内に収める）
+const getUnitNameFontSize = (name: string): { xs: string; sm: string; md: string } => {
+  const len = (name || '').length;
+  if (len <= 12) return { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' };
+  if (len <= 20) return { xs: '0.95rem', sm: '1.1rem', md: '1.25rem' };
+  if (len <= 30) return { xs: '0.8rem', sm: '0.95rem', md: '1.05rem' };
+  return { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' };
+};
+
 export const UnitListPage = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -278,7 +287,13 @@ export const UnitListPage = () => {
                   <Box
                     sx={{
                       flex: 1,
-                      padding: { xs: '15px', md: '20px' },
+                      minWidth: 0,
+                      maxHeight: '120px',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      padding: { xs: '10px', md: '16px' },
                       textAlign: 'center',
                     }}
                   >
@@ -294,9 +309,14 @@ export const UnitListPage = () => {
                     </Typography>
                     <Typography
                       sx={{
-                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' },
+                        fontSize: getUnitNameFontSize(unit.unitName),
                         fontWeight: 700,
                         color: '#333',
+                        lineHeight: 1.2,
+                        // 単語(スペース)区切りで改行し、枠内に収める
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
                       }}
                     >
                       {unit.unitName}

@@ -179,8 +179,8 @@ cd backend && npx tsc --noEmit
 #### Cloudinary設定
 ```bash
 CLOUDINARY_CLOUD_NAME="dg30ioxcx"
-CLOUDINARY_API_KEY="755568141878345"
-CLOUDINARY_API_SECRET="EJUA-lzdxfWuJzTn7GHcIviK3tA"
+CLOUDINARY_API_KEY="<REDACTED>"
+CLOUDINARY_API_SECRET="<REDACTED>"
 ```
 
 #### バックエンド実装
