@@ -200,6 +200,7 @@ export interface SystemSettings {
   id: string;
   systemName: string;
   logoUrl: string | null;
+  logoSize?: string; // ロゴサイズ: small / medium / large
   headerColor: string;
   createdAt: string;
   updatedAt: string;

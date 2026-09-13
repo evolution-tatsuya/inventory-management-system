@@ -30,10 +30,11 @@ export const systemSettingsController = {
    */
   async updateSettings(req: Request, res: Response, next: NextFunction) {
     try {
-      const { systemName, logoUrl, headerColor } = req.body;
+      const { systemName, logoUrl, logoSize, headerColor } = req.body;
       const settings = await systemSettingsService.updateSettings({
         systemName,
         logoUrl,
+        logoSize,
         headerColor,
       });
       res.json(settings);

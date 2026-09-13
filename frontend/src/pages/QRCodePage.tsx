@@ -4,6 +4,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { Box, Typography, Button } from '@mui/material';
 import { Logout, Print, Download, ContentCopy } from '@mui/icons-material';
 import { systemSettingsApi } from '@/services/api';
+import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
 import type { SystemSettings } from '@/types';
 
 // ============================================================
@@ -114,8 +115,8 @@ export const QRCodePage = () => {
             src={systemSettings.logoUrl}
             alt="Logo"
             sx={{
-              maxHeight: '50px',
-              maxWidth: '200px',
+              maxHeight: getLogoMaxHeight(systemSettings?.logoSize),
+              maxWidth: getLogoMaxWidth(systemSettings?.logoSize),
               objectFit: 'contain',
               mr: 2,
             }}

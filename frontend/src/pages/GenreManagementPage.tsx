@@ -27,6 +27,7 @@ import {
 import { Add, DragIndicator } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { genresApi, categoriesApi, systemSettingsApi } from '@/services/api';
+import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
 import type { Genre, SystemSettings } from '@/types';
 import {
   DndContext,
@@ -527,8 +528,8 @@ export const GenreManagementPage = () => {
             src={systemSettings.logoUrl}
             alt="Logo"
             sx={{
-              maxHeight: '50px',
-              maxWidth: '200px',
+              maxHeight: getLogoMaxHeight(systemSettings?.logoSize),
+              maxWidth: getLogoMaxWidth(systemSettings?.logoSize),
               objectFit: 'contain',
               mr: 2,
             }}

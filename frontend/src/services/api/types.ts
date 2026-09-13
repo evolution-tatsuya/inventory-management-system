@@ -78,8 +78,11 @@ export interface StatsResponse extends DashboardStats {}
 // ============================================================
 
 export interface ImageUploadResponse {
-  imageUrl: string;
+  // バックエンドは { success, url, publicId } を返す。imageUrlは互換のため任意。
+  url: string;
+  imageUrl?: string;
   publicId: string;
+  success?: boolean;
 }
 
 // ============================================================
@@ -115,6 +118,7 @@ export interface SystemSettings {
   id: string;
   systemName: string;
   logoUrl: string | null;
+  logoSize?: string; // ロゴサイズ: small / medium / large
   headerColor: string;
   createdAt: string;
   updatedAt: string;
@@ -123,5 +127,6 @@ export interface SystemSettings {
 export interface UpdateSystemSettingsRequest {
   systemName?: string;
   logoUrl?: string | null;
+  logoSize?: string;
   headerColor?: string;
 }

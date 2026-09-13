@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
+  ToggleButton,
+  ToggleButtonGroup,
   Button,
   TextField,
   Avatar,
@@ -23,6 +25,7 @@ import { Logout, Visibility, VisibilityOff, Upload } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { accountApi, authApi, systemSettingsApi, imagesApi } from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
+import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
 import type { SystemSettings } from '@/services/api/types';
 
 // ============================================================
@@ -60,6 +63,7 @@ export const AccountSettingsPage = () => {
   // システム設定
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const [systemName, setSystemName] = useState('');
+  const [logoSize, setLogoSize] = useState('small'); // ロゴサイズ: small/medium/large
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [headerColor, setHeaderColor] = useState('');
@@ -134,6 +138,7 @@ export const AccountSettingsPage = () => {
         setSystemSettings(settings);
         setSystemName(settings.systemName);
         setLogoPreview(settings.logoUrl || '');
+        setLogoSize(settings.logoSize || 'small');
         setHeaderColor(settings.headerColor);
       } catch (error) {
         console.error('システム設定取得エラー:', error);
@@ -265,8 +270,9 @@ export const AccountSettingsPage = () => {
       // ロゴ画像をアップロード
       if (logoFile) {
         setUploadingLogo(true);
-        const uploadResponse = await imagesApi.uploadImage(logoFile);
-        logoUrl = uploadResponse.imageUrl;
+        const uploadResponse: any = await imagesApi.uploadImage(logoFile);
+        // バックエンドは { success, url, publicId } を返すため url を使う
+        logoUrl = uploadResponse.url || uploadResponse.imageUrl;
         setUploadingLogo(false);
       }
 
@@ -274,6 +280,7 @@ export const AccountSettingsPage = () => {
       const updated = await systemSettingsApi.updateSystemSettings({
         systemName,
         logoUrl,
+        logoSize,
         headerColor,
       });
 
@@ -321,8 +328,8 @@ export const AccountSettingsPage = () => {
             src={systemSettings.logoUrl}
             alt="Logo"
             sx={{
-              maxHeight: '50px',
-              maxWidth: '200px',
+              maxHeight: getLogoMaxHeight(systemSettings?.logoSize),
+              maxWidth: getLogoMaxWidth(systemSettings?.logoSize),
               objectFit: 'contain',
               mr: 2,
             }}
@@ -1032,7 +1039,7 @@ export const AccountSettingsPage = () => {
                   <img
                     src={logoPreview}
                     alt="Logo preview"
-                    style={{ maxWidth: '200px', maxHeight: '60px', objectFit: 'contain' }}
+                    style={{ maxWidth: getLogoMaxWidth(systemSettings?.logoSize), maxHeight: '60px', objectFit: 'contain' }}
                   />
                   <Button
                     size="small"
@@ -1050,6 +1057,27 @@ export const AccountSettingsPage = () => {
                   </Button>
                 </Box>
               )}
+            </Box>
+
+            {/* ロゴサイズ（小・中・大） */}
+            <Box sx={{ marginBottom: '16px' }}>
+              <Typography
+                sx={{ fontSize: '13px', fontWeight: 600, marginBottom: '5px', color: '#333' }}
+              >
+                ロゴの大きさ
+              </Typography>
+              <ToggleButtonGroup
+                value={logoSize}
+                exclusive
+                onChange={(_, value) => {
+                  if (value !== null) setLogoSize(value);
+                }}
+                size="small"
+              >
+                <ToggleButton value="small">小</ToggleButton>
+                <ToggleButton value="medium">中</ToggleButton>
+                <ToggleButton value="large">大</ToggleButton>
+              </ToggleButtonGroup>
             </Box>
 
             {/* ヘッダー背景色 */}

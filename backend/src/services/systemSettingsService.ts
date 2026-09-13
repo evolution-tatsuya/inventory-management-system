@@ -37,6 +37,7 @@ export const systemSettingsService = {
   async updateSettings(data: {
     systemName?: string;
     logoUrl?: string | null;
+    logoSize?: string;
     headerColor?: string;
   }) {
     const existing = await prisma.systemSettings.findFirst();
@@ -51,6 +52,7 @@ export const systemSettingsService = {
         data: {
           systemName: data.systemName || '階層型在庫管理システム',
           logoUrl: data.logoUrl || null,
+          logoSize: data.logoSize || 'small',
           headerColor: data.headerColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         },
       });

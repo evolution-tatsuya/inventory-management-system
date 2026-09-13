@@ -10,7 +10,8 @@ import {
 import { Search } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { unitsApi, genresApi, categoriesApi } from '@/services/api';
+import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
+import { unitsApi, genresApi, categoriesApi, systemSettingsApi } from '@/services/api';
 
 // ============================================================
 // UnitListPage
@@ -42,6 +43,13 @@ export const UnitListPage = () => {
     queryFn: () => unitsApi.getUnits(genreId!),
     enabled: !!genreId,
   });
+
+  // システム設定取得（システム名をヘッダーに反映）
+  const { data: systemSettings } = useQuery({
+    queryKey: ['system-settings'],
+    queryFn: () => systemSettingsApi.getSystemSettings(),
+  });
+  const systemName = systemSettings?.systemName || '在庫管理システム';
 
   // ジャンル情報取得（ジャンル名表示用）
   const { data: genres } = useQuery({
@@ -110,16 +118,26 @@ export const UnitListPage = () => {
           width: '100%',
         }}
       >
-        <Typography
-          sx={{
-            fontSize: { xs: '18px', md: '22px' },
-            fontWeight: 600,
-            color: '#667eea',
-            letterSpacing: '0.5px',
-          }}
-        >
-          在庫管理システム - Inventory Management System
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {systemSettings?.logoUrl && (
+            <Box
+              component="img"
+              src={systemSettings.logoUrl}
+              alt="Logo"
+              sx={{ maxHeight: getLogoMaxHeight(systemSettings?.logoSize), maxWidth: getLogoMaxWidth(systemSettings?.logoSize), objectFit: 'contain' }}
+            />
+          )}
+          <Typography
+            sx={{
+              fontSize: { xs: '18px', md: '22px' },
+              fontWeight: 600,
+              color: '#667eea',
+              letterSpacing: '0.5px',
+            }}
+          >
+            {systemName}
+          </Typography>
+        </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             onClick={() => navigate('/search')}

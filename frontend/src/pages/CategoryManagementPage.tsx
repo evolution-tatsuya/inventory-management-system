@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoriesApi, systemSettingsApi } from '@/services/api';
+import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
 import type { Category, SystemSettings } from '@/types';
 import {
   DndContext,
@@ -551,8 +552,8 @@ export const CategoryManagementPage = () => {
             src={systemSettings.logoUrl}
             alt="Logo"
             sx={{
-              maxHeight: '50px',
-              maxWidth: '200px',
+              maxHeight: getLogoMaxHeight(systemSettings?.logoSize),
+              maxWidth: getLogoMaxWidth(systemSettings?.logoSize),
               objectFit: 'contain',
               mr: 2,
             }}

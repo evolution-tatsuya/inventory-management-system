@@ -36,8 +36,12 @@ const allowedOrigins = [
   'http://localhost:3590',
   'http://localhost:3591',
   'http://localhost:3592', // フロントエンド起動ポート
-  'https://frontend-tatsuyas-projects-20cab125.vercel.app', // Vercel本番URL
+  // 在庫管理システムの本番フロント（Vercel: inventory-management-system プロジェクト）
+  'https://inventory-management-system-two-swart.vercel.app',
+  'https://inventory-management-system-tatsuyas-projects-20cab125.vercel.app',
+  'https://inventory-management-system-git-main-tatsuyas-projects-20cab125.vercel.app',
   process.env.FRONTEND_URL,
+  process.env.CORS_ORIGIN,
 ].filter(Boolean) as string[];
 
 console.log('✅ CORS許可オリジン:', allowedOrigins);

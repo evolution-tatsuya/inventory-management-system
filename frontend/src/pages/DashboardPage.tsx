@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Card, CardContent, Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { statsApi, systemSettingsApi } from '@/services/api';
+import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
 import type { SystemSettings } from '@/types';
 
 // ============================================================
@@ -81,8 +82,8 @@ export const DashboardPage = () => {
             src={systemSettings.logoUrl}
             alt="Logo"
             sx={{
-              maxHeight: '50px',
-              maxWidth: '200px',
+              maxHeight: getLogoMaxHeight(systemSettings?.logoSize),
+              maxWidth: getLogoMaxWidth(systemSettings?.logoSize),
               objectFit: 'contain',
               mr: 2,
             }}

@@ -9,7 +9,8 @@ import {
 import { Search, AdminPanelSettings } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { categoriesApi } from '@/services/api';
+import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
+import { categoriesApi, systemSettingsApi } from '@/services/api';
 
 // ============================================================
 // CategoryListPage
@@ -29,6 +30,13 @@ export const CategoryListPage = () => {
     queryKey: ['categories'],
     queryFn: () => categoriesApi.getCategories(),
   });
+
+  // システム設定取得（システム名をヘッダーに反映）
+  const { data: systemSettings } = useQuery({
+    queryKey: ['system-settings'],
+    queryFn: () => systemSettingsApi.getSystemSettings(),
+  });
+  const systemName = systemSettings?.systemName || '在庫管理システム';
 
   const handleCategoryClick = (categoryId: string) => {
     navigate(`/categories/${categoryId}/genres`);
@@ -71,16 +79,26 @@ export const CategoryListPage = () => {
           width: '100%',
         }}
       >
-        <Typography
-          sx={{
-            fontSize: { xs: '18px', md: '22px' },
-            fontWeight: 600,
-            color: '#667eea',
-            letterSpacing: '0.5px',
-          }}
-        >
-          在庫管理システム - Inventory Management System
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {systemSettings?.logoUrl && (
+            <Box
+              component="img"
+              src={systemSettings.logoUrl}
+              alt="Logo"
+              sx={{ maxHeight: getLogoMaxHeight(systemSettings?.logoSize), maxWidth: getLogoMaxWidth(systemSettings?.logoSize), objectFit: 'contain' }}
+            />
+          )}
+          <Typography
+            sx={{
+              fontSize: { xs: '18px', md: '22px' },
+              fontWeight: 600,
+              color: '#667eea',
+              letterSpacing: '0.5px',
+            }}
+          >
+            {systemName}
+          </Typography>
+        </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
           {userType === 'admin' && (
             <Button

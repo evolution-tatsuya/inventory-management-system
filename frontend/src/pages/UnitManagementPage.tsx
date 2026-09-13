@@ -27,6 +27,7 @@ import {
 import { Add, DragIndicator } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { unitsApi, genresApi, categoriesApi, systemSettingsApi } from '@/services/api';
+import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
 import type { Unit, SystemSettings } from '@/types';
 import {
   DndContext,
@@ -563,8 +564,8 @@ export const UnitManagementPage = () => {
             src={systemSettings.logoUrl}
             alt="Logo"
             sx={{
-              maxHeight: '50px',
-              maxWidth: '200px',
+              maxHeight: getLogoMaxHeight(systemSettings?.logoSize),
+              maxWidth: getLogoMaxWidth(systemSettings?.logoSize),
               objectFit: 'contain',
               mr: 2,
             }}

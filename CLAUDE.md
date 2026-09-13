@@ -378,7 +378,7 @@ UIコンポーネント設計:
 デプロイ方法: Dockerfile + Cloud Build + Secret Manager + Vercel
 
 本番環境URL:
-  フロントエンド: https://frontend-tatsuyas-projects-20cab125.vercel.app
+  フロントエンド: https://inventory-management-system-two-swart.vercel.app
   バックエンド: https://inventory-backend-72579044624.asia-northeast1.run.app
   データベース: Neon PostgreSQL (neondb)
 
@@ -390,9 +390,9 @@ Google Cloud:
   環境変数管理: Secret Manager (9個のシークレット)
 
 Vercel:
-  プロジェクト名: frontend
+  プロジェクト名: inventory-management-system  # ※旧記載の"frontend"はEC等が混在した別プロジェクトなので誤り。正しくはこちら
   環境変数: VITE_API_URL設定済み (バックエンドURL)
-  デプロイURL: https://frontend-tatsuyas-projects-20cab125.vercel.app
+  デプロイURL: https://inventory-management-system-two-swart.vercel.app
 
 Neon:
   データベース名: neondb
