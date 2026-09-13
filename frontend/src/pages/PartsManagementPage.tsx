@@ -24,13 +24,12 @@ import {
   FormControl,
   InputLabel,
   Card,
-  CardMedia,
   CardContent,
   CardActions,
 } from '@mui/material';
-import { Add, DragIndicator, Upload, Delete, FileDownload, FileUpload, Edit as EditIcon } from '@mui/icons-material';
+import { Add, DragIndicator, Upload, Delete, FileDownload, FileUpload } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { partsApi, genresApi, categoriesApi, unitsApi, diagramImagesApi, exportApi, systemSettingsApi } from '@/services/api';
+import { partsApi, genresApi, categoriesApi, unitsApi, exportApi, systemSettingsApi } from '@/services/api';
 import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
 import type { Part, SystemSettings } from '@/types';
 import {
@@ -50,7 +49,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ImageEditorDialog } from '@/components/ImageEditorDialog';
+import DiagramGalleryManager from '@/components/DiagramGalleryManager';
+import BulkExportDialog from '@/components/BulkExportDialog';
 
 // ============================================================
 // SortableRow - ドラッグ可能なテーブル行コンポーネント
@@ -254,13 +254,6 @@ export const PartsManagementPage = () => {
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [cropPosition, setCropPosition] = useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 });
 
-  // 展開図管理用
-  const [diagramFile, setDiagramFile] = useState<File | null>(null);
-  const [diagramPreview, setDiagramPreview] = useState<string>('');
-  const [uploadingDiagram, setUploadingDiagram] = useState(false);
-  // 展開図の画像編集ダイアログ
-  const [openDiagramEditor, setOpenDiagramEditor] = useState(false);
-
   // インポート/エクスポート用
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
@@ -294,13 +287,6 @@ export const PartsManagementPage = () => {
   const { data: units = [] } = useQuery({
     queryKey: ['units'],
     queryFn: unitsApi.getAllUnits,
-  });
-
-  // 展開図取得（選択されたユニットに基づく）
-  const { data: diagramImage } = useQuery({
-    queryKey: ['diagram-image', filterUnitId],
-    queryFn: () => diagramImagesApi.getDiagramImage(filterUnitId),
-    enabled: !!filterUnitId,
   });
 
   // フィルターされたジャンル一覧（選択されたカテゴリーに属するジャンルのみ）
@@ -354,6 +340,28 @@ export const PartsManagementPage = () => {
   const selectedUnit = units.find((u: any) => u.id === filterUnitId);
   const pageTitle = selectedUnit ? `パーツ管理 - ${selectedUnit.unitName}` : 'パーツ管理';
 
+  // カテゴリー一括PDF出力ダイアログ
+  const [openBulkExport, setOpenBulkExport] = useState(false);
+  const selectedCategory = categories.find((c) => c.id === filterCategoryId);
+
+  // 選択中カテゴリー配下の全ユニット（parts付き）を組み立てる
+  const bulkExportUnits = filterCategoryId
+    ? filteredUnitsForSelect
+        .filter((unit: any) => {
+          // カテゴリー配下のユニットのみ（ジャンル未選択でもカテゴリー全体）
+          const genre = genres.find((g) => g.id === unit.genreId);
+          return genre?.categoryId === filterCategoryId;
+        })
+        .map((unit: any) => ({
+          unitId: unit.id,
+          unitNumber: unit.unitNumber,
+          unitName: unit.unitName,
+          parts: parts.filter((p: any) => p.unitId === unit.id),
+        }))
+        // パーツが1件も無いユニットは除外
+        .filter((u) => u.parts.length > 0)
+    : [];
+
   // パーツ作成
   const createMutation = useMutation({
     mutationFn: partsApi.createPart,
@@ -392,16 +400,6 @@ export const PartsManagementPage = () => {
     mutationFn: partsApi.updatePartOrder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parts'] });
-    },
-  });
-
-  // 展開図削除
-  const deleteDiagramMutation = useMutation({
-    mutationFn: diagramImagesApi.deleteDiagramImage,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['diagram-image', filterUnitId] });
-      setDiagramFile(null);
-      setDiagramPreview('');
     },
   });
 
@@ -927,92 +925,6 @@ export const PartsManagementPage = () => {
     }
   };
 
-  // 展開図ファイル選択ハンドラー
-  const handleDiagramChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setDiagramFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setDiagramPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // 展開図アップロードハンドラー
-  const handleUploadDiagram = async () => {
-    if (!diagramFile || !filterUnitId) return;
-
-    setUploadingDiagram(true);
-    try {
-      // Cloudinaryにアップロード
-      const formData = new FormData();
-      formData.append('file', diagramFile);
-      formData.append('upload_preset', 'ml_default');
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
-        { method: 'POST', body: formData }
-      );
-
-      const data = await response.json();
-      if (data.error) {
-        alert(`画像のアップロードに失敗しました: ${data.error.message}`);
-        return;
-      }
-
-      // DBに保存（unitIdで保存）
-      await diagramImagesApi.upsertDiagramImage(filterUnitId, data.secure_url);
-      queryClient.invalidateQueries({ queryKey: ['diagram-image', filterUnitId] });
-
-      setDiagramFile(null);
-      setDiagramPreview('');
-      alert('展開図をアップロードしました');
-    } catch (error) {
-      console.error('展開図アップロードエラー:', error);
-      alert('展開図のアップロードに失敗しました');
-    } finally {
-      setUploadingDiagram(false);
-    }
-  };
-
-  // 展開図削除ハンドラー
-  const handleDeleteDiagram = async () => {
-    if (!filterUnitId || !confirm('展開図を削除してもよろしいですか?')) return;
-    deleteDiagramMutation.mutate(filterUnitId);
-  };
-
-  // 展開図の画像編集を保存（Base64 → Cloudinary → DB更新）
-  const handleSaveDiagramEdit = async (editedImageUrl: string) => {
-    if (!filterUnitId) return;
-    setUploadingDiagram(true);
-    try {
-      // 編集後のBase64画像をCloudinaryにアップロード
-      const formData = new FormData();
-      formData.append('file', editedImageUrl); // data:URLをそのまま送れる
-      formData.append('upload_preset', 'ml_default');
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
-        { method: 'POST', body: formData }
-      );
-      const data = await response.json();
-      if (data.error) {
-        alert(`画像の保存に失敗しました: ${data.error.message}`);
-        return;
-      }
-      await diagramImagesApi.upsertDiagramImage(filterUnitId, data.secure_url);
-      queryClient.invalidateQueries({ queryKey: ['diagram-image', filterUnitId] });
-      setDiagramPreview('');
-      alert('展開図を編集して保存しました');
-    } catch (error) {
-      console.error('展開図編集の保存エラー:', error);
-      alert('展開図の保存に失敗しました');
-    } finally {
-      setUploadingDiagram(false);
-    }
-  };
-
   return (
     <Box
       sx={{
@@ -1310,6 +1222,32 @@ export const PartsManagementPage = () => {
               PDF
             </Button>
 
+            {/* カテゴリー一括PDF出力 */}
+            <Button
+              onClick={() => setOpenBulkExport(true)}
+              startIcon={<FileDownload />}
+              disabled={!filterCategoryId || bulkExportUnits.length === 0}
+              sx={{
+                background: '#6f42c1',
+                color: 'white',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  background: '#5a32a3',
+                  transform: 'translateY(-2px)',
+                },
+                '&.Mui-disabled': {
+                  background: '#e0e0e0',
+                  color: '#9e9e9e',
+                },
+              }}
+            >
+              カテゴリー一括PDF
+            </Button>
+
             {/* インポート */}
             <Button
               component="label"
@@ -1510,155 +1448,21 @@ export const PartsManagementPage = () => {
 
         {/* 展開図管理セクション（カテゴリー・ジャンル・ユニット全て選択時のみ表示） */}
         {filterCategoryId && filterGenreId && filterUnitId && (
-          <Card sx={{ marginBottom: '20px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}>
-            <CardContent>
-              <Typography
-                sx={{
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  marginBottom: '16px',
-                  color: '#333',
-                }}
-              >
-                展開図管理 - {selectedUnit?.unitName || 'ユニット'}
-              </Typography>
-
-              {diagramImage ? (
-                <Box>
-                  <CardMedia
-                    component="img"
-                    image={diagramPreview || diagramImage.imageUrl}
-                    alt="展開図"
-                    sx={{
-                      width: '100%',
-                      maxWidth: '600px',
-                      height: 'auto',
-                      borderRadius: '8px',
-                      marginBottom: '16px',
-                      objectFit: 'contain',
-                      border: '1px solid #e0e0e0',
-                    }}
-                  />
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Button
-                      variant="contained"
-                      startIcon={<EditIcon />}
-                      onClick={() => setOpenDiagramEditor(true)}
-                      disabled={uploadingDiagram}
-                      sx={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      }}
-                    >
-                      画像を編集（トリミング・カット）
-                    </Button>
-
-                    <Button
-                      variant="outlined"
-                      component="label"
-                      startIcon={<Upload />}
-                      disabled={uploadingDiagram}
-                    >
-                      画像を変更
-                      <input
-                        type="file"
-                        hidden
-                        accept="image/*"
-                        onChange={handleDiagramChange}
-                      />
-                    </Button>
-
-                    {diagramFile && (
-                      <Button
-                        variant="contained"
-                        onClick={handleUploadDiagram}
-                        disabled={uploadingDiagram}
-                        sx={{
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        }}
-                      >
-                        {uploadingDiagram ? 'アップロード中...' : '変更を保存'}
-                      </Button>
-                    )}
-
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      startIcon={<Delete />}
-                      onClick={handleDeleteDiagram}
-                      disabled={deleteDiagramMutation.isPending}
-                    >
-                      {deleteDiagramMutation.isPending ? '削除中...' : '削除'}
-                    </Button>
-                  </Box>
-                </Box>
-              ) : (
-                <Box>
-                  <Typography sx={{ color: '#666', marginBottom: '16px' }}>
-                    展開図が登録されていません
-                  </Typography>
-
-                  {diagramPreview && (
-                    <CardMedia
-                      component="img"
-                      image={diagramPreview}
-                      alt="プレビュー"
-                      sx={{
-                        width: '100%',
-                        maxWidth: '600px',
-                        height: 'auto',
-                        borderRadius: '8px',
-                        marginBottom: '16px',
-                        objectFit: 'contain',
-                        border: '1px solid #e0e0e0',
-                      }}
-                    />
-                  )}
-
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                    <Button
-                      variant="outlined"
-                      component="label"
-                      startIcon={<Upload />}
-                      disabled={uploadingDiagram}
-                    >
-                      画像を選択
-                      <input
-                        type="file"
-                        hidden
-                        accept="image/*"
-                        onChange={handleDiagramChange}
-                      />
-                    </Button>
-
-                    {diagramFile && (
-                      <Button
-                        variant="contained"
-                        onClick={handleUploadDiagram}
-                        disabled={uploadingDiagram}
-                        sx={{
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        }}
-                      >
-                        {uploadingDiagram ? 'アップロード中...' : '展開図をアップロード'}
-                      </Button>
-                    )}
-                  </Box>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 展開図の画像編集ダイアログ（トリミング・拡大・ラインカット） */}
-        {diagramImage && (
-          <ImageEditorDialog
-            open={openDiagramEditor}
-            imageUrl={diagramImage.imageUrl}
-            onClose={() => setOpenDiagramEditor(false)}
-            onSave={handleSaveDiagramEdit}
-            title={`展開図を編集 - ${selectedUnit?.unitName || 'ユニット'}`}
+          <DiagramGalleryManager
+            unitId={filterUnitId}
+            unitName={selectedUnit?.unitName}
           />
         )}
+
+        {/* カテゴリー一括PDF出力ダイアログ */}
+        <BulkExportDialog
+          open={openBulkExport}
+          onClose={() => setOpenBulkExport(false)}
+          categoryName={
+            selectedCategory?.name || selectedCategory?.categoryId || 'カテゴリー'
+          }
+          units={bulkExportUnits}
+        />
 
         {/* Error Alert */}
         {isError && (

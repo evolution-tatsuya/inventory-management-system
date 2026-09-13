@@ -105,9 +105,11 @@ export interface PartMaster {
 // ============================================================
 export interface DiagramImage {
   id: string;
-  genreId: string;
+  unitId: string;
   imageUrl: string;
   imageType: 'diagram';
+  isMain: boolean;
+  sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
 }

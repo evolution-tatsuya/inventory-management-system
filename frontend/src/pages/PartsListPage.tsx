@@ -56,10 +56,10 @@ export const PartsListPage = () => {
     ? allParts.filter((part: any) => part.unitId === unitId)
     : allParts;
 
-  // 展開図取得（DiagramImage API使用、ユニットIDで取得）
-  const { data: diagramImage } = useQuery({
-    queryKey: ['diagram-image', unitId],
-    queryFn: () => diagramImagesApi.getDiagramImage(unitId!),
+  // 展開図取得（DiagramImage API使用、ユニットIDで全件取得・複数枚対応）
+  const { data: diagrams = [] } = useQuery({
+    queryKey: ['diagram-images', unitId],
+    queryFn: () => diagramImagesApi.listDiagramImages(unitId!),
     enabled: !!unitId,
   });
 
@@ -68,7 +68,9 @@ export const PartsListPage = () => {
   const genre =
     parts.find((p) => p.genreId === genreId)?.genre || parts[0]?.genre;
   const genreName = genre?.name || 'ジャンル';
-  const diagramUrl = diagramImage?.imageUrl || ''; // DiagramImageから展開図URLを取得
+  // メイン展開図（配列先頭がメイン優先で並んでいる）。後方互換のため単数URLも保持。
+  const mainDiagram = diagrams.find((d) => d.isMain) || diagrams[0] || null;
+  const diagramUrl = mainDiagram?.imageUrl || '';
 
   // ユニット情報を取得（unitIdでフィルタリングされている場合）
   const unit = unitId && parts.length > 0 ? (parts[0] as any).unit : null;
@@ -100,10 +102,15 @@ export const PartsListPage = () => {
       console.log('PDF Export - pdfUnitName:', pdfUnitName);
     }
 
-    // 展開図のHTML（showDiagramがtrueの場合のみ）
-    const diagramHTML = showDiagram && diagramUrl ? `
+    // 展開図のHTML（showDiagramがtrueの場合のみ、メイン＋サブ全て）
+    const diagramHTML = showDiagram && diagrams.length > 0 ? `
       <div style="margin-bottom: 10px; text-align: center;">
-        <img src="${diagramUrl}" style="width: 200px; height: auto; display: inline-block;" crossorigin="anonymous" />
+        ${diagrams
+          .map(
+            (d) =>
+              `<img src="${d.imageUrl}" style="width: 200px; height: auto; display: inline-block; margin: 2px;" crossorigin="anonymous" />`,
+          )
+          .join('')}
       </div>
     ` : '';
 
@@ -564,16 +571,19 @@ export const PartsListPage = () => {
           </Button>
         </Box>
 
-        {/* 展開図 */}
-        {showDiagram && diagramUrl && (
+        {/* 展開図（メイン＋サブ最大10枚） */}
+        {showDiagram && diagrams.length > 0 && (
           <Box
             sx={{
               width: '100%',
               mb: 3,
               display: 'flex',
-              justifyContent: 'center',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 2,
             }}
           >
+            {/* メイン展開図（大きく表示） */}
             <Box
               sx={{
                 width: '50%',
@@ -586,13 +596,43 @@ export const PartsListPage = () => {
               <img
                 src={diagramUrl}
                 alt="展開図"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block',
-                }}
+                style={{ width: '100%', height: 'auto', display: 'block' }}
               />
             </Box>
+
+            {/* サブ展開図（複数ある場合のみ、サムネイル横並び） */}
+            {diagrams.length > 1 && (
+              <Box
+                sx={{
+                  width: '80%',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                  gap: 1,
+                }}
+              >
+                {diagrams
+                  .filter((d) => d.id !== mainDiagram?.id)
+                  .map((d) => (
+                    <Box
+                      key={d.id}
+                      sx={{
+                        width: '150px',
+                        backgroundColor: '#ffffff',
+                        borderRadius: 1,
+                        overflow: 'hidden',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                      }}
+                    >
+                      <img
+                        src={d.imageUrl}
+                        alt="展開図（サブ）"
+                        style={{ width: '100%', height: 'auto', display: 'block' }}
+                      />
+                    </Box>
+                  ))}
+              </Box>
+            )}
           </Box>
         )}
 

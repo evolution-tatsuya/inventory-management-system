@@ -168,11 +168,14 @@ model DiagramImage {
   unitId    String   // genreIdからunitIdに変更
   imageUrl  String
   imageType String   @default("diagram")
+  isMain    Boolean  @default(false) // メイン展開図フラグ（1ユニットにつき1枚）
+  sortOrder Int      @default(0)     // サブ画像の並び順
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   unit      Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
   @@index([unitId])
+  @@index([sortOrder])
   @@map("diagram_images")
 }
 
