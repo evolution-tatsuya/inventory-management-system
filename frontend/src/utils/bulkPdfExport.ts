@@ -144,42 +144,53 @@ function cellValue(part: any, key: ExportColumnKey): string {
   }
 }
 
-// テーブルHTMLを生成
+// テーブルHTMLを生成（fontScaleで全体を拡大縮小し、格子罫線・詰めた行間で1パーツ1枠に）
 function buildTableHtml(
   unit: ExportUnit,
   columns: ExportColumnKey[],
   quality: ExportQuality,
+  fontScale = 1,
 ): string {
   const width = QUALITY_PRESETS[quality].cloudinaryWidth;
   const showImage = columns.includes('image');
   const dataColumns = columns.filter((c) => c !== 'image');
 
+  // fontScaleに応じた寸法（px）
+  const fs = Math.max(6, Math.round(11 * fontScale));
+  const pad = Math.max(1, Math.round(3 * fontScale));
+  const imgH = Math.max(20, Math.round(46 * fontScale));
+  const imgW = Math.round(imgH * 1.35);
+
+  const cellBorder = '0.75px solid #bdbdbd';
+  const thStyle = `border:${cellBorder}; background:#eef0f4; font-weight:bold; font-size:${fs}px; line-height:1.2; padding:${pad}px ${pad + 1}px; text-align:left; white-space:nowrap;`;
+  const tdStyle = `border:${cellBorder}; font-size:${fs}px; line-height:1.15; padding:${pad}px ${pad + 1}px; text-align:left; white-space:nowrap; vertical-align:middle;`;
+
   const headerCells = [
-    ...(showImage ? ['<th style="width: 50px;">画像<br/>Image</th>'] : []),
+    ...(showImage ? [`<th style="${thStyle} width:${imgW + 6}px;">画像<br/>Image</th>`] : []),
     ...dataColumns.map((c) => {
       const col = EXPORT_COLUMNS.find((x) => x.key === c)!;
-      return `<th>${col.label}<br/>${col.en}</th>`;
+      return `<th style="${thStyle}">${col.label}<br/>${col.en}</th>`;
     }),
   ].join('');
 
   const rows = unit.parts
     .map((part) => {
       const imgCell = showImage
-        ? `<td><img src="${withCloudinaryTransform(
+        ? `<td style="${tdStyle} text-align:center;"><img src="${withCloudinaryTransform(
             part.imageUrl || '',
             Math.min(width, 200),
-          )}" class="part-image" crossorigin="anonymous" /></td>`
+          )}" style="width:${imgW}px; height:${imgH}px; object-fit:contain;" crossorigin="anonymous" /></td>`
         : '';
       const dataCells = dataColumns
         .map((c) => {
           const raw = cellValue(part, c);
-          // stockの赤字対応
           if (typeof raw === 'string' && raw.includes('__STOCK__')) {
             const isZero = raw.includes('class="stock-zero"');
             const num = raw.split('__STOCK__')[1];
-            return `<td${isZero ? ' class="stock-zero"' : ''}>${num}</td>`;
+            const zeroStyle = isZero ? ' color:#d32f2f; font-weight:bold;' : '';
+            return `<td style="${tdStyle}${zeroStyle}">${num}</td>`;
           }
-          return `<td>${raw}</td>`;
+          return `<td style="${tdStyle}">${raw}</td>`;
         })
         .join('');
       return `<tr>${imgCell}${dataCells}</tr>`;
@@ -187,7 +198,7 @@ function buildTableHtml(
     .join('');
 
   return `
-    <table>
+    <table style="width:100%; border-collapse:collapse;">
       <thead><tr>${headerCells}</tr></thead>
       <tbody>${rows}</tbody>
     </table>
@@ -423,6 +434,41 @@ function addCanvasContain(
   pdf.addImage(imgData, 'JPEG', xOffset, yOffset, drawW, drawH);
 }
 
+// リストを「1ページに収まるフォント倍率」を探して描画する。
+// fontScaleを段階的に下げ、1ページに収まったcanvasを返す。
+// 最小倍率でも収まらない場合は、その最小倍率のcanvasを返す（呼び出し側で改ページ）。
+async function renderListFitOnePage(
+  unit: ExportUnit,
+  columns: ExportColumnKey[],
+  quality: ExportQuality,
+  heading: string,
+  scale: number,
+  orientation: Orientation,
+): Promise<HTMLCanvasElement> {
+  const { pdfWidth, pdfHeight } = pageDims(orientation);
+  // 1ページに収まる目標アスペクト比（幅:高さ）。マージン考慮。
+  const pageAspect = (pdfWidth - 20) / (pdfHeight - 20);
+  const iframeWidth = orientation === 'landscape' ? 1180 : 800;
+
+  // 試すフォント倍率（大→小）
+  const steps = [1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.42, 0.36];
+  let lastCanvas: HTMLCanvasElement | null = null;
+
+  for (const fontScale of steps) {
+    const table = buildTableHtml(unit, columns, quality, fontScale);
+    const html = wrapHtmlWide(heading + table);
+    const canvas = await renderHtmlToCanvas(html, scale, iframeWidth);
+    lastCanvas = canvas;
+    // canvasのアスペクト比が「1ページに収まる比率」以上に横長 or 同等なら1ページに収まる
+    const canvasAspect = canvas.width / canvas.height;
+    if (canvasAspect >= pageAspect) {
+      return canvas; // 幅基準で貼れば高さが1ページに収まる
+    }
+  }
+  // 最小でも収まらなければ最後のもの（呼び出し側で複数ページ分割）
+  return lastCanvas!;
+}
+
 // ------------------------------------------------------------
 // メイン：カテゴリー配下の複数ユニットを1PDFに出力
 // ------------------------------------------------------------
@@ -431,7 +477,10 @@ export async function exportBulkPdf(options: BulkExportOptions): Promise<void> {
     options;
   const scale = QUALITY_PRESETS[quality].scale;
 
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  // レイアウトに応じてPDFの初期オリエンテーションを決定
+  // （2枚構成=横型で統一 / 混在=縦型）。これで「1枚目だけ向きが違う」問題を防ぐ。
+  const docOrientation: Orientation = layout === 'two-page' ? 'landscape' : 'portrait';
+  const pdf = new jsPDF({ orientation: docOrientation, unit: 'mm', format: 'a4' });
   let isFirstPage = true;
   const total = units.length;
 
@@ -461,8 +510,8 @@ export async function exportBulkPdf(options: BulkExportOptions): Promise<void> {
     `;
 
     if (layout === 'two-page') {
-      // === 横型（A4ランドスケープ）で大きく出力 ===
-      // 1枚目：展開図ページ（ページいっぱいに最大化）
+      // === 全ページ横型（A4ランドスケープ）で統一 ===
+      // 1枚目：展開図ページ（ページいっぱいに最大化・contain）
       if (includeDiagram) {
         const page1 = buildDiagramPageHtml(diagrams, quality, heading);
         const canvas1 = await renderHtmlToCanvas(page1, scale, 1180);
@@ -470,10 +519,15 @@ export async function exportBulkPdf(options: BulkExportOptions): Promise<void> {
         isFirstPage = false;
       }
 
-      // 2枚目：リストページ（横型・大きめフォント、溢れたら縦に複数ページ）
-      const tableWide = buildTableHtml(unit, columns, quality);
-      const page2 = wrapHtmlWide(heading + tableWide);
-      const canvas2 = await renderHtmlToCanvas(page2, scale, 1180);
+      // 2枚目：リストページ（基本1枚に収める。限界を超えたら複数ページ）
+      const canvas2 = await renderListFitOnePage(
+        unit,
+        columns,
+        quality,
+        heading,
+        scale,
+        'landscape',
+      );
       addCanvasFitWidth(pdf, canvas2, isFirstPage, 'landscape');
       isFirstPage = false;
     } else {
