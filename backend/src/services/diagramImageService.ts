@@ -21,9 +21,11 @@ export const diagramImageService = {
    * @param unitId ユニットID
    */
   async listDiagramImages(unitId: string) {
+    // 並び順は sortOrder のみで決定（メインフラグは表示ラベルとして独立させ、
+    // メインでも自由に前後へ並び替えできるようにする）
     return await prisma.diagramImage.findMany({
       where: { unitId },
-      orderBy: [{ isMain: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
   },
 

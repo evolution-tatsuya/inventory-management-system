@@ -45,6 +45,7 @@ coverage/
 
 # バックアップ
 backend/backups/
+backups-manual/
 *.sql
 
 # アカウント情報（機密情報）

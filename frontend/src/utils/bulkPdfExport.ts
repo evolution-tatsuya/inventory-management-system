@@ -210,6 +210,34 @@ function buildDiagramHtml(diagrams: DiagramImage[], quality: ExportQuality): str
   return `<div style="text-align: center; margin-bottom: 12px;">${imgs}</div>`;
 }
 
+// 展開図ページ用HTML（横型・大きく最大化）。1枚ならページいっぱい、複数なら並べる。
+// contain配置するため、ここでは画像を大きめの実寸で並べておけばよい。
+function buildDiagramPageHtml(
+  diagrams: DiagramImage[],
+  quality: ExportQuality,
+  heading: string,
+): string {
+  const width = QUALITY_PRESETS[quality].cloudinaryWidth;
+  if (diagrams.length === 0) {
+    return wrapHtml(`${heading}<div style="color:#999; font-size:12px;">展開図なし</div>`);
+  }
+  // 1枚：横いっぱいに大きく。複数：2〜3列で大きめに。
+  const perRow = diagrams.length === 1 ? 1 : diagrams.length <= 4 ? 2 : 3;
+  const imgW = Math.floor(1100 / perRow);
+  const imgs = diagrams
+    .map(
+      (d) =>
+        `<img src="${withCloudinaryTransform(
+          d.imageUrl,
+          Math.max(width, 1000),
+        )}" style="width:${imgW}px; max-width:${imgW}px; height:auto; margin:6px; display:inline-block; vertical-align:top;" crossorigin="anonymous" />`,
+    )
+    .join('');
+  return wrapHtmlWide(
+    `${heading}<div style="text-align:center;">${imgs}</div>`,
+  );
+}
+
 // 共通のHTMLラッパ
 function wrapHtml(inner: string): string {
   return `
@@ -239,15 +267,46 @@ function wrapHtml(inner: string): string {
   `;
 }
 
+// 横型（A4ランドスケープ）用のワイドなHTMLラッパ。
+// 幅広の紙面に合わせて見出し・表のフォントを大きくし、見やすくする。
+function wrapHtmlWide(inner: string): string {
+  return `
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body {
+            font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0; padding: 16px;
+          }
+          h1 { font-size: 20px; margin-bottom: 8px; font-weight: bold; }
+          .info { font-size: 12px; margin-bottom: 14px; line-height: 1.5; }
+          table { width: 100%; border-collapse: collapse; font-size: 11px; }
+          th, td { border: none; padding: 5px 6px; text-align: left; white-space: nowrap; }
+          th {
+            background-color: #f5f5f5; font-weight: bold; font-size: 11px;
+            line-height: 1.3; border-bottom: 1px solid #ddd;
+          }
+          tr:not(:last-child) td { border-bottom: 1px solid #f0f0f0; }
+          .stock-zero { color: #d32f2f; font-weight: bold; }
+          .part-image { width: 70px; height: 52px; object-fit: cover; }
+        </style>
+      </head>
+      <body>${inner}</body>
+    </html>
+  `;
+}
+
 // HTML文字列をiframeでレンダリングしてcanvas化
 async function renderHtmlToCanvas(
   html: string,
   scale: number,
+  iframeWidth = 800,
 ): Promise<HTMLCanvasElement> {
   const iframe = document.createElement('iframe');
   iframe.style.position = 'absolute';
   iframe.style.left = '-9999px';
-  iframe.style.width = '800px';
+  iframe.style.width = `${iframeWidth}px`;
   document.body.appendChild(iframe);
 
   try {
@@ -271,10 +330,24 @@ async function renderHtmlToCanvas(
   }
 }
 
-// canvasをpdfへ（A4縦、複数ページ分割）。isFirstPageがfalseなら先頭でaddPageする。
-function addCanvasToPdf(pdf: jsPDF, canvas: HTMLCanvasElement, isFirstPage: boolean) {
-  const pdfWidth = 210;
-  const pdfHeight = 297;
+type Orientation = 'portrait' | 'landscape';
+
+// 指定オリエンテーションのA4寸法（mm）を返す
+function pageDims(orientation: Orientation) {
+  return orientation === 'landscape'
+    ? { pdfWidth: 297, pdfHeight: 210 }
+    : { pdfWidth: 210, pdfHeight: 297 };
+}
+
+// canvasをpdfへ「横幅に合わせて」貼り、高さが溢れたら複数ページに分割する。
+// 主にリスト（縦に長い表）向け。
+function addCanvasFitWidth(
+  pdf: jsPDF,
+  canvas: HTMLCanvasElement,
+  isFirstPage: boolean,
+  orientation: Orientation,
+) {
+  const { pdfWidth, pdfHeight } = pageDims(orientation);
   const marginX = 10;
   const marginY = 10;
   const maxWidth = pdfWidth - marginX * 2;
@@ -290,7 +363,7 @@ function addCanvasToPdf(pdf: jsPDF, canvas: HTMLCanvasElement, isFirstPage: bool
 
   while (remainingHeight > 0) {
     if (!(isFirstPage && localPage === 0)) {
-      pdf.addPage();
+      pdf.addPage('a4', orientation);
     }
     const heightInThisPage = Math.min(contentHeight, remainingHeight);
     const sourceHeight = (heightInThisPage * canvas.width) / imgWidthInPdf;
@@ -319,6 +392,35 @@ function addCanvasToPdf(pdf: jsPDF, canvas: HTMLCanvasElement, isFirstPage: bool
     remainingHeight -= heightInThisPage;
     localPage++;
   }
+}
+
+// canvasをpdfへ「ページ全体に収まる最大サイズ（contain）」で1ページに貼る。
+// 主に展開図（画像）向け。ページの縦横に合わせて最大化・中央配置。
+function addCanvasContain(
+  pdf: jsPDF,
+  canvas: HTMLCanvasElement,
+  isFirstPage: boolean,
+  orientation: Orientation,
+) {
+  const { pdfWidth, pdfHeight } = pageDims(orientation);
+  const marginX = 8;
+  const marginY = 8;
+  const availW = pdfWidth - marginX * 2;
+  const availH = pdfHeight - marginY * 2;
+
+  if (!(isFirstPage)) {
+    pdf.addPage('a4', orientation);
+  }
+
+  // 縦横比を保ったまま、利用可能領域に最大限収める
+  const ratio = Math.min(availW / canvas.width, availH / canvas.height);
+  const drawW = canvas.width * ratio;
+  const drawH = canvas.height * ratio;
+  const xOffset = (pdfWidth - drawW) / 2;
+  const yOffset = (pdfHeight - drawH) / 2;
+
+  const imgData = canvas.toDataURL('image/jpeg', 0.9);
+  pdf.addImage(imgData, 'JPEG', xOffset, yOffset, drawW, drawH);
 }
 
 // ------------------------------------------------------------
@@ -358,25 +460,29 @@ export async function exportBulkPdf(options: BulkExportOptions): Promise<void> {
       </div>
     `;
 
-    const diagramHtml = includeDiagram ? buildDiagramHtml(diagrams, quality) : '';
-    const tableHtml = buildTableHtml(unit, columns, quality);
-
     if (layout === 'two-page') {
-      // 1枚目：見出し＋展開図（展開図が無ければ見出しのみ）
-      const page1 = wrapHtml(heading + diagramHtml);
-      const canvas1 = await renderHtmlToCanvas(page1, scale);
-      addCanvasToPdf(pdf, canvas1, isFirstPage);
-      isFirstPage = false;
+      // === 横型（A4ランドスケープ）で大きく出力 ===
+      // 1枚目：展開図ページ（ページいっぱいに最大化）
+      if (includeDiagram) {
+        const page1 = buildDiagramPageHtml(diagrams, quality, heading);
+        const canvas1 = await renderHtmlToCanvas(page1, scale, 1180);
+        addCanvasContain(pdf, canvas1, isFirstPage, 'landscape');
+        isFirstPage = false;
+      }
 
-      // 2枚目：リストのみ
-      const page2 = wrapHtml(heading + tableHtml);
-      const canvas2 = await renderHtmlToCanvas(page2, scale);
-      addCanvasToPdf(pdf, canvas2, false);
+      // 2枚目：リストページ（横型・大きめフォント、溢れたら縦に複数ページ）
+      const tableWide = buildTableHtml(unit, columns, quality);
+      const page2 = wrapHtmlWide(heading + tableWide);
+      const canvas2 = await renderHtmlToCanvas(page2, scale, 1180);
+      addCanvasFitWidth(pdf, canvas2, isFirstPage, 'landscape');
+      isFirstPage = false;
     } else {
-      // 混在：見出し＋展開図＋リストを1フロー（内容量に応じて自動改ページ）
+      // 混在：見出し＋展開図＋リストを1フロー（縦型・内容量に応じて自動改ページ）
+      const diagramHtml = includeDiagram ? buildDiagramHtml(diagrams, quality) : '';
+      const tableHtml = buildTableHtml(unit, columns, quality);
       const page = wrapHtml(heading + diagramHtml + tableHtml);
       const canvas = await renderHtmlToCanvas(page, scale);
-      addCanvasToPdf(pdf, canvas, isFirstPage);
+      addCanvasFitWidth(pdf, canvas, isFirstPage, 'portrait');
       isFirstPage = false;
     }
   }
