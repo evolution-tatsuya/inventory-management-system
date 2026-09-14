@@ -344,7 +344,30 @@ export const AccountSettingsPage = () => {
         >
           {systemSettings?.systemName || '階層型在庫管理システム'}
         </Typography>
-        <Button
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Button
+            onClick={() => navigate('/categories')}
+            sx={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: '2px solid white',
+              color: 'white',
+              padding: '10px 24px',
+              borderRadius: '8px',
+              fontSize: '15px',
+              fontWeight: 600,
+              textTransform: 'none',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                background: 'white',
+                color: '#667eea',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+              },
+            }}
+          >
+            ユーザー画面を見る
+          </Button>
+          <Button
           onClick={handleLogout}
           sx={{
             background: 'rgba(255, 255, 255, 0.2)',
@@ -364,7 +387,8 @@ export const AccountSettingsPage = () => {
           }}
         >
           ログアウト
-        </Button>
+          </Button>
+        </Box>
       </Box>
 
       {/* タブナビゲーションバー */}

@@ -116,7 +116,30 @@ export const DashboardPage = () => {
         >
           {systemSettings?.systemName || '階層型在庫管理システム'} - 管理画面
         </Typography>
-        <Button
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Button
+            onClick={() => navigate('/categories')}
+            sx={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: '2px solid white',
+              color: 'white',
+              padding: '10px 24px',
+              borderRadius: '8px',
+              fontSize: '15px',
+              fontWeight: 600,
+              textTransform: 'none',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                background: 'white',
+                color: '#667eea',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+              },
+            }}
+          >
+            ユーザー画面を見る
+          </Button>
+          <Button
           onClick={handleLogout}
           sx={{
             background: 'rgba(255, 255, 255, 0.2)',
@@ -137,7 +160,8 @@ export const DashboardPage = () => {
           }}
         >
           ログアウト
-        </Button>
+          </Button>
+        </Box>
       </Box>
 
       {/* メインコンテンツ */}
@@ -307,24 +331,6 @@ export const DashboardPage = () => {
             }}
           >
             QRコード
-          </Button>
-          <Button
-            onClick={() => navigate('/categories')}
-            sx={{
-              padding: '16px 32px',
-              background: '#e8f5e9',
-              color: '#2e7d32',
-              fontSize: '15px',
-              fontWeight: 600,
-              textTransform: 'none',
-              borderRadius: 0,
-              minWidth: 'fit-content',
-              '&:hover': {
-                background: '#c8e6c9',
-              },
-            }}
-          >
-            ユーザー画面を見る
           </Button>
         </Box>
 
