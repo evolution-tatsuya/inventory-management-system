@@ -12,6 +12,7 @@ import { GenreManagementPage } from '@/pages/GenreManagementPage';
 import { PartsManagementPage } from '@/pages/PartsManagementPage';
 import { UnitManagementPage } from '@/pages/UnitManagementPage';
 import { DisplaySettingsPage } from '@/pages/DisplaySettingsPage';
+import InventoryCountPage from '@/pages/InventoryCountPage';
 import { AccountSettingsPage } from '@/pages/AccountSettingsPage';
 import { CategorySelectionPage } from '@/pages/CategorySelectionPage';
 import { GenreSelectionPage } from '@/pages/GenreSelectionPage';
@@ -140,6 +141,15 @@ function App() {
         element={
           <AdminRoute>
             <UnitManagementPage />
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/admin/inventory-count"
+        element={
+          <AdminRoute>
+            <InventoryCountPage />
           </AdminRoute>
         }
       />

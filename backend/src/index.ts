@@ -21,6 +21,7 @@ import imageRoutes from './routes/image';
 import exportRoutes from './routes/export';
 import diagramImageRoutes from './routes/diagramImage';
 import systemSettingsRoutes from './routes/systemSettings';
+import inventoryCountRoutes from './routes/inventoryCount';
 
 // 環境変数読み込み（backendディレクトリの.env.localから）
 dotenv.config({ path: '.env.local' });
@@ -96,6 +97,7 @@ app.use('/api', imageRoutes);
 app.use('/api', exportRoutes);
 app.use('/api', diagramImageRoutes);
 app.use('/api', systemSettingsRoutes);
+app.use('/api', inventoryCountRoutes);
 
 // ============================================================
 // エラーハンドリング

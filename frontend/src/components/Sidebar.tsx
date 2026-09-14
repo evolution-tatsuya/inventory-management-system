@@ -13,6 +13,7 @@ import {
   Category,
   Collections,
   Inventory,
+  FactCheck,
   DisplaySettings,
   AccountCircle,
 } from '@mui/icons-material';
@@ -56,6 +57,11 @@ const menuItems: MenuItem[] = [
     text: 'パーツ管理',
     icon: <Inventory />,
     path: '/admin/parts/categories',
+  },
+  {
+    text: '棚卸し',
+    icon: <FactCheck />,
+    path: '/admin/inventory-count',
   },
   {
     text: '表示設定',

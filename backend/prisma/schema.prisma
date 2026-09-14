@@ -193,3 +193,24 @@ model SystemSettings {
 
   @@map("system_settings")
 }
+
+// ============================================================
+// StockCountLog: 棚卸し履歴（実数入力による在庫更新の記録）
+// ============================================================
+model StockCountLog {
+  id         String   @id @default(cuid())
+  partNumber String   // 品番
+  partName   String   // 品名（当時の名称を保持）
+  unitId     String?  // 棚卸ししたユニット
+  unitName   String?  // ユニット名（当時）
+  beforeQty  Int      // 変更前の在庫数
+  afterQty   Int      // 実数（変更後の在庫数）
+  diff       Int      // afterQty - beforeQty（過不足）
+  countedBy  String?  // 実施した管理者（メール等）
+  countedAt  DateTime @default(now())
+
+  @@index([partNumber])
+  @@index([unitId])
+  @@index([countedAt])
+  @@map("stock_count_logs")
+}
