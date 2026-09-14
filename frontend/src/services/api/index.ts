@@ -22,3 +22,4 @@ export * as accountApi from './account';
 export * as diagramImagesApi from './diagramImages';
 export * as systemSettingsApi from './systemSettings';
 export * as inventoryCountApi from './inventoryCount';
+export * as ownerApi from './owner';

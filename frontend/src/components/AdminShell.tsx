@@ -27,6 +27,7 @@ const TABS = [
   { label: '棚卸し', path: '/admin/inventory-count' },
   { label: 'アカウント設定', path: '/admin/account-settings' },
   { label: 'QRコード', path: '/admin/qr' },
+  { label: '運営者', path: '/admin/owner' },
 ];
 
 export const AdminShell = ({ active, children }: AdminShellProps) => {

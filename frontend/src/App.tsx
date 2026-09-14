@@ -13,6 +13,7 @@ import { PartsManagementPage } from '@/pages/PartsManagementPage';
 import { UnitManagementPage } from '@/pages/UnitManagementPage';
 import { DisplaySettingsPage } from '@/pages/DisplaySettingsPage';
 import InventoryCountPage from '@/pages/InventoryCountPage';
+import OwnerPage from '@/pages/OwnerPage';
 import { AccountSettingsPage } from '@/pages/AccountSettingsPage';
 import { CategorySelectionPage } from '@/pages/CategorySelectionPage';
 import { GenreSelectionPage } from '@/pages/GenreSelectionPage';
@@ -150,6 +151,15 @@ function App() {
         element={
           <AdminRoute>
             <InventoryCountPage />
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/admin/owner"
+        element={
+          <AdminRoute>
+            <OwnerPage />
           </AdminRoute>
         }
       />
