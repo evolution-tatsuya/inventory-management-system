@@ -212,6 +212,7 @@ export interface SystemSettings {
   logoUrl: string | null;
   logoSize?: string; // ロゴサイズ: small / medium / large
   headerColor: string;
+  stockMode?: 'shared' | 'perCategory'; // 在庫モード: 全カテゴリー共有 / カテゴリー独立
   createdAt: string;
   updatedAt: string;
 }

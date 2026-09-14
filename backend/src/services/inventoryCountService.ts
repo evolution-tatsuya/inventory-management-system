@@ -6,6 +6,7 @@
 // ============================================================
 
 import { PrismaClient } from '@prisma/client';
+import { getStockMode, loadStockMap, upsertStock, stockCategoryKey } from './stockHelper';
 
 const prisma = new PrismaClient();
 
@@ -27,16 +28,28 @@ export const inventoryCountService = {
       return { updated: 0, logged: 0 };
     }
 
-    // 対象パーツをまとめて取得（品番・ユニット情報のため）
+    // 対象パーツをまとめて取得（品番・ユニット・カテゴリー情報のため）
     const partIds = items.map((i) => i.partId);
     const parts = await prisma.part.findMany({
       where: { id: { in: partIds } },
       include: {
-        partMaster: { select: { stockQuantity: true } },
         unit: { select: { id: true, unitName: true } },
+        genre: { select: { categoryId: true } },
       },
     });
     const partById = new Map(parts.map((p) => [p.id, p]));
+
+    // 在庫モードと現在庫を解決
+    const mode = await getStockMode();
+    const beforeMap = await loadStockMap(
+      prisma,
+      mode,
+      parts.map((p) => ({ categoryId: p.genre?.categoryId ?? null, partNumber: p.partNumber })),
+    );
+    const beforeOf = (p: any) => {
+      const catKey = stockCategoryKey(mode, p.genre?.categoryId ?? null);
+      return beforeMap.get(`${catKey ?? 'null'}::${p.partNumber}`) ?? 0;
+    };
 
     let updated = 0;
     let logged = 0;
@@ -47,7 +60,7 @@ export const inventoryCountService = {
           const part = partById.get(item.partId);
           if (!part) continue;
 
-          const before = part.partMaster?.stockQuantity ?? 0;
+          const before = beforeOf(part);
           const after = item.countedQty;
 
           // 収納ケースの更新（渡され、かつ変化がある場合）
@@ -64,10 +77,7 @@ export const inventoryCountService = {
 
           // 在庫が変わる場合のみ上書き＋履歴
           if (after !== before) {
-            await tx.partMaster.update({
-              where: { partNumber: part.partNumber },
-              data: { stockQuantity: after },
-            });
+            await upsertStock(tx, mode, part.genre?.categoryId ?? null, part.partNumber, after);
             await tx.stockCountLog.create({
               data: {
                 partNumber: part.partNumber,

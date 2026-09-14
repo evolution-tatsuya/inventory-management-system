@@ -44,41 +44,28 @@ export const statsService = {
         },
       }),
 
-      // 在庫数5以下のパーツ（PartMasterベース）
+      // 在庫数5以下の在庫レコード（PartMasterベース）
       prisma.partMaster.findMany({
-        where: {
-          stockQuantity: {
-            lte: 5,
-          },
-        },
-        include: {
-          parts: {
-            select: {
-              partName: true,
-              genre: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-            take: 1,
-          },
-        },
-        orderBy: {
-          stockQuantity: 'asc',
-        },
+        where: { stockQuantity: { lte: 5 } },
+        orderBy: { stockQuantity: 'asc' },
         take: 10,
       }),
 
-      // 在庫5以下のパーツ品番の総数（カード表示用）
+      // 在庫5以下の在庫レコード総数（カード表示用）
       prisma.partMaster.count({ where: { stockQuantity: { lte: 5 } } }),
     ]);
 
-    // 低在庫パーツを整形
+    // 低在庫の品番から、対応するパーツ名・ジャンル名を引く
+    const lowPartNumbers = lowStockParts.map((pm) => pm.partNumber);
+    const partInfos = await prisma.part.findMany({
+      where: { partNumber: { in: lowPartNumbers } },
+      select: { partNumber: true, partName: true, genre: { select: { name: true } } },
+    });
+    const infoByPn = new Map(partInfos.map((p) => [p.partNumber, p]));
     const formattedLowStockParts = lowStockParts.map((pm) => ({
       partNumber: pm.partNumber,
-      partName: pm.parts[0]?.partName || 'Unknown',
-      genreName: pm.parts[0]?.genre.name || 'Unknown',
+      partName: infoByPn.get(pm.partNumber)?.partName || 'Unknown',
+      genreName: infoByPn.get(pm.partNumber)?.genre?.name || 'Unknown',
       stockQuantity: pm.stockQuantity,
     }));
 

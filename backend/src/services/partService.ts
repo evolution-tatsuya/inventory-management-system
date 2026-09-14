@@ -2,53 +2,72 @@
 // 階層型在庫管理システム - パーツサービス
 // ============================================================
 // パーツのCRUD処理（Prisma ORM使用）
-// PartMaster自動作成・更新ロジック実装
+// 在庫(PartMaster)は stockMode に応じて shared/perCategory を解決する。
 // ============================================================
 
 import { PrismaClient } from '@prisma/client';
+import {
+  getStockMode,
+  genreToCategoryMap,
+  loadStockMap,
+  upsertStock,
+  ensureStock,
+  stockCategoryKey,
+  StockMode,
+} from './stockHelper';
 
 const prisma = new PrismaClient();
 
-// ============================================================
-// パーツサービス
-// ============================================================
+// パーツ配列に partMaster.stockQuantity を付与する（APIレスポンス互換のため）
+async function attachStock(parts: any[]): Promise<any[]> {
+  if (parts.length === 0) return parts;
+  const mode = await getStockMode();
+  const g2c = await genreToCategoryMap();
+  const keys = parts.map((p) => ({
+    categoryId: g2c.get(p.genreId) ?? null,
+    partNumber: p.partNumber,
+  }));
+  const stockMap = await loadStockMap(prisma, mode, keys);
+  return parts.map((p) => {
+    const catKey = stockCategoryKey(mode, g2c.get(p.genreId) ?? null);
+    const qty = stockMap.get(`${catKey ?? 'null'}::${p.partNumber}`) ?? 0;
+    return { ...p, partMaster: { stockQuantity: qty } };
+  });
+}
+
+// あるgenreIdのカテゴリーIDを引く
+async function categoryOfGenre(genreId: string): Promise<string | null> {
+  const g = await prisma.genre.findUnique({ where: { id: genreId }, select: { categoryId: true } });
+  return g?.categoryId ?? null;
+}
+
 export const partService = {
   // 全パーツ一覧取得（管理画面用）
   async getAll() {
-    return await prisma.part.findMany({
+    const parts = await prisma.part.findMany({
       orderBy: [{ genreId: 'asc' }, { sortOrder: 'asc' }],
       include: {
-        partMaster: {
-          select: { stockQuantity: true },
-        },
-        genre: {
-          select: { id: true, name: true },
-        },
-        unit: {
-          select: { id: true, unitNumber: true, unitName: true },
-        },
+        genre: { select: { id: true, name: true } },
+        unit: { select: { id: true, unitNumber: true, unitName: true } },
       },
     });
+    return attachStock(parts);
   },
 
   // ジャンル内のパーツ一覧取得
   async getByGenre(genreId: string) {
-    return await prisma.part.findMany({
+    const parts = await prisma.part.findMany({
       where: { genreId },
       orderBy: [{ sortOrder: 'asc' }],
       include: {
-        partMaster: {
-          select: { stockQuantity: true },
-        },
         genre: true,
-        unit: {
-          select: { id: true, unitNumber: true, unitName: true },
-        },
+        unit: { select: { id: true, unitNumber: true, unitName: true } },
       },
     });
+    return attachStock(parts);
   },
 
-  // パーツ作成（PartMaster自動作成含む）
+  // パーツ作成（在庫レコード自動作成含む）
   async create(data: {
     genreId: string;
     unitId?: string;
@@ -62,39 +81,30 @@ export const partService = {
     expectedArrivalDate?: string;
     imageUrl?: string;
     notes?: string;
-    stockQuantity?: number; // 在庫数量（PartMaster用）
+    stockQuantity?: number;
   }) {
-    return await prisma.$transaction(async (tx) => {
-      // PartMasterが存在しない場合は作成、既存の場合は在庫数量を更新
-      const partMaster = await tx.partMaster.upsert({
-        where: { partNumber: data.partNumber },
-        update: {
-          // 在庫数量が指定されている場合は更新
-          ...(data.stockQuantity !== undefined && { stockQuantity: data.stockQuantity })
-        },
-        create: {
-          partNumber: data.partNumber,
-          stockQuantity: data.stockQuantity ?? 0, // 指定がない場合は0
-        },
-      });
+    const created = await prisma.$transaction(async (tx) => {
+      const mode = await getStockMode(tx);
+      const categoryId = (
+        await tx.genre.findUnique({ where: { id: data.genreId }, select: { categoryId: true } })
+      )?.categoryId ?? null;
 
-      // 日付文字列をDateTimeに変換、stockQuantityは除外（PartMasterのみで管理）
-      const { stockQuantity, ...partDataWithoutStock } = data;
+      // 在庫レコードを用意（指定があればその値、なければ既存維持 or 0）
+      if (data.stockQuantity !== undefined) {
+        await upsertStock(tx, mode, categoryId, data.partNumber, data.stockQuantity);
+      } else {
+        await ensureStock(tx, mode, categoryId, data.partNumber);
+      }
+
+      const { stockQuantity, ...rest } = data;
       const partData = {
-        ...partDataWithoutStock,
+        ...rest,
         orderDate: data.orderDate ? new Date(data.orderDate) : undefined,
         expectedArrivalDate: data.expectedArrivalDate ? new Date(data.expectedArrivalDate) : undefined,
       };
-
-      // Part作成
-      return await tx.part.create({
-        data: partData,
-        include: {
-          partMaster: true,
-          genre: true,
-        },
-      });
+      return tx.part.create({ data: partData, include: { genre: true } });
     });
+    return (await attachStock([created]))[0];
   },
 
   // パーツ更新
@@ -113,83 +123,65 @@ export const partService = {
       notes?: string;
       cropPositionX?: number;
       cropPositionY?: number;
-      stockQuantity?: number; // 在庫数量を追加
-    }
+      stockQuantity?: number;
+    },
   ) {
-    return await prisma.$transaction(async (tx) => {
-      // 品番が変更される場合、または在庫数量が指定されている場合、PartMasterを更新
-      if (data.partNumber) {
-        await tx.partMaster.upsert({
-          where: { partNumber: data.partNumber },
-          update: {
-            // 在庫数量が指定されている場合は更新
-            ...(data.stockQuantity !== undefined && { stockQuantity: data.stockQuantity })
-          },
-          create: {
-            partNumber: data.partNumber,
-            stockQuantity: data.stockQuantity ?? 0, // 指定がない場合は0
-          },
-        });
-      } else if (data.stockQuantity !== undefined) {
-        // 品番変更なしで在庫数量のみ更新する場合
-        // 現在のパーツの品番を取得
-        const currentPart = await tx.part.findUnique({
-          where: { id },
-          select: { partNumber: true },
-        });
-        if (currentPart) {
-          await tx.partMaster.update({
-            where: { partNumber: currentPart.partNumber },
-            data: { stockQuantity: data.stockQuantity },
-          });
+    const updated = await prisma.$transaction(async (tx) => {
+      const mode = await getStockMode(tx);
+      const current = await tx.part.findUnique({
+        where: { id },
+        select: { partNumber: true, genreId: true },
+      });
+      const categoryId = current
+        ? (await tx.genre.findUnique({ where: { id: current.genreId }, select: { categoryId: true } }))?.categoryId ?? null
+        : null;
+      const effectivePartNumber = data.partNumber ?? current?.partNumber;
+
+      if (effectivePartNumber) {
+        if (data.stockQuantity !== undefined) {
+          await upsertStock(tx, mode, categoryId, effectivePartNumber, data.stockQuantity);
+        } else {
+          await ensureStock(tx, mode, categoryId, effectivePartNumber);
         }
       }
 
-      // 日付文字列をDateTimeに変換、stockQuantityは除外（PartMasterのみで管理）
-      const { stockQuantity, ...dataWithoutStock } = data;
+      const { stockQuantity, ...rest } = data;
       const updateData = {
-        ...dataWithoutStock,
+        ...rest,
         orderDate: data.orderDate ? new Date(data.orderDate) : undefined,
         expectedArrivalDate: data.expectedArrivalDate ? new Date(data.expectedArrivalDate) : undefined,
       };
-
-      // Part更新
-      return await tx.part.update({
-        where: { id },
-        data: updateData,
-        include: {
-          partMaster: true,
-          genre: true,
-        },
-      });
+      return tx.part.update({ where: { id }, data: updateData, include: { genre: true } });
     });
+    return (await attachStock([updated]))[0];
   },
 
   // パーツ削除
   async delete(id: string) {
-    return await prisma.part.delete({
-      where: { id },
-    });
+    return prisma.part.delete({ where: { id } });
   },
 
-  // 在庫数更新（同一品番すべてに反映）
-  async updateStock(partNumber: string, stockQuantity: number) {
-    return await prisma.$transaction(async (tx) => {
-      // PartMaster更新（これで全パーツに反映される）
-      const partMaster = await tx.partMaster.update({
-        where: { partNumber },
-        data: { stockQuantity },
-      });
+  // 在庫数更新（同一カテゴリー内の同一品番に反映）
+  // categoryId を渡すとそのカテゴリーの在庫を、渡さない場合は品番から推定して更新。
+  async updateStock(partNumber: string, stockQuantity: number, categoryId?: string | null) {
+    return prisma.$transaction(async (tx) => {
+      const mode = await getStockMode(tx);
+      // categoryId未指定時: perCategoryならこの品番を持つ最初のパーツのカテゴリーを使う
+      let catId = categoryId ?? null;
+      if (mode === 'perCategory' && categoryId === undefined) {
+        const anyPart = await tx.part.findFirst({
+          where: { partNumber },
+          select: { genreId: true },
+        });
+        if (anyPart) {
+          catId = (await tx.genre.findUnique({ where: { id: anyPart.genreId }, select: { categoryId: true } }))?.categoryId ?? null;
+        }
+      }
+      const partMaster = await upsertStock(tx, mode, catId, partNumber, stockQuantity);
 
-      // 更新された品番を使用しているパーツ数を取得
-      const affectedCount = await tx.part.count({
-        where: { partNumber },
-      });
-
-      return {
-        partMaster,
-        affectedCount,
-      };
+      // 同じ在庫が反映されるパーツ数（同カテゴリー内の同品番）
+      const affectedCount = await tx.part.count({ where: { partNumber } });
+      return { partMaster, affectedCount };
     });
   },
 
@@ -197,11 +189,11 @@ export const partService = {
   async updateOrder(orderedIds: string[]) {
     await prisma.$transaction(
       orderedIds.map((id: string, index: number) =>
-        prisma.part.update({
-          where: { id },
-          data: { sortOrder: index },
-        })
-      )
+        prisma.part.update({ where: { id }, data: { sortOrder: index } }),
+      ),
     );
   },
 };
+
+// 他サービスから使えるように公開（categoryOfGenreは将来用）
+export { categoryOfGenre };

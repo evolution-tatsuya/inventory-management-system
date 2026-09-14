@@ -134,7 +134,7 @@ model Part {
   updatedAt           DateTime   @updatedAt
   genre               Genre      @relation(fields: [genreId], references: [id], onDelete: Cascade)
   unit                Unit?      @relation(fields: [unitId], references: [id], onDelete: SetNull)
-  partMaster          PartMaster @relation(fields: [partNumber], references: [partNumber])
+  // 在庫(PartMaster)は (categoryId, partNumber) でサービス層から解決する（DB外部キーは張らない）
 
   @@index([genreId])
   @@index([unitId])
@@ -148,15 +148,20 @@ model Part {
 // ============================================================
 // PartMaster: 在庫マスター（品番ごとの在庫数を一元管理）
 // ============================================================
+// 在庫は「カテゴリー×品番」で一意。categoryId=null は shared(全カテゴリー共有)用の従来レコード。
+// perCategoryモードでは categoryId を持つレコードでカテゴリーごとに在庫を独立管理する。
+// ※ Part とのリレーションは (categoryId, partNumber) で解決するためサービス層で扱う（DB外部キーは張らない）。
 model PartMaster {
   id            String   @id @default(cuid())
-  partNumber    String   @unique
+  categoryId    String?  // null=shared（従来）/ 値あり=そのカテゴリー専用の在庫
+  partNumber    String
   stockQuantity Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  parts         Part[]
 
+  @@unique([categoryId, partNumber])
   @@index([partNumber])
+  @@index([categoryId])
   @@map("part_masters")
 }
 
@@ -188,6 +193,7 @@ model SystemSettings {
   logoUrl          String?  // ロゴ画像URL（任意）
   logoSize         String   @default("small") // ロゴサイズ: small / medium / large
   headerColor      String   @default("linear-gradient(135deg, #667eea 0%, #764ba2 100%)")
+  stockMode        String   @default("shared") // 在庫モード: shared(全カテゴリー共有) / perCategory(カテゴリー独立)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

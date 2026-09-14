@@ -5,6 +5,7 @@
 // ============================================================
 
 import { PrismaClient } from '@prisma/client';
+import { getStockMode, loadStockMap, stockCategoryKey } from './stockHelper';
 
 const prisma = new PrismaClient();
 
@@ -34,11 +35,6 @@ export const searchService = {
             },
           },
         },
-        partMaster: {
-          select: {
-            stockQuantity: true,
-          },
-        },
       },
       orderBy: [
         { genre: { category: { name: 'asc' } } },
@@ -46,6 +42,17 @@ export const searchService = {
         { unitNumber: 'asc' },
       ],
     });
+
+    const mode = await getStockMode();
+    const stockMap = await loadStockMap(
+      prisma,
+      mode,
+      parts.map((p) => ({ categoryId: p.genre.category.id, partNumber: p.partNumber })),
+    );
+    const stockOf = (p: any) => {
+      const catKey = stockCategoryKey(mode, p.genre.category.id);
+      return stockMap.get(`${catKey ?? 'null'}::${p.partNumber}`) ?? 0;
+    };
 
     return parts.map((part) => ({
       part: {
@@ -60,7 +67,7 @@ export const searchService = {
         orderDate: part.orderDate,
         expectedArrivalDate: part.expectedArrivalDate,
         partMaster: {
-          stockQuantity: part.partMaster.stockQuantity,
+          stockQuantity: stockOf(part),
         },
       },
       genre: {
@@ -96,11 +103,6 @@ export const searchService = {
             },
           },
         },
-        partMaster: {
-          select: {
-            stockQuantity: true,
-          },
-        },
       },
       orderBy: [
         { partNumber: 'asc' },
@@ -109,6 +111,17 @@ export const searchService = {
         { unitNumber: 'asc' },
       ],
     });
+
+    const mode = await getStockMode();
+    const stockMap = await loadStockMap(
+      prisma,
+      mode,
+      parts.map((p) => ({ categoryId: p.genre.category.id, partNumber: p.partNumber })),
+    );
+    const stockOf = (p: any) => {
+      const catKey = stockCategoryKey(mode, p.genre.category.id);
+      return stockMap.get(`${catKey ?? 'null'}::${p.partNumber}`) ?? 0;
+    };
 
     return parts.map((part) => ({
       part: {
@@ -123,7 +136,7 @@ export const searchService = {
         orderDate: part.orderDate,
         expectedArrivalDate: part.expectedArrivalDate,
         partMaster: {
-          stockQuantity: part.partMaster.stockQuantity,
+          stockQuantity: stockOf(part),
         },
       },
       genre: {

@@ -189,7 +189,9 @@ export interface SystemSettings {
   id: string;
   systemName: string;
   logoUrl: string | null;
+  logoSize?: string;
   headerColor: string;
+  stockMode?: 'shared' | 'perCategory'; // 在庫モード
   createdAt: Date;
   updatedAt: Date;
 }

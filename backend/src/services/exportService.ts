@@ -8,6 +8,7 @@ import { PrismaClient } from '@prisma/client';
 import Papa from 'papaparse';
 import PDFDocument from 'pdfkit';
 import * as XLSX from 'xlsx';
+import { getStockMode, loadStockMap, upsertStock, stockCategoryKey } from './stockHelper';
 
 const prisma = new PrismaClient();
 
@@ -32,11 +33,20 @@ export const exportService = {
     // パーツ一覧取得（unitIdが指定されている場合はそのユニットのみ）
     const parts = await prisma.part.findMany({
       where: unitId ? { genreId, unitId } : { genreId },
-      include: {
-        partMaster: true,
-      },
       orderBy: { unitNumber: 'asc' },
     });
+
+    // 在庫を解決（このジャンルのカテゴリー基準）
+    const mode = await getStockMode();
+    const stockMap = await loadStockMap(
+      prisma,
+      mode,
+      parts.map((p) => ({ categoryId: genre.categoryId, partNumber: p.partNumber })),
+    );
+    const stockOf = (p: any) => {
+      const catKey = stockCategoryKey(mode, genre.categoryId);
+      return stockMap.get(`${catKey ?? 'null'}::${p.partNumber}`) ?? 0;
+    };
 
     // CSVデータ作成
     const csvData = parts.map((part) => ({
@@ -44,7 +54,7 @@ export const exportService = {
       品番: part.partNumber,
       品名: part.partName,
       数量: part.quantity ?? 0,
-      在庫数: part.partMaster?.stockQuantity ?? 0,
+      在庫数: stockOf(part),
       収納ケース番号: part.storageCase || '',
       発注日: part.orderDate ? new Date(part.orderDate).toLocaleDateString('ja-JP') : '',
       入荷予定日: part.expectedArrivalDate
@@ -88,13 +98,24 @@ export const exportService = {
     const parts = await prisma.part.findMany({
       where: unitId ? { genreId, unitId } : { genreId },
       include: {
-        partMaster: true,
         unit: {
           select: { id: true, unitNumber: true, unitName: true },
         },
       },
       orderBy: { unitNumber: 'asc' },
     });
+
+    // 在庫を解決（このジャンルのカテゴリー基準）
+    const pdfMode = await getStockMode();
+    const pdfStockMap = await loadStockMap(
+      prisma,
+      pdfMode,
+      parts.map((p) => ({ categoryId: genre.categoryId, partNumber: p.partNumber })),
+    );
+    const pdfStockOf = (p: any) => {
+      const catKey = stockCategoryKey(pdfMode, genre.categoryId);
+      return pdfStockMap.get(`${catKey ?? 'null'}::${p.partNumber}`) ?? 0;
+    };
 
     // PDF生成（A4縦）
     const pdfOptions = { size: 'A4', margin: 10 };
@@ -193,7 +214,7 @@ export const exportService = {
         width: colWidths.quantity,
       });
       x += colWidths.quantity;
-      doc.text(String(part.partMaster?.stockQuantity ?? 0), x, rowY, {
+      doc.text(String(pdfStockOf(part)), x, rowY, {
         width: colWidths.stock,
       });
       x += colWidths.stock;
@@ -241,6 +262,7 @@ export const exportService = {
     const genre = await prisma.genre.findUnique({
       where: { id: genreId },
     });
+    const importMode = await getStockMode();
 
     if (!genre) {
       throw new Error('Genre not found');
@@ -360,17 +382,8 @@ export const exportService = {
           console.log(`✅ 行${lineNumber}: 変換後の発注日 = ${orderDate?.toLocaleDateString('ja-JP')}`);
           console.log(`✅ 行${lineNumber}: 変換後の入荷予定日 = ${expectedArrivalDate?.toLocaleDateString('ja-JP')}`);
 
-          // ⚠️ 重要: PartMasterを先に作成/更新（外部キー制約のため）
-          await tx.partMaster.upsert({
-            where: { partNumber },
-            create: {
-              partNumber,
-              stockQuantity,
-            },
-            update: {
-              stockQuantity,
-            },
-          });
+          // 在庫レコードを作成/更新（stockModeに応じて shared/perCategory）
+          await upsertStock(tx, importMode, genre.categoryId, partNumber, stockQuantity);
 
           // ユニットIDを取得（targetUnitIdが指定されている場合はそれを使用）
           let unitId: string | null = null;
