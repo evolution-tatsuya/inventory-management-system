@@ -125,7 +125,7 @@ async function main() {
           },
         });
       }
-    });
+    }, { maxWait: 60000, timeout: 120000 });
     console.log(`  ✅ FIX ${f.unitName} (${f.parts.length}件)`);
   }
 
@@ -160,7 +160,7 @@ async function main() {
           data: { unitId: unit.id, imageUrl: durl, imageType: 'diagram', isMain: true, sortOrder: 0 },
         });
       }
-    });
+    }, { maxWait: 60000, timeout: 120000 });
     console.log(`  ✅ NEW ${f.unitName} (${f.parts.length}件)${pageDiagrams.get(f.page) ? ' +展開図' : ''}`);
   }
 
