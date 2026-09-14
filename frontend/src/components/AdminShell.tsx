@@ -66,22 +66,24 @@ export const AdminShell = ({ active, children }: AdminShellProps) => {
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         }}
       >
-        {settings?.logoUrl && (
-          <Box
-            component="img"
-            src={settings.logoUrl}
-            alt="Logo"
-            sx={{
-              maxHeight: getLogoMaxHeight(settings?.logoSize),
-              maxWidth: getLogoMaxWidth(settings?.logoSize),
-              objectFit: 'contain',
-              mr: 2,
-            }}
-          />
-        )}
-        <Typography sx={{ fontSize: '22px', fontWeight: 600, letterSpacing: '0.5px' }}>
-          {settings?.systemName || '階層型在庫管理システム'} - 管理画面
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          {settings?.logoUrl && (
+            <Box
+              component="img"
+              src={settings.logoUrl}
+              alt="Logo"
+              sx={{
+                maxHeight: getLogoMaxHeight(settings?.logoSize),
+                maxWidth: getLogoMaxWidth(settings?.logoSize),
+                objectFit: 'contain',
+                mr: 2,
+              }}
+            />
+          )}
+          <Typography sx={{ fontSize: '22px', fontWeight: 600, letterSpacing: '0.5px' }}>
+            {settings?.systemName || '階層型在庫管理システム'} - 管理画面
+          </Typography>
+        </Box>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <Button
             onClick={() => navigate('/categories')}

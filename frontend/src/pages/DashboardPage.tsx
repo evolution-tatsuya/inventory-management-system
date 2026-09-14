@@ -94,6 +94,7 @@ export const DashboardPage = () => {
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         }}
       >
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
         {systemSettings?.logoUrl && (
           <Box
             component="img"
@@ -116,6 +117,7 @@ export const DashboardPage = () => {
         >
           {systemSettings?.systemName || '階層型在庫管理システム'} - 管理画面
         </Typography>
+        </Box>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <Button
             onClick={() => navigate('/categories')}
