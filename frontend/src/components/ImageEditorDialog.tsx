@@ -168,31 +168,44 @@ export const ImageEditorDialog = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // clientWidthを使用してborder分を除外した実際の描画領域サイズを取得
+    // clientWidthを使用してborder分を除外した実際の描画領域サイズを取得（CSSピクセル）
     const containerWidth = containerRef.current.clientWidth;
     const containerHeight = containerRef.current.clientHeight;
-
-    // キャンバスサイズを設定
-    canvas.width = containerWidth;
-    canvas.height = containerHeight;
-
-    // 背景色を塗りつぶし
-    ctx.fillStyle = backgroundColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // 画像を読み込んで描画
     const image = new Image();
     image.crossOrigin = 'anonymous';
     image.onload = () => {
-      // 拡大・縮小後の画像サイズ
+      // --- 高解像度で書き出す ---
+      // プレビュー枠のサイズでそのまま書き出すと、元画像が枠サイズまで
+      // 縮小されて画質が大きく落ちる（展開図の番号が潰れる）。
+      // そこで「元画像が原寸(ネイティブ解像度)以上」になる倍率で出力する。
+      // scaleは枠にフィットさせた表示倍率なので、1/scaleで原寸に戻る。
+      const safeScale = scale > 0 ? scale : 1;
+      const dpr = window.devicePixelRatio || 1;
+      // 原寸復元(1/safeScale)とDPRの大きい方を採用。過大なファイルを避けるため上限4倍。
+      const renderScale = Math.min(4, Math.max(1, 1 / safeScale, dpr));
+
+      // 出力キャンバスは枠サイズ × renderScale
+      canvas.width = Math.round(containerWidth * renderScale);
+      canvas.height = Math.round(containerHeight * renderScale);
+
+      // 高品質な縮小補間
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // 以降の座標系をCSSピクセルのまま扱えるよう全体をスケール
+      ctx.scale(renderScale, renderScale);
+
+      // 背景色を塗りつぶし（CSSピクセル座標）
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, containerWidth, containerHeight);
+
+      // 拡大・縮小後の画像サイズ（CSSピクセル）
       const scaledWidth = imageSize.width * scale;
       const scaledHeight = imageSize.height * scale;
-
-      // 画像の中央位置を計算
       const centerX = containerWidth / 2;
       const centerY = containerHeight / 2;
-
-      // 画像の描画位置（中央 + オフセット）
       const drawX = centerX - scaledWidth / 2 + position.x;
       const drawY = centerY - scaledHeight / 2 + position.y;
 
@@ -204,16 +217,14 @@ export const ImageEditorDialog = ({
         for (const p of cutPath.slice(1)) ctx.lineTo(p.x, p.y);
         ctx.closePath();
         ctx.clip();
-        // クリップ内に画像を描画
         ctx.drawImage(image, drawX, drawY, scaledWidth, scaledHeight);
         ctx.restore();
       } else {
-        // 通常描画
         ctx.drawImage(image, drawX, drawY, scaledWidth, scaledHeight);
       }
 
-      // Base64に変換
-      const base64 = canvas.toDataURL('image/jpeg', 0.9);
+      // PNGで書き出し（線画＋数字はJPEG圧縮でにじむためロスレスに）
+      const base64 = canvas.toDataURL('image/png');
       onSave(base64, { scale, position, backgroundColor });
       onClose();
     };
