@@ -136,10 +136,18 @@ export interface SessionResponse {
 // 統計情報
 // ============================================================
 export interface DashboardStats {
-  categoriesCount: number;
-  genresCount: number;
-  partsCount: number;
+  categoryCount: number;
+  genreCount: number;
+  unitCount: number;
+  partCount: number;
   totalStock: number;
+  lowStockCount: number;
+  lowStockParts?: {
+    partNumber: string;
+    partName: string;
+    genreName: string;
+    stockQuantity: number;
+  }[];
 }
 
 // ============================================================

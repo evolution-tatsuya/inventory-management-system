@@ -14,7 +14,6 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Container,
   Dialog,
   DialogActions,
   DialogContent,
@@ -37,7 +36,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import { MainLayout } from '@/layouts/MainLayout';
+import { AdminShell } from '@/components/AdminShell';
 import {
   partsApi,
   categoriesApi,
@@ -263,8 +262,8 @@ export default function InventoryCountPage() {
   };
 
   return (
-    <MainLayout>
-      <Container maxWidth="xl">
+    <AdminShell active="/admin/inventory-count">
+      <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
         <Box sx={{ mb: 3 }}>
           <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
             棚卸し
@@ -496,7 +495,7 @@ export default function InventoryCountPage() {
             </Table>
           </TableContainer>
         )}
-      </Container>
+      </Box>
 
       {/* 保存確認ダイアログ */}
       <Dialog open={confirmOpen} onClose={() => !saving && setConfirmOpen(false)}>
@@ -529,7 +528,7 @@ export default function InventoryCountPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </MainLayout>
+    </AdminShell>
   );
 }
 

@@ -263,6 +263,24 @@ export const QRCodePage = () => {
         >
           パーツ管理
         </Button>
+          <Button
+            onClick={() => navigate('/admin/inventory-count')}
+            sx={{
+              padding: '16px 32px',
+              background: '#f7f7f7',
+              color: '#666',
+              fontSize: '15px',
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: 0,
+              minWidth: 'fit-content',
+              '&:hover': {
+                background: '#e0e0e0',
+              },
+            }}
+          >
+            棚卸し
+          </Button>
         <Button
           onClick={() => navigate('/admin/account-settings')}
           sx={{

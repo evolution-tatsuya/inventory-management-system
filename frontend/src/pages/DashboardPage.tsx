@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Card, CardContent, Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { statsApi, systemSettingsApi } from '@/services/api';
+import { statsApi, systemSettingsApi, inventoryCountApi } from '@/services/api';
 import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
 import type { SystemSettings } from '@/types';
 
@@ -11,6 +11,18 @@ import type { SystemSettings } from '@/types';
 // ============================================================
 // 管理ダッシュボード - モックアップ準拠の全画面表示版
 // ============================================================
+
+// 相対時間の簡易表示
+const relativeTime = (iso: string): string => {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return 'たった今';
+  if (min < 60) return `${min}分前`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}時間前`;
+  const day = Math.floor(hr / 24);
+  return `${day}日前`;
+};
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
@@ -21,6 +33,12 @@ export const DashboardPage = () => {
     queryKey: ['dashboard-stats'],
     queryFn: statsApi.getStats,
     refetchInterval: 5 * 60 * 1000, // 5分間隔
+  });
+
+  // 棚卸し履歴（最近の活動として表示）
+  const { data: countHistory = [] } = useQuery({
+    queryKey: ['inventory-count-history'],
+    queryFn: () => inventoryCountApi.getHistory(20),
   });
 
   // システム設定取得
@@ -237,6 +255,24 @@ export const DashboardPage = () => {
             パーツ管理
           </Button>
           <Button
+            onClick={() => navigate('/admin/inventory-count')}
+            sx={{
+              padding: '16px 32px',
+              background: '#f7f7f7',
+              color: '#666',
+              fontSize: '15px',
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: 0,
+              minWidth: 'fit-content',
+              '&:hover': {
+                background: '#e0e0e0',
+              },
+            }}
+          >
+            棚卸し
+          </Button>
+          <Button
             onClick={() => navigate('/admin/account-settings')}
             sx={{
               padding: '16px 32px',
@@ -327,7 +363,7 @@ export const DashboardPage = () => {
                     カテゴリー総数
                   </Typography>
                   <Typography sx={{ fontSize: '36px', fontWeight: 700 }}>
-                    {stats?.categoriesCount || 6}
+                    {stats?.categoryCount ?? '—'}
                   </Typography>
                   <Typography sx={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>
                     登録済みカテゴリー
@@ -355,7 +391,7 @@ export const DashboardPage = () => {
                     ジャンル総数
                   </Typography>
                   <Typography sx={{ fontSize: '36px', fontWeight: 700 }}>
-                    {stats?.genresCount || 24}
+                    {stats?.genreCount ?? '—'}
                   </Typography>
                   <Typography sx={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>
                     全カテゴリー合計
@@ -383,7 +419,7 @@ export const DashboardPage = () => {
                     ユニット総数
                   </Typography>
                   <Typography sx={{ fontSize: '36px', fontWeight: 700 }}>
-                    96
+                    {stats?.unitCount ?? '—'}
                   </Typography>
                   <Typography sx={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>
                     全ジャンル合計
@@ -411,10 +447,10 @@ export const DashboardPage = () => {
                     在庫切れパーツ
                   </Typography>
                   <Typography sx={{ fontSize: '36px', fontWeight: 700 }}>
-                    18
+                    {stats?.lowStockCount ?? '—'}
                   </Typography>
                   <Typography sx={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>
-                    要発注：早急な対応が必要
+                    在庫5以下：要発注の目安
                   </Typography>
                 </CardContent>
               </Card>
@@ -578,22 +614,21 @@ export const DashboardPage = () => {
                 marginBottom: '20px',
               }}
             >
-              最近の更新履歴
+              最近の棚卸し履歴
             </Typography>
             <Box>
-              {[
-                { text: 'パーツ「DOG RING」の在庫が0になりました', time: '5分前' },
-                { text: '新規ユニット「GEAR SELECTOR_40」が追加されました', time: '1時間前' },
-                { text: 'カテゴリー「GT3-053」が更新されました', time: '3時間前' },
-                { text: 'パーツ「523A LAYSHAFT SET」の在庫が補充されました', time: '5時間前' },
-                { text: '新規ジャンル「ブレーキ」が追加されました', time: '1日前' },
-              ].map((activity, index) => (
+              {countHistory.length === 0 && (
+                <Typography sx={{ fontSize: '14px', color: '#999', padding: '15px' }}>
+                  棚卸しの記録はまだありません。
+                </Typography>
+              )}
+              {countHistory.slice(0, 8).map((log, index, arr) => (
                 <Box
-                  key={index}
+                  key={log.id}
                   sx={{
                     padding: '15px',
                     background: 'white',
-                    marginBottom: index < 4 ? '10px' : 0,
+                    marginBottom: index < arr.length - 1 ? '10px' : 0,
                     borderRadius: '8px',
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -606,10 +641,13 @@ export const DashboardPage = () => {
                   }}
                 >
                   <Typography sx={{ fontSize: '14px', color: '#444' }}>
-                    {activity.text}
+                    {log.unitName ? `［${log.unitName}］ ` : ''}
+                    {log.partNumber} の在庫を {log.beforeQty} → {log.afterQty}（
+                    {log.diff > 0 ? '+' : ''}
+                    {log.diff}）
                   </Typography>
                   <Typography sx={{ fontSize: '12px', color: '#999' }}>
-                    {activity.time}
+                    {relativeTime(log.countedAt)}
                   </Typography>
                 </Box>
               ))}

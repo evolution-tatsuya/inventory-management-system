@@ -19,15 +19,20 @@ export const statsService = {
     const [
       categoryCount,
       genreCount,
+      unitCount,
       partCount,
       totalStock,
       lowStockParts,
+      lowStockCount,
     ] = await Promise.all([
       // カテゴリー数
       prisma.category.count(),
 
       // ジャンル数
       prisma.genre.count(),
+
+      // ユニット数
+      prisma.unit.count(),
 
       // パーツ数
       prisma.part.count(),
@@ -64,6 +69,9 @@ export const statsService = {
         },
         take: 10,
       }),
+
+      // 在庫5以下のパーツ品番の総数（カード表示用）
+      prisma.partMaster.count({ where: { stockQuantity: { lte: 5 } } }),
     ]);
 
     // 低在庫パーツを整形
@@ -77,9 +85,11 @@ export const statsService = {
     return {
       categoryCount,
       genreCount,
+      unitCount,
       partCount,
       totalStock: totalStock._sum.stockQuantity || 0,
       lowStockParts: formattedLowStockParts,
+      lowStockCount,
     };
   },
 };
