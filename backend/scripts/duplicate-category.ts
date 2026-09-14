@@ -76,117 +76,118 @@ async function main() {
     rows.forEach((r) => srcStock.set(r.partNumber, r.stockQuantity));
   }
 
-  await prisma.$transaction(
-    async (tx) => {
-      // 新カテゴリー作成（画像・クロップ・順序も引き継ぐ）
-      const maxCatOrder = await tx.category.aggregate({ _max: { order: true } });
-      const newCat = await tx.category.create({
+  // ------------------------------------------------------------
+  // Neon対策: 巨大な単一トランザクションはpoolerのタイムアウトで失敗するため、
+  // 小さな単位に分けて実行する（category→genre→unit＋diagram は個別tx、
+  // parts は createMany でチャンク投入）。
+  // ------------------------------------------------------------
+
+  // 1) カテゴリー作成
+  const maxCatOrder = await prisma.category.aggregate({ _max: { order: true } });
+  const newCat = await prisma.category.create({
+    data: {
+      categoryId: src.categoryId,
+      name: toName,
+      subtitle: src.subtitle,
+      imageUrl: src.imageUrl,
+      cropPositionX: src.cropPositionX,
+      cropPositionY: src.cropPositionY,
+      order: (maxCatOrder._max.order ?? -1) + 1,
+    },
+  });
+
+  // 2) perCategory在庫レコードをまとめて作成（元カテゴリー在庫を引き継ぐ）
+  if (stockMode === 'perCategory') {
+    const pnSet = new Map<string, number>();
+    for (const g of src.genres)
+      for (const u of g.units)
+        for (const p of u.parts)
+          if (!pnSet.has(p.partNumber)) pnSet.set(p.partNumber, srcStock.get(p.partNumber) ?? 0);
+    const stockData = Array.from(pnSet.entries()).map(([partNumber, stockQuantity]) => ({
+      categoryId: newCat.id,
+      partNumber,
+      stockQuantity,
+    }));
+    for (let i = 0; i < stockData.length; i += 500) {
+      await prisma.partMaster.createMany({
+        data: stockData.slice(i, i + 500),
+        skipDuplicates: true,
+      });
+    }
+  }
+
+  // 3) ジャンル・ユニット・展開図を作成し、パーツはためて後でまとめて投入
+  const partsBuffer: any[] = [];
+  for (const g of src.genres) {
+    const newGenre = await prisma.genre.create({
+      data: {
+        genreId: g.genreId,
+        categoryId: newCat.id,
+        name: g.name,
+        subtitle: g.subtitle,
+        imageUrl: g.imageUrl,
+        cropPositionX: g.cropPositionX,
+        cropPositionY: g.cropPositionY,
+        order: g.order,
+      },
+    });
+
+    for (const u of g.units) {
+      const newUnit = await prisma.unit.create({
         data: {
-          categoryId: src.categoryId,
-          name: toName,
-          subtitle: src.subtitle,
-          imageUrl: src.imageUrl,
-          cropPositionX: src.cropPositionX,
-          cropPositionY: src.cropPositionY,
-          order: (maxCatOrder._max.order ?? -1) + 1,
+          genreId: newGenre.id,
+          unitNumber: u.unitNumber,
+          unitName: u.unitName,
+          imageUrl: u.imageUrl,
+          cropPositionX: u.cropPositionX,
+          cropPositionY: u.cropPositionY,
+          partsCount: u.partsCount,
+          sortOrder: u.sortOrder,
         },
       });
 
-      // 新カテゴリー用の在庫レコード作成対象（perCategory時、重複作成防止）
-      const createdStockKeys = new Set<string>();
-
-      for (const g of src.genres) {
-        const newGenre = await tx.genre.create({
-          data: {
-            genreId: g.genreId,
-            categoryId: newCat.id,
-            name: g.name,
-            subtitle: g.subtitle,
-            imageUrl: g.imageUrl,
-            cropPositionX: g.cropPositionX,
-            cropPositionY: g.cropPositionY,
-            order: g.order,
-          },
+      if (u.diagramImage.length > 0) {
+        await prisma.diagramImage.createMany({
+          data: u.diagramImage.map((d) => ({
+            unitId: newUnit.id,
+            imageUrl: d.imageUrl,
+            imageType: d.imageType,
+            isMain: d.isMain,
+            sortOrder: d.sortOrder,
+          })),
         });
-
-        for (const u of g.units) {
-          const newUnit = await tx.unit.create({
-            data: {
-              genreId: newGenre.id,
-              unitNumber: u.unitNumber,
-              unitName: u.unitName,
-              imageUrl: u.imageUrl,
-              cropPositionX: u.cropPositionX,
-              cropPositionY: u.cropPositionY,
-              partsCount: u.partsCount,
-              sortOrder: u.sortOrder,
-            },
-          });
-
-          // 展開図コピー
-          for (const d of u.diagramImage) {
-            await tx.diagramImage.create({
-              data: {
-                unitId: newUnit.id,
-                imageUrl: d.imageUrl,
-                imageType: d.imageType,
-                isMain: d.isMain,
-                sortOrder: d.sortOrder,
-              },
-            });
-          }
-
-          // パーツコピー
-          for (const p of u.parts) {
-            // 在庫レコードを用意
-            if (stockMode === 'perCategory') {
-              const key = `${newCat.id}::${p.partNumber}`;
-              if (!createdStockKeys.has(key)) {
-                const existing = await tx.partMaster.findFirst({
-                  where: { categoryId: newCat.id, partNumber: p.partNumber },
-                });
-                if (!existing) {
-                  await tx.partMaster.create({
-                    data: {
-                      categoryId: newCat.id,
-                      partNumber: p.partNumber,
-                      stockQuantity: srcStock.get(p.partNumber) ?? 0,
-                    },
-                  });
-                }
-                createdStockKeys.add(key);
-              }
-            }
-            // shared時は共有(null)在庫をそのまま使うので作成不要
-
-            await tx.part.create({
-              data: {
-                genreId: newGenre.id,
-                unitId: newUnit.id,
-                unitNumber: p.unitNumber,
-                partNumber: p.partNumber,
-                partName: p.partName,
-                quantity: p.quantity,
-                price: p.price,
-                storageCase: p.storageCase,
-                notes: p.notes,
-                orderDate: p.orderDate,
-                expectedArrivalDate: p.expectedArrivalDate,
-                imageUrl: p.imageUrl,
-                cropPositionX: p.cropPositionX,
-                cropPositionY: p.cropPositionY,
-                sortOrder: p.sortOrder,
-              },
-            });
-          }
-        }
       }
 
-      console.log(`✅ 複製完了: ${toName}（カテゴリーID=${newCat.id}）`);
-    },
-    { maxWait: 120000, timeout: 300000 },
-  );
+      for (const p of u.parts) {
+        partsBuffer.push({
+          genreId: newGenre.id,
+          unitId: newUnit.id,
+          unitNumber: p.unitNumber,
+          partNumber: p.partNumber,
+          partName: p.partName,
+          quantity: p.quantity,
+          price: p.price,
+          storageCase: p.storageCase,
+          notes: p.notes,
+          orderDate: p.orderDate,
+          expectedArrivalDate: p.expectedArrivalDate,
+          imageUrl: p.imageUrl,
+          cropPositionX: p.cropPositionX,
+          cropPositionY: p.cropPositionY,
+          sortOrder: p.sortOrder,
+        });
+      }
+    }
+  }
 
+  // 4) パーツをチャンクでまとめて投入（createManyは高速・短時間）
+  let inserted = 0;
+  for (let i = 0; i < partsBuffer.length; i += 500) {
+    const res = await prisma.part.createMany({ data: partsBuffer.slice(i, i + 500) });
+    inserted += res.count;
+  }
+
+  console.log(`✅ 複製完了: ${toName}（カテゴリーID=${newCat.id}, パーツ${inserted}件）`);
   await prisma.$disconnect();
 }
 
