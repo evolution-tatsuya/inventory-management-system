@@ -259,8 +259,8 @@ export const CategoryListPage = () => {
                   transition: 'all 0.3s ease',
                   cursor: 'pointer',
                   display: 'flex',
-                  alignItems: 'center',
-                  height: '120px',
+                  alignItems: 'stretch',
+                  minHeight: '120px',
                   '&:hover': {
                     transform: 'translateY(-5px)',
                     boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
@@ -278,7 +278,8 @@ export const CategoryListPage = () => {
                   alt={category.name}
                   sx={{
                     width: '120px',
-                    height: '120px',
+                    alignSelf: 'stretch',
+                    minHeight: '120px',
                     objectFit: 'cover', // アップロード時に正方形にトリミング済み
                     flexShrink: 0,
                   }}
@@ -303,6 +304,8 @@ export const CategoryListPage = () => {
                         fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.4rem' },
                         fontWeight: 700,
                         color: '#333',
+                        lineHeight: 1.2,
+                        wordBreak: 'break-word',
                       }}
                     >
                       {category.categoryId}

@@ -275,8 +275,8 @@ export const UnitListPage = () => {
                     transition: 'all 0.3s ease',
                     cursor: 'pointer',
                     display: 'flex',
-                    alignItems: 'center',
-                    height: '120px',
+                    alignItems: 'stretch',
+                    minHeight: '120px',
                     '&:hover': {
                       transform: 'translateY(-5px)',
                       boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
@@ -294,7 +294,8 @@ export const UnitListPage = () => {
                     alt={unit.unitName}
                     sx={{
                       width: '120px',
-                      height: '120px',
+                      alignSelf: 'stretch',
+                      minHeight: '120px',
                       objectFit: 'cover',
                       objectPosition: `${(unit.cropPositionX ?? 0.5) * 100}% ${(unit.cropPositionY ?? 0.5) * 100}%`,
                       flexShrink: 0,
@@ -306,8 +307,6 @@ export const UnitListPage = () => {
                     sx={{
                       flex: 1,
                       minWidth: 0,
-                      maxHeight: '120px',
-                      overflow: 'hidden',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'center',

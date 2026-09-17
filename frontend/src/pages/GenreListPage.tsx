@@ -263,8 +263,8 @@ export const GenreListPage = () => {
                     transition: 'all 0.3s ease',
                     cursor: 'pointer',
                     display: 'flex',
-                    alignItems: 'center',
-                    height: '120px',
+                    alignItems: 'stretch',
+                    minHeight: '120px',
                     '&:hover': {
                       transform: 'translateY(-5px)',
                       boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
@@ -282,7 +282,8 @@ export const GenreListPage = () => {
                     alt={genre.name}
                     sx={{
                       width: '120px',
-                      height: '120px',
+                      alignSelf: 'stretch',
+                      minHeight: '120px',
                       objectFit: 'cover',
                       flexShrink: 0,
                     }}
@@ -292,8 +293,11 @@ export const GenreListPage = () => {
                   <Box
                     sx={{
                       flex: 1,
-                      padding: { xs: '15px', md: '20px' },
+                      padding: { xs: '10px 12px', md: '12px 16px' },
                       textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
                     }}
                   >
                     <Typography
@@ -308,9 +312,11 @@ export const GenreListPage = () => {
                     </Typography>
                     <Typography
                       sx={{
-                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' },
+                        fontSize: { xs: '1rem', sm: '1.15rem', md: '1.3rem' },
                         fontWeight: 700,
                         color: '#333',
+                        lineHeight: 1.2,
+                        wordBreak: 'break-word',
                       }}
                     >
                       {genre.name}
