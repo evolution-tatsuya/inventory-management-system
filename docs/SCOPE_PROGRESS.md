@@ -581,3 +581,53 @@ Week 7: |====統合テスト・最終調整====|
 ### 現在地
 - フェーズ2 完了・本番反映済み。フェーズ3 は **設計完了・実装未着手**。
 - 次アクション: 上記「要決定事項」を決めてから S1（tenantId導入）に着手。
+
+---
+
+## 🚗 FK2（Honda Civic Type R）パーツデータ取込（2026-09-17〜18）
+
+元サイト parts-honda.uk から Civic Type R (FK2) の純正パーツを取り込み。LH（左ハンドル）と
+RH（右ハンドル）を**別カテゴリー**として整備。共に本番・開発DBへ反映済み。
+
+### 完了サマリー（本番DB）
+| カテゴリー | ジャンル | ユニット | 部品 | 展開図 | 数量2以上 |
+|---|---|---|---|---|---|
+| ABA-FK2 (LH) `cmiizvvn3…` | 47 | 158 | 3,094 | 158 | 900 |
+| ABA-FK2 (RH) `cmu5i2i7…`  | 47 | 157 | 2,341 | 157 | 962 |
+
+- 6大カテゴリー（ENGINE / TRANSMISSION / ELECTRICAL・EXHAUST・HEATER / STEERING・BRAKE・SUSPENSION /
+  UPHOLSTERY / BODY PARTS）を全図面取込。ジャンル名は英数字（GT3-049体系準拠、機能別）。
+- 価格は **EUR建て**（originalPrice）で保存。ユーザー画面で当日レート円換算トグル表示。
+- **数量（員数）** はサイトのカート初期値＝1台あたり使用数を反映（ボルト4本/バルブ8本/ホイールナット20本 等）。
+- 展開図は元画像から **サイト透かし除去＋白黒化** して Cloudinary 保存（LH=FK2-<code>.png / RH固有=FK2RH-<code>.png）。
+- LH/RH は同名カテゴリーのため **categoryId で厳密分離**。RHは左右部品の図面コードがLHと異なる
+  （ワイパー/ダッシュ/ペダル/ハーネス/ボンネット/ステアリング等が右ハンドル専用コード）ため、
+  RHサイトから正しい図面一覧を取得して整備。ENGINE/TRANSMISSION は左右共通コード。
+
+### 取込手順（確立した再現手順）
+1. 各図面ページHTMLを低速取得（1件ずつ・同時アクセスなし・4秒間隔。reCAPTCHA回避）。
+2. HTML一括パース（`parse-full.py`）で 品番/部品名/価格/数量 を抽出。品番リンク `parts_ref` を起点に、
+   在庫状況で変わるレイアウト差にも寛容な正規表現で全行取得。
+3. 展開図画像を取得→白黒化（`proc-diagram.py`）→ Cloudinary アップ。
+4. `fk2-sync-generic.ts`（categoryId指定・数量込み・非トランザクション/リトライ）で開発→本番へ冪等投入。
+5. 検算（ジャンル/ユニット/部品数、数量分布、`part(genre経路)=part(unit経路)` で孤児0確認）。
+
+### スクリプト所在
+- backend/scripts/: `fk2-sync-generic.ts` `fk2-update-qty.ts` `fk2-upload-generic.ts` `fk2-rh-diagrams.ts`
+  ほか import-fk2-*/sync-fk2-* 系。
+- 作業データ（スクラッチ、セッション限定）: `parse-full.py` `proc-diagram.py` `fetch-html.sh` 等、
+  各カテゴリー `<cat>-map.json / -parsed.json / -final.json`、RHは `rh/` 配下。
+
+### 既知の注意点（次回のため）
+- Neon本番へ大量INSERTは接続断（P1017/P2028）が起きやすい → 非トランザクション逐次＋リトライで対応。
+- unit削除→再作成で `unitId=null` の孤児partが残る → `part(genre経路) vs part(unit経路)` の差で検出し
+  `deleteMany({unitId:null})` で除去（LH/RHとも処理済）。
+
+### UI修正（同時対応）
+- 一覧カード（GenreListPage / UnitListPage / CategoryListPage）で名前が長いと枠外に切れる問題を修正。
+  height固定→minHeight化＋画像stretch＋フォント縮小/折り返し。全カテゴリー共通＝新規でも自動調整。
+  main へ commit/push 済み（Vercel 自動デプロイ）。
+
+### 現在地
+- FK2 LH / RH とも **データ・展開図・数量すべて本番反映完了**。開発DBと一致。
+- UIカード切れ修正も本番デプロイ（push）済み。
