@@ -40,6 +40,9 @@ export const LoginPage = () => {
     }
   }, [account, userType, authLoading, navigate]);
 
+  const initialSlug =
+    new URLSearchParams(window.location.search).get('tenant') || 'default';
+  const [tenantSlug, setTenantSlug] = useState(initialSlug);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -52,7 +55,7 @@ export const LoginPage = () => {
     setLoading(true);
 
     try {
-      await login(email, password, 'user'); // 一般ユーザーとしてログイン
+      await login(tenantSlug.trim(), email, password, 'user'); // 一般ユーザーとしてログイン
       // カテゴリー一覧（閲覧画面）にリダイレクト
       navigate('/categories');
     } catch (err) {
@@ -88,6 +91,17 @@ export const LoginPage = () => {
             {error}
           </Alert>
         )}
+
+        <TextField
+          label="テナントID"
+          type="text"
+          fullWidth
+          required
+          value={tenantSlug}
+          onChange={(e) => setTenantSlug(e.target.value)}
+          sx={{ mb: 2 }}
+          helperText="在庫管理システムの識別子（例: default）"
+        />
 
         <TextField
           label="メールアドレス"

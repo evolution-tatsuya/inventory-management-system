@@ -7,13 +7,14 @@
 import { Router } from 'express';
 import { partController } from '../controllers/partController';
 import { requireAuth } from '../middleware/requireAuth';
+import { publicTenant } from '../middleware/tenantContext';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // ============================================================
 // 認証不要（ジャンル内のパーツ一覧取得）
 // ============================================================
-router.get('/genres/:id/parts', partController.getByGenre);
+router.get('/genres/:id/parts', publicTenant, partController.getByGenre);
 
 // ============================================================
 // 認証必須（管理者のみ）

@@ -40,6 +40,10 @@ export const AdminLoginPage = () => {
     }
   }, [account, userType, authLoading, navigate]);
 
+  // テナント識別子（slug）。URLの ?tenant= があれば初期値に、無ければ 'default'
+  const initialSlug =
+    new URLSearchParams(window.location.search).get('tenant') || 'default';
+  const [tenantSlug, setTenantSlug] = useState(initialSlug);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -52,7 +56,7 @@ export const AdminLoginPage = () => {
     setLoading(true);
 
     try {
-      await login(email, password, 'admin'); // 管理者としてログイン
+      await login(tenantSlug.trim(), email, password, 'admin'); // 管理者としてログイン
       // 管理者ダッシュボードにリダイレクト
       navigate('/admin/dashboard');
     } catch (err) {
@@ -88,6 +92,17 @@ export const AdminLoginPage = () => {
             {error}
           </Alert>
         )}
+
+        <TextField
+          label="テナントID"
+          type="text"
+          fullWidth
+          required
+          value={tenantSlug}
+          onChange={(e) => setTenantSlug(e.target.value)}
+          sx={{ mb: 2 }}
+          helperText="在庫管理システムの識別子（例: default）"
+        />
 
         <TextField
           label="メールアドレス"

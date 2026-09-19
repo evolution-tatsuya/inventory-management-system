@@ -10,14 +10,28 @@ import type { LoginResponse, LogoutResponse, SessionResponse } from './types';
 import type { LoginRequest } from '../../types';
 
 /**
- * ログイン
+ * テナント配下ログイン（/api/t/:slug/auth/login）
  *
+ * ログイン時点ではまだテナント slug が localStorage に無いため、
+ * 明示的に slug を URL に埋め込む（client の自動注入には頼らない）。
+ *
+ * @param slug - テナント識別子
  * @param credentials - メールアドレスとパスワード
- * @returns ログイン成功レスポンス
- * @throws ApiError - 認証失敗時
  */
-export async function login(credentials: LoginRequest): Promise<LoginResponse> {
-  return post<LoginResponse>(AUTH_ENDPOINTS.LOGIN, credentials);
+export async function login(
+  slug: string,
+  credentials: LoginRequest,
+): Promise<LoginResponse> {
+  return post<LoginResponse>(`/api/t/${slug}/auth/login`, credentials);
+}
+
+/**
+ * 運営者(master)ログイン（別導線 /api/master/login）
+ */
+export async function loginMaster(
+  credentials: LoginRequest,
+): Promise<LoginResponse> {
+  return post<LoginResponse>('/api/master/login', credentials);
 }
 
 /**

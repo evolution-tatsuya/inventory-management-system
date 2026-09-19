@@ -5,9 +5,8 @@
 // ============================================================
 
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * 全ユニット一覧取得（管理画面用）
@@ -21,6 +20,7 @@ export async function getAllUnits(
 ): Promise<void> {
   try {
     const units = await prisma.unit.findMany({
+      where: { tenantId: req.tenantId! },
       orderBy: [{ genreId: 'asc' }, { createdAt: 'asc' }],
       include: {
         genre: {
@@ -69,7 +69,7 @@ export async function getUnits(
     }
 
     const units = await prisma.unit.findMany({
-      where: { genreId },
+      where: { genreId, tenantId: req.tenantId! },
       orderBy: [{ createdAt: 'asc' }],
     });
 
@@ -95,6 +95,16 @@ export async function createUnit(
       return;
     }
 
+    // genre が自テナント所有か確認（越境作成防止）
+    const genre = await prisma.genre.findFirst({
+      where: { id: genreId, tenantId: req.tenantId! },
+      select: { id: true },
+    });
+    if (!genre) {
+      res.status(404).json({ error: 'Genre not found' });
+      return;
+    }
+
     // Unitテーブルに作成
     const unit = await prisma.unit.create({
       data: {
@@ -105,6 +115,7 @@ export async function createUnit(
         cropPositionX: cropPositionX ?? 0.5,
         cropPositionY: cropPositionY ?? 0.5,
         partsCount: 0,
+        tenantId: req.tenantId!,
       },
     });
 
@@ -128,6 +139,16 @@ export async function updateUnit(
 
     if (!id) {
       res.status(400).json({ error: 'id is required' });
+      return;
+    }
+
+    // 所有確認（自テナントのユニットか）
+    const owned = await prisma.unit.findFirst({
+      where: { id, tenantId: req.tenantId! },
+      select: { id: true },
+    });
+    if (!owned) {
+      res.status(404).json({ error: 'Unit not found' });
       return;
     }
 
@@ -165,6 +186,16 @@ export async function deleteUnit(
       return;
     }
 
+    // 所有確認（越境削除防止）
+    const owned = await prisma.unit.findFirst({
+      where: { id, tenantId: req.tenantId! },
+      select: { id: true },
+    });
+    if (!owned) {
+      res.status(404).json({ error: 'Unit not found' });
+      return;
+    }
+
     // Unitテーブルから削除
     await prisma.unit.delete({
       where: { id },
@@ -189,6 +220,16 @@ export async function updateOrder(
 
     if (!Array.isArray(orderedIds)) {
       res.status(400).json({ error: 'orderedIds must be an array' });
+      return;
+    }
+
+    // 全idが自テナント所有か検証（越境並べ替え防止）
+    const owned = await prisma.unit.findMany({
+      where: { id: { in: orderedIds }, tenantId: req.tenantId! },
+      select: { id: true },
+    });
+    if (owned.length !== orderedIds.length) {
+      res.status(404).json({ error: 'Some units do not belong to this tenant' });
       return;
     }
 

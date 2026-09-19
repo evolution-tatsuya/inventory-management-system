@@ -8,7 +8,7 @@ import { Router } from 'express';
 import { statsController } from '../controllers/statsController';
 import { requireAuth } from '../middleware/requireAuth';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // ============================================================
 // 統計情報取得（管理者のみ）

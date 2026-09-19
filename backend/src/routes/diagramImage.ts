@@ -17,8 +17,9 @@ import {
   reorderDiagramImages,
 } from '../controllers/diagramImageController';
 import { requireAuth } from '../middleware/requireAuth';
+import { publicTenant } from '../middleware/tenantContext';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // ============================================================
 // Public Routes（認証不要）
@@ -28,13 +29,13 @@ const router = express.Router();
  * GET /api/units/:unitId/diagrams
  * ユニットの展開図を全件取得（複数枚）
  */
-router.get('/units/:unitId/diagrams', listDiagramImages);
+router.get('/units/:unitId/diagrams', publicTenant, listDiagramImages);
 
 /**
  * GET /api/units/:unitId/diagram
  * ユニットの展開図を取得（後方互換：メイン1枚）
  */
-router.get('/units/:unitId/diagram', getDiagramImage);
+router.get('/units/:unitId/diagram', publicTenant, getDiagramImage);
 
 // ============================================================
 // Admin Routes（認証必須）

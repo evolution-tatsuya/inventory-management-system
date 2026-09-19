@@ -5,11 +5,10 @@
 // ============================================================
 
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '../lib/jwt';
 import { accountService } from '../services/accountService';
 import { validateEmail, validatePassword } from '../utils/validators';
 
-const JWT_SECRET = process.env.SESSION_SECRET || 'fallback-secret-key';
 
 // ============================================================
 // アカウントコントローラー
@@ -36,10 +35,7 @@ export const accountController = {
       }
 
       const token = authHeader.substring(7);
-      const decoded = jwt.verify(token, JWT_SECRET) as {
-        userId: string;
-        userType: 'admin' | 'user';
-      };
+      const decoded = verifyToken(token);
 
       // バリデーション
       if (!validateEmail(newEmail)) {
@@ -52,7 +48,7 @@ export const accountController = {
       console.log('🔍 Target User ID for email change:', targetUserId);
 
       // メールアドレス変更処理
-      const account = await accountService.changeEmail(targetUserId, newEmail, userType);
+      const account = await accountService.changeEmail(decoded.tenantId, targetUserId, newEmail, userType);
 
       res.json({
         success: true,
@@ -80,10 +76,7 @@ export const accountController = {
       }
 
       const token = authHeader.substring(7);
-      const decoded = jwt.verify(token, JWT_SECRET) as {
-        userId: string;
-        userType: 'admin' | 'user';
-      };
+      const decoded = verifyToken(token);
 
       // バリデーション
       if (!validatePassword(newPassword)) {
@@ -99,6 +92,7 @@ export const accountController = {
 
       // パスワード変更処理
       await accountService.changePassword(
+        decoded.tenantId,
         targetUserId,
         currentPassword,
         newPassword,
@@ -137,10 +131,7 @@ export const accountController = {
       }
 
       const token = authHeader.substring(7);
-      const decoded = jwt.verify(token, JWT_SECRET) as {
-        userId: string;
-        userType: 'admin' | 'user';
-      };
+      const decoded = verifyToken(token);
 
       console.log('🔍 Decoded Token:', {
         userId: decoded.userId,
@@ -169,6 +160,7 @@ export const accountController = {
 
       // ユーザー名変更処理
       const account = await accountService.changeDisplayName(
+        decoded.tenantId,
         targetUserId,
         newDisplayName.trim(),
         userType
@@ -207,10 +199,7 @@ export const accountController = {
       }
 
       const token = authHeader.substring(7);
-      const decoded = jwt.verify(token, JWT_SECRET) as {
-        userId: string;
-        userType: 'admin' | 'user';
-      };
+      const decoded = verifyToken(token);
 
       // バリデーション
       if (userType !== 'admin' && userType !== 'user') {
@@ -228,6 +217,7 @@ export const accountController = {
 
       // アカウント情報取得
       const account = await accountService.getAccount(
+        decoded.tenantId,
         targetUserId,
         userType as 'admin' | 'user',
         undefined // accountIdはtargetUserIdで処理済みなのでundefined
@@ -261,10 +251,7 @@ export const accountController = {
       }
 
       const token = authHeader.substring(7);
-      const decoded = jwt.verify(token, JWT_SECRET) as {
-        userId: string;
-        userType: 'admin' | 'user';
-      };
+      const decoded = verifyToken(token);
 
       // デバッグログ
       console.log('🔍 getAllAccounts Debug:', {
@@ -280,7 +267,7 @@ export const accountController = {
       }
 
       // アカウント一覧取得
-      const accounts = await accountService.getAllAccounts(userType as 'admin' | 'user');
+      const accounts = await accountService.getAllAccounts(decoded.tenantId, userType as 'admin' | 'user');
 
       res.json(accounts);
     } catch (error: any) {

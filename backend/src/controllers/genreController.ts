@@ -15,7 +15,7 @@ export const genreController = {
   // 全ジャンル一覧取得（管理画面用）
   async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const genres = await genreService.getAll();
+      const genres = await genreService.getAll(req.tenantId!);
       res.json(genres);
     } catch (error) {
       next(error);
@@ -31,7 +31,7 @@ export const genreController = {
         return res.status(400).json({ error: 'Invalid category ID' });
       }
 
-      const genres = await genreService.getByCategory(id);
+      const genres = await genreService.getByCategory(req.tenantId!, id);
       res.json(genres);
     } catch (error) {
       next(error);
@@ -69,7 +69,7 @@ export const genreController = {
         return res.status(400).json({ error: 'Invalid diagram image URL' });
       }
 
-      const genre = await genreService.create({
+      const genre = await genreService.create(req.tenantId!, {
         genreId,
         name,
         subtitle,
@@ -123,7 +123,7 @@ export const genreController = {
         return res.status(400).json({ error: 'Invalid diagram image URL' });
       }
 
-      const genre = await genreService.update(id, {
+      const genre = await genreService.update(req.tenantId!, id, {
         genreId,
         name,
         subtitle,
@@ -152,7 +152,7 @@ export const genreController = {
         return res.status(400).json({ error: 'Invalid genre ID' });
       }
 
-      await genreService.delete(id);
+      await genreService.delete(req.tenantId!, id);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -166,7 +166,7 @@ export const genreController = {
       if (!Array.isArray(orderedIds)) {
         return res.status(400).json({ error: 'orderedIds must be an array' });
       }
-      await genreService.updateOrder(orderedIds);
+      await genreService.updateOrder(req.tenantId!, orderedIds);
       res.json({ success: true });
     } catch (error) {
       next(error);

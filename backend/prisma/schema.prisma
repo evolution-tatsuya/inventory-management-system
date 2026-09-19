@@ -14,16 +14,50 @@ datasource db {
 }
 
 // ============================================================
+// Tenant: テナント（マルチテナント化 フェーズ3 S1で追加）
+// ============================================================
+// 1テナント = 1独立した在庫管理システム。既定テナント(slug=default)に既存データを属させる。
+model Tenant {
+  id         String   @id @default(cuid())
+  name       String                           // 顧客名/インスタンス名（既定=GAINER）
+  slug       String   @unique                 // URL識別子 /t/:slug（既定=default）
+  licenseKey String?  @unique                 // 発行キー。ユーザーが入力して有効化。既定テナントはnull可
+  stockMode  String   @default("perCategory") // 発行時に固定する在庫モード（S1では予備。正はSystemSettings.stockMode）
+  status     String   @default("active")      // pending / active / suspended
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  admins         Admin[]
+  users          User[]
+  categories     Category[]
+  genres         Genre[]
+  units          Unit[]
+  parts          Part[]
+  partMasters    PartMaster[]
+  diagramImages  DiagramImage[]
+  systemSettings SystemSettings[]
+  stockCountLogs StockCountLog[]
+
+  @@index([status])
+  @@map("tenants")
+}
+
+// ============================================================
 // Admin: 管理者
 // ============================================================
 model Admin {
   id        String   @id @default(cuid())
-  email     String   @unique
+  email     String   // テナント内で一意（@@unique([tenantId, email])）。別テナントの同一emailは許容
   password  String   // bcryptでハッシュ化
   name      String?  // 表示名（オプション）
+  role      String   @default("admin") // master / admin（masterは運営者=全テナント横断）
+  tenantId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@unique([tenantId, email])
+  @@index([tenantId])
   @@map("admins")
 }
 
@@ -32,12 +66,16 @@ model Admin {
 // ============================================================
 model User {
   id        String   @id @default(cuid())
-  email     String   @unique
+  email     String   // テナント内で一意（@@unique([tenantId, email])）。別テナントの同一emailは許容
   password  String   // bcryptでハッシュ化
   name      String?  // 表示名（オプション）
+  tenantId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@unique([tenantId, email])
+  @@index([tenantId])
   @@map("users")
 }
 
@@ -53,10 +91,13 @@ model Category {
   cropPositionX   Float?   @default(0.5) // 画像のクロップ位置X (0.0 ~ 1.0)
   cropPositionY   Float?   @default(0.5) // 画像のクロップ位置Y (0.0 ~ 1.0)
   order           Int      @default(0)
+  tenantId        String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   genres          Genre[]
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId])
   @@index([order])
   @@map("categories")
 }
@@ -74,12 +115,15 @@ model Genre {
   cropPositionX Float?   @default(0.5) // 画像のクロップ位置X (0.0 ~ 1.0)
   cropPositionY Float?   @default(0.5) // 画像のクロップ位置Y (0.0 ~ 1.0)
   order         Int      @default(0)
+  tenantId      String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   units         Unit[]
   parts         Part[]
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId])
   @@index([categoryId])
   @@index([order])
   @@map("genres")
@@ -98,13 +142,16 @@ model Unit {
   cropPositionY Float?         @default(0.5) // 画像のクロップ位置Y (0.0 ~ 1.0)
   partsCount    Int            @default(0)
   sortOrder     Int            @default(0)   // 並び順
+  tenantId      String
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   genre         Genre          @relation(fields: [genreId], references: [id], onDelete: Cascade)
   parts         Part[]         // このユニットに属するパーツ
   diagramImage  DiagramImage[] // ユニット専用の展開図
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([genreId, unitNumber])
+  @@unique([tenantId, genreId, unitNumber])
+  @@index([tenantId])
   @@index([genreId])
   @@index([sortOrder])
   @@map("units")
@@ -132,12 +179,15 @@ model Part {
   cropPositionX       Float?     @default(0.5) // 画像のクロップ位置X (0.0 ~ 1.0)
   cropPositionY       Float?     @default(0.5) // 画像のクロップ位置Y (0.0 ~ 1.0)
   sortOrder           Int        @default(0)   // 並び順
+  tenantId            String
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
   genre               Genre      @relation(fields: [genreId], references: [id], onDelete: Cascade)
   unit                Unit?      @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  tenant              Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   // 在庫(PartMaster)は (categoryId, partNumber) でサービス層から解決する（DB外部キーは張らない）
 
+  @@index([tenantId])
   @@index([genreId])
   @@index([unitId])
   @@index([unitNumber])
@@ -158,10 +208,13 @@ model PartMaster {
   categoryId    String?  // null=shared（従来）/ 値あり=そのカテゴリー専用の在庫
   partNumber    String
   stockQuantity Int      @default(0)
+  tenantId      String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([categoryId, partNumber])
+  @@unique([tenantId, categoryId, partNumber])
+  @@index([tenantId])
   @@index([partNumber])
   @@index([categoryId])
   @@map("part_masters")
@@ -177,10 +230,13 @@ model DiagramImage {
   imageType String   @default("diagram")
   isMain    Boolean  @default(false) // メイン展開図フラグ（1ユニットにつき1枚）
   sortOrder Int      @default(0)     // サブ画像の並び順
+  tenantId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   unit      Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId])
   @@index([unitId])
   @@index([sortOrder])
   @@map("diagram_images")
@@ -196,9 +252,12 @@ model SystemSettings {
   logoSize         String   @default("small") // ロゴサイズ: small / medium / large
   headerColor      String   @default("linear-gradient(135deg, #667eea 0%, #764ba2 100%)")
   stockMode        String   @default("shared") // 在庫モード: shared(全カテゴリー共有) / perCategory(カテゴリー独立)
+  tenantId         String   // テナントごとに1レコード（@@unique([tenantId])）
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@unique([tenantId])
   @@map("system_settings")
 }
 
@@ -216,7 +275,10 @@ model StockCountLog {
   diff       Int      // afterQty - beforeQty（過不足）
   countedBy  String?  // 実施した管理者（メール等）
   countedAt  DateTime @default(now())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId])
   @@index([partNumber])
   @@index([unitId])
   @@index([countedAt])

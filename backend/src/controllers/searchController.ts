@@ -20,7 +20,7 @@ export const searchController = {
         return res.status(400).json({ error: 'Storage case number is required' });
       }
 
-      const results = await searchService.searchByStorageCase(caseNumber);
+      const results = await searchService.searchByStorageCase(req.tenantId!, caseNumber);
       res.json(results);
     } catch (error) {
       next(error);
@@ -36,7 +36,7 @@ export const searchController = {
         return res.status(400).json({ error: 'Part number is required' });
       }
 
-      const results = await searchService.searchByPartNumber(partNumber);
+      const results = await searchService.searchByPartNumber(req.tenantId!, partNumber);
       res.json(results);
     } catch (error) {
       next(error);

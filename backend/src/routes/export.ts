@@ -8,7 +8,7 @@ import { Router } from 'express';
 import { exportController, uploadCSVMiddleware } from '../controllers/exportController';
 import { requireAuth } from '../middleware/requireAuth';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // ============================================================
 // 認証必須（管理者のみ）

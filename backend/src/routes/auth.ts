@@ -7,10 +7,11 @@
 import { Router } from 'express';
 import { authController } from '../controllers/authController';
 
-const router = Router();
+// mergeParams: true で親ルーターの :slug を受け取る（/api/t/:slug/auth/...）
+const router = Router({ mergeParams: true });
 
 // ============================================================
-// POST /api/auth/login - ログイン
+// POST /api/t/:slug/auth/login - テナント配下ログイン
 // ============================================================
 router.post('/login', authController.login);
 

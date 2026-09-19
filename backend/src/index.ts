@@ -8,8 +8,10 @@ import express from 'express';
 import session from 'express-session';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { Router } from 'express';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
+import { authController } from './controllers/authController';
 import categoryRoutes from './routes/category';
 import genreRoutes from './routes/genre';
 import unitRoutes from './routes/unit';
@@ -85,23 +87,31 @@ app.use(session({
 }));
 
 // ============================================================
-// ルート登録
+// ルート登録（マルチテナント: /api/t/:slug 配下にネスト）
 // ============================================================
-app.use('/api/auth', authRoutes);
-app.use('/api', categoryRoutes);
-app.use('/api', genreRoutes);
-app.use('/api', unitRoutes);
-app.use('/api', partRoutes);
-app.use('/api', statsRoutes);
-app.use('/api', searchRoutes);
-app.use('/api/admin/account', accountRoutes);
-app.use('/api', imageRoutes);
-app.use('/api', exportRoutes);
-app.use('/api', diagramImageRoutes);
-app.use('/api', systemSettingsRoutes);
-app.use('/api', inventoryCountRoutes);
-app.use('/api', ownerRoutes);
-app.use('/api', exchangeRateRoutes);
+
+// 運営者(master)ログイン — テナント非依存の別導線
+app.post('/api/master/login', authController.loginMaster);
+
+// テナント配下ルーター（:slug は各子ルーターに mergeParams で伝播）
+const tenantRouter = Router({ mergeParams: true });
+tenantRouter.use('/auth', authRoutes);
+tenantRouter.use('/', categoryRoutes);
+tenantRouter.use('/', genreRoutes);
+tenantRouter.use('/', unitRoutes);
+tenantRouter.use('/', partRoutes);
+tenantRouter.use('/', statsRoutes);
+tenantRouter.use('/', searchRoutes);
+tenantRouter.use('/admin/account', accountRoutes);
+tenantRouter.use('/', imageRoutes);
+tenantRouter.use('/', exportRoutes);
+tenantRouter.use('/', diagramImageRoutes);
+tenantRouter.use('/', systemSettingsRoutes);
+tenantRouter.use('/', inventoryCountRoutes);
+tenantRouter.use('/', ownerRoutes);
+tenantRouter.use('/', exchangeRateRoutes);
+
+app.use('/api/t/:slug', tenantRouter);
 
 // ============================================================
 // エラーハンドリング

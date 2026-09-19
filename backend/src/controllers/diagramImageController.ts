@@ -21,7 +21,7 @@ export async function listDiagramImages(req: Request, res: Response) {
     if (!unitId) {
       return res.status(400).json({ error: 'unitId is required' });
     }
-    const diagrams = await diagramImageService.listDiagramImages(unitId);
+    const diagrams = await diagramImageService.listDiagramImages(req.tenantId!, unitId);
     res.status(200).json(diagrams);
   } catch (error: any) {
     console.error('[listDiagramImages] Error:', error);
@@ -43,7 +43,7 @@ export async function addDiagramImage(req: Request, res: Response) {
     if (!imageUrl) {
       return res.status(400).json({ error: 'imageUrl is required' });
     }
-    const diagram = await diagramImageService.addDiagramImage(unitId, imageUrl);
+    const diagram = await diagramImageService.addDiagramImage(req.tenantId!, unitId, imageUrl);
     res.status(201).json(diagram);
   } catch (error: any) {
     console.error('[addDiagramImage] Error:', error);
@@ -67,7 +67,7 @@ export async function updateDiagramImageById(req: Request, res: Response) {
     if (!imageUrl) {
       return res.status(400).json({ error: 'imageUrl is required' });
     }
-    const diagram = await diagramImageService.updateDiagramImage(id, imageUrl);
+    const diagram = await diagramImageService.updateDiagramImage(req.tenantId!, id, imageUrl);
     res.status(200).json(diagram);
   } catch (error: any) {
     console.error('[updateDiagramImageById] Error:', error);
@@ -85,7 +85,7 @@ export async function deleteDiagramImageById(req: Request, res: Response) {
     if (!id) {
       return res.status(400).json({ error: 'id is required' });
     }
-    await diagramImageService.deleteDiagramImageById(id);
+    await diagramImageService.deleteDiagramImageById(req.tenantId!, id);
     res.status(204).send();
   } catch (error: any) {
     console.error('[deleteDiagramImageById] Error:', error);
@@ -105,7 +105,7 @@ export async function setMainDiagramImage(req: Request, res: Response) {
     if (!unitId || !id) {
       return res.status(400).json({ error: 'unitId and id are required' });
     }
-    const diagrams = await diagramImageService.setMainDiagramImage(unitId, id);
+    const diagrams = await diagramImageService.setMainDiagramImage(req.tenantId!, unitId, id);
     res.status(200).json(diagrams);
   } catch (error: any) {
     console.error('[setMainDiagramImage] Error:', error);
@@ -125,7 +125,7 @@ export async function reorderDiagramImages(req: Request, res: Response) {
     if (!unitId || !Array.isArray(orderedIds)) {
       return res.status(400).json({ error: 'unitId and orderedIds are required' });
     }
-    const diagrams = await diagramImageService.reorderDiagramImages(unitId, orderedIds);
+    const diagrams = await diagramImageService.reorderDiagramImages(req.tenantId!, unitId, orderedIds);
     res.status(200).json(diagrams);
   } catch (error: any) {
     console.error('[reorderDiagramImages] Error:', error);
@@ -149,7 +149,7 @@ export async function getDiagramImage(req: Request, res: Response) {
       return res.status(400).json({ error: 'unitId is required' });
     }
 
-    const diagramImage = await diagramImageService.getDiagramImageByUnitId(unitId);
+    const diagramImage = await diagramImageService.getDiagramImageByUnitId(req.tenantId!, unitId);
 
     if (!diagramImage) {
       return res.status(404).json({ error: 'Diagram image not found' });
@@ -179,7 +179,7 @@ export async function upsertDiagramImage(req: Request, res: Response) {
       return res.status(400).json({ error: 'imageUrl is required' });
     }
 
-    const diagramImage = await diagramImageService.upsertDiagramImage(unitId, imageUrl);
+    const diagramImage = await diagramImageService.upsertDiagramImage(req.tenantId!, unitId, imageUrl);
 
     res.status(200).json(diagramImage);
   } catch (error: any) {
@@ -200,7 +200,7 @@ export async function deleteDiagramImage(req: Request, res: Response) {
       return res.status(400).json({ error: 'unitId is required' });
     }
 
-    await diagramImageService.deleteDiagramImage(unitId);
+    await diagramImageService.deleteDiagramImage(req.tenantId!, unitId);
 
     res.status(204).send();
   } catch (error: any) {

@@ -17,7 +17,7 @@ export const systemSettingsController = {
    */
   async getSettings(req: Request, res: Response, next: NextFunction) {
     try {
-      const settings = await systemSettingsService.getSettings();
+      const settings = await systemSettingsService.getSettings(req.tenantId!);
       res.json(settings);
     } catch (error) {
       next(error);
@@ -31,7 +31,7 @@ export const systemSettingsController = {
   async updateSettings(req: Request, res: Response, next: NextFunction) {
     try {
       const { systemName, logoUrl, logoSize, headerColor } = req.body;
-      const settings = await systemSettingsService.updateSettings({
+      const settings = await systemSettingsService.updateSettings(req.tenantId!, {
         systemName,
         logoUrl,
         logoSize,

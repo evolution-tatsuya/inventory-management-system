@@ -27,7 +27,7 @@ export const inventoryCountController = {
         }
       }
       const countedBy = (req as any).admin?.email ?? null;
-      const result = await inventoryCountService.saveCounts(items, countedBy);
+      const result = await inventoryCountService.saveCounts(req.tenantId!, items, countedBy);
       res.json({ success: true, ...result });
     } catch (error) {
       next(error);
@@ -41,7 +41,7 @@ export const inventoryCountController = {
   async history(req: Request, res: Response, next: NextFunction) {
     try {
       const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 200;
-      const logs = await inventoryCountService.getHistory(limit);
+      const logs = await inventoryCountService.getHistory(req.tenantId!, limit);
       res.json(logs);
     } catch (error) {
       next(error);

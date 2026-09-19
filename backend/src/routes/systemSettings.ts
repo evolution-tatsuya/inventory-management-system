@@ -7,13 +7,14 @@
 import { Router } from 'express';
 import { systemSettingsController } from '../controllers/systemSettingsController';
 import { requireAuth } from '../middleware/requireAuth';
+import { publicTenant } from '../middleware/tenantContext';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // ============================================================
 // システム設定取得（認証不要 - 一般ユーザーも表示に必要）
 // ============================================================
-router.get('/system-settings', systemSettingsController.getSettings);
+router.get('/system-settings', publicTenant, systemSettingsController.getSettings);
 
 // ============================================================
 // システム設定更新（管理者のみ）

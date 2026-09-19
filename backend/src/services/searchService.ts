@@ -4,19 +4,19 @@
 // 全ジャンル横断検索機能（収納ケース番号検索、品番検索）
 // ============================================================
 
-import { PrismaClient } from '@prisma/client';
 import { getStockMode, loadStockMap, stockCategoryKey } from './stockHelper';
 
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // ============================================================
 // 検索サービス
 // ============================================================
 export const searchService = {
-  // 収納ケース番号検索（全ジャンル横断）
-  async searchByStorageCase(caseNumber: string) {
+  // 収納ケース番号検索（全ジャンル横断・テナント内）
+  async searchByStorageCase(tenantId: string, caseNumber: string) {
     const parts = await prisma.part.findMany({
       where: {
+        tenantId,
         storageCase: {
           contains: caseNumber,
           mode: 'insensitive',
@@ -43,9 +43,10 @@ export const searchService = {
       ],
     });
 
-    const mode = await getStockMode();
+    const mode = await getStockMode(prisma, tenantId);
     const stockMap = await loadStockMap(
       prisma,
+      tenantId,
       mode,
       parts.map((p) => ({ categoryId: p.genre.category.id, partNumber: p.partNumber })),
     );
@@ -81,10 +82,11 @@ export const searchService = {
     }));
   },
 
-  // 品番検索（全ジャンル横断、複数ジャンルで使用されている場合はすべて表示）
-  async searchByPartNumber(partNumber: string) {
+  // 品番検索（全ジャンル横断・テナント内、複数ジャンルで使用されている場合はすべて表示）
+  async searchByPartNumber(tenantId: string, partNumber: string) {
     const parts = await prisma.part.findMany({
       where: {
+        tenantId,
         partNumber: {
           contains: partNumber,
           mode: 'insensitive',
@@ -112,9 +114,10 @@ export const searchService = {
       ],
     });
 
-    const mode = await getStockMode();
+    const mode = await getStockMode(prisma, tenantId);
     const stockMap = await loadStockMap(
       prisma,
+      tenantId,
       mode,
       parts.map((p) => ({ categoryId: p.genre.category.id, partNumber: p.partNumber })),
     );

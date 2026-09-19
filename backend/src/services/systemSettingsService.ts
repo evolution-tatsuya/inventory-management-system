@@ -4,19 +4,18 @@
 // システム名、ロゴ、ヘッダー色のビジネスロジック
 // ============================================================
 
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // ============================================================
 // システム設定サービス
 // ============================================================
 export const systemSettingsService = {
   /**
-   * システム設定取得（1件のみ）
+   * システム設定取得（テナントごとに1件）
    */
-  async getSettings() {
-    let settings = await prisma.systemSettings.findFirst();
+  async getSettings(tenantId: string) {
+    let settings = await prisma.systemSettings.findFirst({ where: { tenantId } });
 
     // 設定が存在しない場合、デフォルト値で作成
     if (!settings) {
@@ -24,6 +23,7 @@ export const systemSettingsService = {
         data: {
           systemName: '階層型在庫管理システム',
           headerColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          tenantId,
         },
       });
     }
@@ -34,13 +34,16 @@ export const systemSettingsService = {
   /**
    * システム設定更新
    */
-  async updateSettings(data: {
-    systemName?: string;
-    logoUrl?: string | null;
-    logoSize?: string;
-    headerColor?: string;
-  }) {
-    const existing = await prisma.systemSettings.findFirst();
+  async updateSettings(
+    tenantId: string,
+    data: {
+      systemName?: string;
+      logoUrl?: string | null;
+      logoSize?: string;
+      headerColor?: string;
+    }
+  ) {
+    const existing = await prisma.systemSettings.findFirst({ where: { tenantId } });
 
     if (existing) {
       return await prisma.systemSettings.update({
@@ -54,6 +57,7 @@ export const systemSettingsService = {
           logoUrl: data.logoUrl || null,
           logoSize: data.logoSize || 'small',
           headerColor: data.headerColor || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          tenantId,
         },
       });
     }

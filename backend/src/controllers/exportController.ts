@@ -58,7 +58,7 @@ export const exportController = {
         return res.status(400).json({ error: 'Invalid unit ID' });
       }
 
-      const csvContent = await exportService.exportToCSV(id, unitId as string | undefined);
+      const csvContent = await exportService.exportToCSV(req.tenantId!, id, unitId as string | undefined);
 
       // CSVファイルとしてダウンロード
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -86,7 +86,7 @@ export const exportController = {
         return res.status(400).json({ error: 'Invalid unit ID' });
       }
 
-      const pdfStream = await exportService.exportToPDF(id, unitId as string | undefined);
+      const pdfStream = await exportService.exportToPDF(req.tenantId!, id, unitId as string | undefined);
 
       // PDFファイルとしてダウンロード（タイムスタンプ付きでキャッシュ回避）
       const timestamp = new Date().getTime();
@@ -151,7 +151,7 @@ export const exportController = {
         return res.status(400).json({ error: 'File is empty' });
       }
 
-      const result = await exportService.importFromCSV(id, csvContent, unitId as string | undefined);
+      const result = await exportService.importFromCSV(req.tenantId!, id, csvContent, unitId as string | undefined);
 
       if (result.errors.length > 0) {
         return res.status(207).json({

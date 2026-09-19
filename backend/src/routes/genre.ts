@@ -7,13 +7,14 @@
 import { Router } from 'express';
 import { genreController } from '../controllers/genreController';
 import { requireAuth } from '../middleware/requireAuth';
+import { publicTenant } from '../middleware/tenantContext';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // ============================================================
 // 認証不要（カテゴリー内のジャンル一覧取得）
 // ============================================================
-router.get('/categories/:id/genres', genreController.getByCategory);
+router.get('/categories/:id/genres', publicTenant, genreController.getByCategory);
 
 // ============================================================
 // 認証必須（管理者のみ）

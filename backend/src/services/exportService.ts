@@ -4,23 +4,22 @@
 // CSV/PDFエクスポート、CSV一括インポート処理
 // ============================================================
 
-import { PrismaClient } from '@prisma/client';
 import Papa from 'papaparse';
 import PDFDocument from 'pdfkit';
 import * as XLSX from 'xlsx';
 import { getStockMode, loadStockMap, upsertStock, stockCategoryKey } from './stockHelper';
 
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // ============================================================
 // エクスポートサービス
 // ============================================================
 export const exportService = {
   // CSVエクスポート（ジャンル内のパーツ一覧またはユニット別パーツ一覧）
-  async exportToCSV(genreId: string, unitId?: string): Promise<string> {
-    // ジャンルの存在確認
-    const genre = await prisma.genre.findUnique({
-      where: { id: genreId },
+  async exportToCSV(tenantId: string, genreId: string, unitId?: string): Promise<string> {
+    // ジャンルの存在確認（自テナント所有）
+    const genre = await prisma.genre.findFirst({
+      where: { id: genreId, tenantId },
       include: {
         category: true,
       },
@@ -32,14 +31,15 @@ export const exportService = {
 
     // パーツ一覧取得（unitIdが指定されている場合はそのユニットのみ）
     const parts = await prisma.part.findMany({
-      where: unitId ? { genreId, unitId } : { genreId },
+      where: unitId ? { genreId, unitId, tenantId } : { genreId, tenantId },
       orderBy: { unitNumber: 'asc' },
     });
 
     // 在庫を解決（このジャンルのカテゴリー基準）
-    const mode = await getStockMode();
+    const mode = await getStockMode(prisma, tenantId);
     const stockMap = await loadStockMap(
       prisma,
+      tenantId,
       mode,
       parts.map((p) => ({ categoryId: genre.categoryId, partNumber: p.partNumber })),
     );
@@ -73,10 +73,10 @@ export const exportService = {
   },
 
   // PDFエクスポート（ジャンル内のパーツ一覧またはユニット別パーツ一覧）
-  async exportToPDF(genreId: string, unitId?: string): Promise<PDFKit.PDFDocument> {
-    // ジャンルの存在確認
-    const genre = await prisma.genre.findUnique({
-      where: { id: genreId },
+  async exportToPDF(tenantId: string, genreId: string, unitId?: string): Promise<PDFKit.PDFDocument> {
+    // ジャンルの存在確認（自テナント所有）
+    const genre = await prisma.genre.findFirst({
+      where: { id: genreId, tenantId },
       include: {
         category: true,
       },
@@ -89,14 +89,14 @@ export const exportService = {
     // ユニット情報取得（unitIdが指定されている場合）
     let unit = null;
     if (unitId) {
-      unit = await prisma.unit.findUnique({
-        where: { id: unitId },
+      unit = await prisma.unit.findFirst({
+        where: { id: unitId, tenantId },
       });
     }
 
     // パーツ一覧取得
     const parts = await prisma.part.findMany({
-      where: unitId ? { genreId, unitId } : { genreId },
+      where: unitId ? { genreId, unitId, tenantId } : { genreId, tenantId },
       include: {
         unit: {
           select: { id: true, unitNumber: true, unitName: true },
@@ -106,9 +106,10 @@ export const exportService = {
     });
 
     // 在庫を解決（このジャンルのカテゴリー基準）
-    const pdfMode = await getStockMode();
+    const pdfMode = await getStockMode(prisma, tenantId);
     const pdfStockMap = await loadStockMap(
       prisma,
+      tenantId,
       pdfMode,
       parts.map((p) => ({ categoryId: genre.categoryId, partNumber: p.partNumber })),
     );
@@ -254,25 +255,26 @@ export const exportService = {
 
   // CSV一括インポート（ユニット内のパーツ一括作成）
   async importFromCSV(
+    tenantId: string,
     genreId: string,
     csvContent: string,
     targetUnitId?: string,
   ): Promise<{ created: number; updated: number; errors: string[] }> {
-    // ジャンルの存在確認
-    const genre = await prisma.genre.findUnique({
-      where: { id: genreId },
+    // ジャンルの存在確認（自テナント所有）
+    const genre = await prisma.genre.findFirst({
+      where: { id: genreId, tenantId },
     });
-    const importMode = await getStockMode();
+    const importMode = await getStockMode(prisma, tenantId);
 
     if (!genre) {
       throw new Error('Genre not found');
     }
 
-    // ユニットIDが指定されている場合、そのユニットの存在確認
+    // ユニットIDが指定されている場合、そのユニットの存在確認（自テナント所有）
     let targetUnit = null;
     if (targetUnitId) {
-      targetUnit = await prisma.unit.findUnique({
-        where: { id: targetUnitId },
+      targetUnit = await prisma.unit.findFirst({
+        where: { id: targetUnitId, tenantId },
       });
       if (!targetUnit) {
         throw new Error('Unit not found');
@@ -383,7 +385,7 @@ export const exportService = {
           console.log(`✅ 行${lineNumber}: 変換後の入荷予定日 = ${expectedArrivalDate?.toLocaleDateString('ja-JP')}`);
 
           // 在庫レコードを作成/更新（stockModeに応じて shared/perCategory）
-          await upsertStock(tx, importMode, genre.categoryId, partNumber, stockQuantity);
+          await upsertStock(tx, tenantId, importMode, genre.categoryId, partNumber, stockQuantity);
 
           // ユニットIDを取得（targetUnitIdが指定されている場合はそれを使用）
           let unitId: string | null = null;
@@ -396,6 +398,7 @@ export const exportService = {
               where: {
                 genreId,
                 unitNumber,
+                tenantId,
               },
             });
             unitId = unit?.id || null;
@@ -407,6 +410,7 @@ export const exportService = {
               genreId,
               unitNumber,
               partNumber,
+              tenantId,
             },
           });
 
@@ -442,6 +446,7 @@ export const exportService = {
                 notes,
                 orderDate,
                 expectedArrivalDate,
+                tenantId,
               },
             });
             created++;

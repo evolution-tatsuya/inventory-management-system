@@ -8,15 +8,15 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
 import { stockModeService } from '../services/stockModeService';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // 在庫モード取得
 router.get(
   '/admin/owner/stock-mode',
   requireAuth,
-  async (_req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const mode = await stockModeService.getMode();
+      const mode = await stockModeService.getMode(req.tenantId!);
       res.json({ mode });
     } catch (e) {
       next(e);
@@ -34,7 +34,7 @@ router.put(
       if (mode !== 'shared' && mode !== 'perCategory') {
         return res.status(400).json({ error: 'mode must be shared or perCategory' });
       }
-      const result = await stockModeService.setMode(mode);
+      const result = await stockModeService.setMode(req.tenantId!, mode);
       res.json({ success: true, ...result });
     } catch (e) {
       next(e);

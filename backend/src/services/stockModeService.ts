@@ -1,14 +1,13 @@
 // ============================================================
 // stockModeService: 在庫モードの取得・切替（＋切替時のデータ移行）
 // ============================================================
-import { PrismaClient } from '@prisma/client';
 import { StockMode } from './stockHelper';
 
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export const stockModeService = {
-  async getMode(): Promise<StockMode> {
-    const s = await prisma.systemSettings.findFirst();
+  async getMode(tenantId: string): Promise<StockMode> {
+    const s = await prisma.systemSettings.findFirst({ where: { tenantId } });
     return (s?.stockMode as StockMode) || 'shared';
   },
 
@@ -20,15 +19,18 @@ export const stockModeService = {
    * perCategory → shared:
    *   何もしない（共有レコードは維持されているのでそのまま使う）。
    */
-  async setMode(mode: StockMode): Promise<{ mode: StockMode; migrated: number }> {
-    const settings = await prisma.systemSettings.findFirst();
+  async setMode(
+    tenantId: string,
+    mode: StockMode,
+  ): Promise<{ mode: StockMode; migrated: number }> {
+    const settings = await prisma.systemSettings.findFirst({ where: { tenantId } });
     if (!settings) throw new Error('SystemSettings not found');
     const current = (settings.stockMode as StockMode) || 'shared';
 
     let migrated = 0;
 
     if (current !== 'perCategory' && mode === 'perCategory') {
-      migrated = await this.migrateToPerCategory();
+      migrated = await this.migrateToPerCategory(tenantId);
     }
 
     await prisma.systemSettings.update({
@@ -42,23 +44,31 @@ export const stockModeService = {
    * 共有在庫を各カテゴリーへ複製（冪等）。
    * 「そのカテゴリーで使われている品番」に対してのみ、カテゴリー別レコードを用意する。
    */
-  async migrateToPerCategory(): Promise<number> {
-    // カテゴリー × 品番 の使用実績（distinct）を集める
+  async migrateToPerCategory(tenantId: string): Promise<number> {
+    // カテゴリー × 品番 の使用実績（distinct）を集める（テナント内のみ）
     const rows = await prisma.$queryRaw<{ categoryId: string; partNumber: string }[]>`
       SELECT DISTINCT g."categoryId" AS "categoryId", p."partNumber" AS "partNumber"
       FROM parts p
       JOIN genres g ON g.id = p."genreId"
+      WHERE p."tenantId" = ${tenantId}
     `;
 
-    // 共有(null)在庫の現在値マップ
-    const shared = await prisma.partMaster.findMany({ where: { categoryId: null } });
+    // 共有(null)在庫の現在値マップ（テナント内）
+    const shared = await prisma.partMaster.findMany({ where: { tenantId, categoryId: null } });
     const sharedQty = new Map(shared.map((s) => [s.partNumber, s.stockQuantity]));
 
-    // 既存のカテゴリー別レコード（重複作成防止）
-    const existing = await prisma.partMaster.findMany({ where: { categoryId: { not: null } } });
+    // 既存のカテゴリー別レコード（重複作成防止・テナント内）
+    const existing = await prisma.partMaster.findMany({
+      where: { tenantId, categoryId: { not: null } },
+    });
     const existingKey = new Set(existing.map((e) => `${e.categoryId}::${e.partNumber}`));
 
-    const toCreate: { categoryId: string; partNumber: string; stockQuantity: number }[] = [];
+    const toCreate: {
+      categoryId: string;
+      partNumber: string;
+      stockQuantity: number;
+      tenantId: string;
+    }[] = [];
     for (const r of rows) {
       const key = `${r.categoryId}::${r.partNumber}`;
       if (existingKey.has(key)) continue;
@@ -66,6 +76,7 @@ export const stockModeService = {
         categoryId: r.categoryId,
         partNumber: r.partNumber,
         stockQuantity: sharedQty.get(r.partNumber) ?? 0, // 共有値を初期値として引き継ぐ
+        tenantId,
       });
     }
 

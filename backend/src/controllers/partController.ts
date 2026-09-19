@@ -22,7 +22,7 @@ export const partController = {
   // 全パーツ一覧取得（管理画面用）
   async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const parts = await partService.getAll();
+      const parts = await partService.getAll(req.tenantId!);
       res.json(parts);
     } catch (error) {
       next(error);
@@ -38,7 +38,7 @@ export const partController = {
         return res.status(400).json({ error: 'Invalid genre ID' });
       }
 
-      const parts = await partService.getByGenre(id);
+      const parts = await partService.getByGenre(req.tenantId!, id);
       res.json(parts);
     } catch (error) {
       next(error);
@@ -89,7 +89,7 @@ export const partController = {
         return res.status(400).json({ error: 'Invalid stock quantity' });
       }
 
-      const part = await partService.create({
+      const part = await partService.create(req.tenantId!, {
         genreId,
         unitId,
         unitNumber,
@@ -154,7 +154,7 @@ export const partController = {
         return res.status(400).json({ error: 'Invalid stock quantity' });
       }
 
-      const part = await partService.update(id, {
+      const part = await partService.update(req.tenantId!, id, {
         unitNumber,
         partNumber,
         partName,
@@ -187,7 +187,7 @@ export const partController = {
         return res.status(400).json({ error: 'Invalid part ID' });
       }
 
-      await partService.delete(id);
+      await partService.delete(req.tenantId!, id);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -207,7 +207,7 @@ export const partController = {
         return res.status(400).json({ error: 'Invalid stock quantity' });
       }
 
-      const result = await partService.updateStock(partNumber, stockQuantity);
+      const result = await partService.updateStock(req.tenantId!, partNumber, stockQuantity);
 
       res.json({
         success: true,
@@ -227,7 +227,7 @@ export const partController = {
       if (!Array.isArray(orderedIds)) {
         return res.status(400).json({ error: 'orderedIds must be an array' });
       }
-      await partService.updateOrder(orderedIds);
+      await partService.updateOrder(req.tenantId!, orderedIds);
       res.json({ success: true });
     } catch (error) {
       next(error);

@@ -4,17 +4,17 @@
 // カテゴリー管理のビジネスロジック
 // ============================================================
 
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // ============================================================
 // カテゴリーサービス
 // ============================================================
 export const categoryService = {
   // カテゴリー一覧取得
-  async getAll() {
+  async getAll(tenantId: string) {
     return await prisma.category.findMany({
+      where: { tenantId },
       orderBy: { order: 'asc' },
       include: {
         genres: {
@@ -25,24 +25,29 @@ export const categoryService = {
   },
 
   // カテゴリー作成
-  async create(data: {
-    name: string;
-    categoryId?: string;
-    subtitle?: string;
-    createdAt?: Date;
-  }) {
+  async create(
+    tenantId: string,
+    data: {
+      name: string;
+      categoryId?: string;
+      subtitle?: string;
+      createdAt?: Date;
+    }
+  ) {
     return await prisma.category.create({
       data: {
         name: data.name,
         categoryId: data.categoryId,
         subtitle: data.subtitle,
         createdAt: data.createdAt,
+        tenantId,
       },
     });
   },
 
   // カテゴリー更新
   async update(
+    tenantId: string,
     id: string,
     data: {
       categoryId?: string;
@@ -54,6 +59,14 @@ export const categoryService = {
       cropPositionY?: number;
     }
   ) {
+    // 所有確認（自テナントのカテゴリーか）
+    const owned = await prisma.category.findFirst({
+      where: { id, tenantId },
+      select: { id: true },
+    });
+    if (!owned) {
+      throw new Error('Category not found');
+    }
     return await prisma.category.update({
       where: { id },
       data,
@@ -61,7 +74,15 @@ export const categoryService = {
   },
 
   // カテゴリー削除
-  async delete(id: string) {
+  async delete(tenantId: string, id: string) {
+    // 所有確認（越境削除防止）
+    const owned = await prisma.category.findFirst({
+      where: { id, tenantId },
+      select: { id: true },
+    });
+    if (!owned) {
+      throw new Error('Category not found');
+    }
     // カスケード削除: 関連するジャンルも削除される（Prismaスキーマで設定済み）
     return await prisma.category.delete({
       where: { id },
@@ -69,7 +90,15 @@ export const categoryService = {
   },
 
   // カテゴリー並び順更新
-  async updateOrder(orderedIds: string[]) {
+  async updateOrder(tenantId: string, orderedIds: string[]) {
+    // 全idが自テナント所有か検証（越境並べ替え防止）
+    const owned = await prisma.category.findMany({
+      where: { id: { in: orderedIds }, tenantId },
+      select: { id: true },
+    });
+    if (owned.length !== orderedIds.length) {
+      throw new Error('Some categories do not belong to this tenant');
+    }
     const updates = orderedIds.map((id, index) =>
       prisma.category.update({
         where: { id },

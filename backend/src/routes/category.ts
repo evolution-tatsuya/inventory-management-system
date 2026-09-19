@@ -7,13 +7,14 @@
 import { Router } from 'express';
 import { categoryController } from '../controllers/categoryController';
 import { requireAuth } from '../middleware/requireAuth';
+import { publicTenant } from '../middleware/tenantContext';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // ============================================================
-// GET /api/categories - カテゴリー一覧取得（認証不要）
+// GET /api/categories - カテゴリー一覧取得（認証不要・テナントスコープ）
 // ============================================================
-router.get('/categories', categoryController.getAll);
+router.get('/categories', publicTenant, categoryController.getAll);
 
 // ============================================================
 // POST /api/admin/categories - カテゴリー作成（認証必須）

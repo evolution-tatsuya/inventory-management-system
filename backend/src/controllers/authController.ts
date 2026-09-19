@@ -5,22 +5,23 @@
 // ============================================================
 
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import { authService } from '../services/authService';
 import { validateEmail, validatePassword } from '../utils/validators';
-
-const JWT_SECRET = process.env.SESSION_SECRET || 'fallback-secret-key';
-const JWT_EXPIRES_IN = '7d'; // 7日間有効
+import { signToken, verifyToken } from '../lib/jwt';
 
 // ============================================================
 // ログイン
 // ============================================================
 export const authController = {
+  // テナント配下のログイン（/api/t/:slug/auth/login）
   async login(req: Request, res: Response, next: NextFunction) {
     try {
+      const slug = req.params.slug;
       const { email, password, userType = 'admin' } = req.body;
 
-      // バリデーション
+      if (!slug) {
+        return res.status(400).json({ error: 'Tenant slug is required' });
+      }
       if (!validateEmail(email)) {
         return res.status(400).json({ error: 'Invalid email format' });
       }
@@ -31,28 +32,64 @@ export const authController = {
         return res.status(400).json({ error: 'Invalid user type' });
       }
 
-      // ログイン処理（userTypeに応じて異なるテーブルを参照）
-      const account = await authService.login(email, password, userType);
+      const account = await authService.login(slug, email, password, userType);
 
-      // JWTトークン生成
-      const token = jwt.sign(
-        {
-          userId: account.id,
-          email: account.email,
-          userType: userType, // admin or user
-        },
-        JWT_SECRET,
-        { expiresIn: JWT_EXPIRES_IN }
-      );
+      const token = signToken({
+        userId: account.id,
+        email: account.email,
+        userType,
+        tenantId: account.tenantId,
+        role: account.role as 'master' | 'admin' | 'user',
+      });
 
       res.json({
         success: true,
-        token, // JWTトークンを返す
+        token,
         account: {
           id: account.id,
           email: account.email,
           name: account.name || null,
-          userType: userType,
+          userType,
+          role: account.role,
+          tenantId: account.tenantId,
+        },
+      });
+    } catch (error: any) {
+      res.status(401).json({ error: error.message });
+    }
+  },
+
+  // 運営者(master)ログイン（別導線 /api/master/login）
+  async loginMaster(req: Request, res: Response) {
+    try {
+      const { email, password } = req.body;
+      if (!validateEmail(email)) {
+        return res.status(400).json({ error: 'Invalid email format' });
+      }
+      if (!validatePassword(password)) {
+        return res.status(400).json({ error: 'Invalid password format' });
+      }
+
+      const account = await authService.loginMaster(email, password);
+
+      const token = signToken({
+        userId: account.id,
+        email: account.email,
+        userType: 'admin',
+        tenantId: account.tenantId,
+        role: 'master',
+      });
+
+      res.json({
+        success: true,
+        token,
+        account: {
+          id: account.id,
+          email: account.email,
+          name: account.name || null,
+          userType: 'admin',
+          role: 'master',
+          tenantId: account.tenantId,
         },
       });
     } catch (error: any) {
@@ -64,8 +101,6 @@ export const authController = {
   // ログアウト（JWTではトークン削除のみ）
   // ============================================================
   async logout(req: Request, res: Response) {
-    // JWTはステートレスのため、サーバー側では何もしない
-    // フロントエンドでトークンを削除
     res.json({ success: true });
   },
 
@@ -79,20 +114,17 @@ export const authController = {
       return res.status(401).json({ authenticated: false });
     }
 
-    const token = authHeader.substring(7); // "Bearer "を除去
+    const token = authHeader.substring(7);
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as {
-        userId: string;
-        email: string;
-        userType: 'admin' | 'user';
-      };
-
+      const decoded = verifyToken(token);
       res.json({
         authenticated: true,
         userId: decoded.userId,
         email: decoded.email,
         userType: decoded.userType,
+        role: decoded.role,
+        tenantId: decoded.tenantId,
       });
     } catch (error) {
       return res.status(401).json({ authenticated: false });

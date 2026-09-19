@@ -5,10 +5,9 @@
 // 実数で上書きし、変更を StockCountLog に履歴として記録する。
 // ============================================================
 
-import { PrismaClient } from '@prisma/client';
 import { getStockMode, loadStockMap, upsertStock, stockCategoryKey } from './stockHelper';
 
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export interface CountItem {
   partId: string; // 対象Part.id（画面の行）
@@ -23,15 +22,16 @@ export const inventoryCountService = {
    * - 収納ケースはPart単位で更新（渡された場合）
    * - 変更(before≠after)のみStockCountLogに記録
    */
-  async saveCounts(items: CountItem[], countedBy: string | null) {
+  async saveCounts(tenantId: string, items: CountItem[], countedBy: string | null) {
     if (!Array.isArray(items) || items.length === 0) {
       return { updated: 0, logged: 0 };
     }
 
     // 対象パーツをまとめて取得（品番・ユニット・カテゴリー情報のため）
+    // 越境partIdは tenantId で弾く
     const partIds = items.map((i) => i.partId);
     const parts = await prisma.part.findMany({
-      where: { id: { in: partIds } },
+      where: { id: { in: partIds }, tenantId },
       include: {
         unit: { select: { id: true, unitName: true } },
         genre: { select: { categoryId: true } },
@@ -40,9 +40,10 @@ export const inventoryCountService = {
     const partById = new Map(parts.map((p) => [p.id, p]));
 
     // 在庫モードと現在庫を解決
-    const mode = await getStockMode();
+    const mode = await getStockMode(prisma, tenantId);
     const beforeMap = await loadStockMap(
       prisma,
+      tenantId,
       mode,
       parts.map((p) => ({ categoryId: p.genre?.categoryId ?? null, partNumber: p.partNumber })),
     );
@@ -77,7 +78,7 @@ export const inventoryCountService = {
 
           // 在庫が変わる場合のみ上書き＋履歴
           if (after !== before) {
-            await upsertStock(tx, mode, part.genre?.categoryId ?? null, part.partNumber, after);
+            await upsertStock(tx, tenantId, mode, part.genre?.categoryId ?? null, part.partNumber, after);
             await tx.stockCountLog.create({
               data: {
                 partNumber: part.partNumber,
@@ -88,6 +89,7 @@ export const inventoryCountService = {
                 afterQty: after,
                 diff: after - before,
                 countedBy,
+                tenantId,
               },
             });
             updated++;
@@ -104,8 +106,9 @@ export const inventoryCountService = {
   /**
    * 棚卸し履歴を取得（新しい順）
    */
-  async getHistory(limit = 200) {
+  async getHistory(tenantId: string, limit = 200) {
     return prisma.stockCountLog.findMany({
+      where: { tenantId },
       orderBy: { countedAt: 'desc' },
       take: limit,
     });

@@ -10,24 +10,30 @@
 // ============================================================
 
 import { PrismaClient, Prisma } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export type StockMode = 'shared' | 'perCategory';
 
-// システムの在庫モードを取得（未設定なら shared）
+// システムの在庫モードを取得（未設定なら shared）。テナントごとに1レコード。
 export async function getStockMode(
   client: PrismaClient | Prisma.TransactionClient = prisma,
+  tenantId?: string,
 ): Promise<StockMode> {
-  const s = await client.systemSettings.findFirst();
+  const s = await client.systemSettings.findFirst({
+    where: tenantId ? { tenantId } : undefined,
+  });
   return (s?.stockMode as StockMode) || 'shared';
 }
 
-// genreId -> categoryId のマップを作る
+// genreId -> categoryId のマップを作る（テナント内のみ）
 export async function genreToCategoryMap(
   client: PrismaClient | Prisma.TransactionClient = prisma,
+  tenantId?: string,
 ): Promise<Map<string, string>> {
-  const genres = await client.genre.findMany({ select: { id: true, categoryId: true } });
+  const genres = await client.genre.findMany({
+    where: tenantId ? { tenantId } : undefined,
+    select: { id: true, categoryId: true },
+  });
   return new Map(genres.map((g) => [g.id, g.categoryId]));
 }
 
@@ -39,6 +45,7 @@ export function stockCategoryKey(mode: StockMode, categoryId: string | null): st
 // 指定(カテゴリー,品番)群の在庫を取得して Map<`${catKey}::${partNumber}`, qty> で返す
 export async function loadStockMap(
   client: PrismaClient | Prisma.TransactionClient,
+  tenantId: string,
   mode: StockMode,
   keys: { categoryId: string | null; partNumber: string }[],
 ): Promise<Map<string, number>> {
@@ -51,6 +58,7 @@ export async function loadStockMap(
   );
   const rows = await client.partMaster.findMany({
     where: {
+      tenantId,
       partNumber: { in: partNumbers },
       categoryId: mode === 'perCategory' ? { in: catIds as string[] } : null,
     },
@@ -62,37 +70,40 @@ export async function loadStockMap(
   return map;
 }
 
-// 1レコードを (catKey, partNumber) で取得（Prismaの複合uniqueはnull不可のためfindFirstで統一）
+// 1レコードを (tenantId, catKey, partNumber) で取得（複合uniqueはnull不可のためfindFirst）
 async function findStockRow(
   client: PrismaClient | Prisma.TransactionClient,
+  tenantId: string,
   catKey: string | null,
   partNumber: string,
 ) {
-  return client.partMaster.findFirst({ where: { categoryId: catKey, partNumber } });
+  return client.partMaster.findFirst({ where: { tenantId, categoryId: catKey, partNumber } });
 }
 
 // 1品番の在庫を取得（無ければ0）
 export async function getStock(
   client: PrismaClient | Prisma.TransactionClient,
+  tenantId: string,
   mode: StockMode,
   categoryId: string | null,
   partNumber: string,
 ): Promise<number> {
   const catKey = stockCategoryKey(mode, categoryId);
-  const row = await findStockRow(client, catKey, partNumber);
+  const row = await findStockRow(client, tenantId, catKey, partNumber);
   return row?.stockQuantity ?? 0;
 }
 
 // 在庫をupsert（作成 or 更新）。複合uniqueがnull非対応なため手動で分岐。
 export async function upsertStock(
   client: PrismaClient | Prisma.TransactionClient,
+  tenantId: string,
   mode: StockMode,
   categoryId: string | null,
   partNumber: string,
   stockQuantity: number,
 ) {
   const catKey = stockCategoryKey(mode, categoryId);
-  const existing = await findStockRow(client, catKey, partNumber);
+  const existing = await findStockRow(client, tenantId, catKey, partNumber);
   if (existing) {
     return client.partMaster.update({
       where: { id: existing.id },
@@ -100,22 +111,23 @@ export async function upsertStock(
     });
   }
   return client.partMaster.create({
-    data: { categoryId: catKey, partNumber, stockQuantity },
+    data: { tenantId, categoryId: catKey, partNumber, stockQuantity },
   });
 }
 
 // 在庫レコードの存在を保証（無ければ0で作成）
 export async function ensureStock(
   client: PrismaClient | Prisma.TransactionClient,
+  tenantId: string,
   mode: StockMode,
   categoryId: string | null,
   partNumber: string,
 ) {
   const catKey = stockCategoryKey(mode, categoryId);
-  const existing = await findStockRow(client, catKey, partNumber);
+  const existing = await findStockRow(client, tenantId, catKey, partNumber);
   if (!existing) {
     await client.partMaster.create({
-      data: { categoryId: catKey, partNumber, stockQuantity: 0 },
+      data: { tenantId, categoryId: catKey, partNumber, stockQuantity: 0 },
     });
   }
 }

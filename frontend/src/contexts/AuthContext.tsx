@@ -11,7 +11,13 @@ interface AuthContextType {
   account: Admin | User | null;
   userType: UserType | null;
   loading: boolean;
-  login: (email: string, password: string, userType: UserType) => Promise<void>;
+  login: (
+    slug: string,
+    email: string,
+    password: string,
+    userType: UserType,
+  ) => Promise<void>;
+  loginMaster: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkSession: () => Promise<void>;
 }
@@ -54,37 +60,62 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     checkSession();
   }, []);
 
-  // ログイン処理（JWT統合 + userType対応）
-  const login = async (email: string, password: string, loginUserType: UserType): Promise<void> => {
+  // ログイン成功時の共通処理（トークン・slug・アカウント保存）
+  const applyLoginResponse = (
+    response: Awaited<ReturnType<typeof authApi.login>>,
+    loginUserType: UserType,
+    slug: string,
+  ) => {
+    if (response.token) {
+      const tokenKey = loginUserType === 'admin' ? 'adminAuthToken' : 'userAuthToken';
+      localStorage.setItem(tokenKey, response.token);
+      localStorage.setItem('currentUserType', loginUserType);
+      localStorage.setItem('currentTenantSlug', slug); // 全APIリクエストの /api/t/<slug> に使用
+    }
+    setAccount(response.account);
+    setUserType(loginUserType);
+  };
+
+  const toLoginError = (error: unknown): Error => {
+    console.error('ログインエラー:', error);
+    if (error instanceof ApiError) {
+      if (error.status === 401) {
+        return new Error('メールアドレスまたはパスワードが正しくありません');
+      } else if (error.status === 400) {
+        return new Error('入力内容に誤りがあります');
+      }
+    }
+    return new Error('ログインに失敗しました。時間をおいて再度お試しください。');
+  };
+
+  // テナント配下ログイン（JWT統合 + userType対応）
+  const login = async (
+    slug: string,
+    email: string,
+    password: string,
+    loginUserType: UserType,
+  ): Promise<void> => {
     try {
       setLoading(true);
-
-      // 実APIを呼び出し（userTypeを渡す）
-      const response = await authApi.login({ email, password, userType: loginUserType });
-
-      // JWTトークンをローカルストレージに保存（userType別のキーを使用）
-      if (response.token) {
-        const tokenKey = loginUserType === 'admin' ? 'adminAuthToken' : 'userAuthToken';
-        localStorage.setItem(tokenKey, response.token);
-        localStorage.setItem('currentUserType', loginUserType); // 現在のログインタイプを保存
-      }
-
-      // アカウント情報を保存
-      setAccount(response.account);
-      setUserType(loginUserType);
+      const response = await authApi.login(slug, { email, password, userType: loginUserType });
+      applyLoginResponse(response, loginUserType, slug);
     } catch (error) {
-      console.error('ログインエラー:', error);
+      throw toLoginError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // エラーメッセージを整形
-      if (error instanceof ApiError) {
-        if (error.status === 401) {
-          throw new Error('メールアドレスまたはパスワードが正しくありません');
-        } else if (error.status === 400) {
-          throw new Error('入力内容に誤りがあります');
-        }
-      }
-
-      throw new Error('ログインに失敗しました。時間をおいて再度お試しください。');
+  // 運営者(master)ログイン（別導線）。master のテナントは slug=default 相当で扱う。
+  const loginMaster = async (email: string, password: string): Promise<void> => {
+    try {
+      setLoading(true);
+      const response = await authApi.loginMaster({ email, password });
+      // master は全テナント横断。slug はレスポンスに含まれないため 'default' を既定にする
+      // （master 用の総括ページは S4 で別途 slug 指定に対応）。
+      applyLoginResponse(response, 'admin', 'default');
+    } catch (error) {
+      throw toLoginError(error);
     } finally {
       setLoading(false);
     }
@@ -105,6 +136,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         localStorage.removeItem(tokenKey);
       }
       localStorage.removeItem('currentUserType');
+      localStorage.removeItem('currentTenantSlug');
 
       // アカウント情報をクリア
       setAccount(null);
@@ -186,6 +218,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     userType,
     loading,
     login,
+    loginMaster,
     logout,
     checkSession,
   };

@@ -17,7 +17,7 @@ export const categoryController = {
   // ============================================================
   async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const categories = await categoryService.getAll();
+      const categories = await categoryService.getAll(req.tenantId!);
       res.json(categories);
     } catch (error) {
       next(error);
@@ -38,7 +38,7 @@ export const categoryController = {
         });
       }
 
-      const category = await categoryService.create({
+      const category = await categoryService.create(req.tenantId!, {
         name,
         categoryId,
         subtitle,
@@ -71,7 +71,7 @@ export const categoryController = {
         });
       }
 
-      const category = await categoryService.update(id, {
+      const category = await categoryService.update(req.tenantId!, id, {
         categoryId,
         name,
         subtitle,
@@ -101,7 +101,7 @@ export const categoryController = {
         return res.status(400).json({ error: 'Invalid category ID' });
       }
 
-      await categoryService.delete(id);
+      await categoryService.delete(req.tenantId!, id);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -119,7 +119,7 @@ export const categoryController = {
         return res.status(400).json({ error: 'orderedIds must be an array' });
       }
 
-      await categoryService.updateOrder(orderedIds);
+      await categoryService.updateOrder(req.tenantId!, orderedIds);
       res.json({ success: true });
     } catch (error) {
       next(error);

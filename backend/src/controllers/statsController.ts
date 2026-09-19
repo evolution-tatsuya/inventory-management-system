@@ -17,7 +17,7 @@ export const statsController = {
    */
   async getStats(req: Request, res: Response, next: NextFunction) {
     try {
-      const stats = await statsService.getStats();
+      const stats = await statsService.getStats(req.tenantId!);
       res.json(stats);
     } catch (error) {
       next(error);

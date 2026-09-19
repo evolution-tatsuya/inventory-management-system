@@ -4,10 +4,9 @@
 // アカウント設定のビジネスロジック（メール・パスワード変更）
 // ============================================================
 
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // ============================================================
 // アカウントサービス
@@ -16,15 +15,29 @@ export const accountService = {
   // ============================================================
   // メールアドレス変更
   // ============================================================
-  async changeEmail(userId: string, newEmail: string, userType: 'admin' | 'user' = 'admin') {
+  async changeEmail(
+    tenantId: string,
+    userId: string,
+    newEmail: string,
+    userType: 'admin' | 'user' = 'admin'
+  ) {
     if (userType === 'admin') {
-      // 管理者のメールアドレス重複チェック
-      const existing = await prisma.admin.findUnique({
-        where: { email: newEmail },
+      // 管理者のメールアドレス重複チェック（テナント内）
+      const existing = await prisma.admin.findFirst({
+        where: { tenantId, email: newEmail },
       });
 
       if (existing && existing.id !== userId) {
         throw new Error('Email already in use');
+      }
+
+      // 所有確認（自テナントのアカウントか）
+      const owned = await prisma.admin.findFirst({
+        where: { id: userId, tenantId },
+        select: { id: true },
+      });
+      if (!owned) {
+        throw new Error('Account not found');
       }
 
       // メールアドレス更新
@@ -38,13 +51,21 @@ export const accountService = {
         },
       });
     } else {
-      // 一般ユーザーのメールアドレス重複チェック
-      const existing = await prisma.user.findUnique({
-        where: { email: newEmail },
+      // 一般ユーザーのメールアドレス重複チェック（テナント内）
+      const existing = await prisma.user.findFirst({
+        where: { tenantId, email: newEmail },
       });
 
       if (existing && existing.id !== userId) {
         throw new Error('Email already in use');
+      }
+
+      const owned = await prisma.user.findFirst({
+        where: { id: userId, tenantId },
+        select: { id: true },
+      });
+      if (!owned) {
+        throw new Error('Account not found');
       }
 
       // メールアドレス更新
@@ -64,6 +85,7 @@ export const accountService = {
   // パスワード変更
   // ============================================================
   async changePassword(
+    tenantId: string,
     userId: string,
     currentPassword: string,
     newPassword: string,
@@ -73,14 +95,14 @@ export const accountService = {
     let account;
 
     if (userType === 'admin') {
-      // 管理者情報取得
-      account = await prisma.admin.findUnique({
-        where: { id: userId },
+      // 管理者情報取得（テナント内）
+      account = await prisma.admin.findFirst({
+        where: { id: userId, tenantId },
       });
     } else {
-      // 一般ユーザー情報取得
-      account = await prisma.user.findUnique({
-        where: { id: userId },
+      // 一般ユーザー情報取得（テナント内）
+      account = await prisma.user.findFirst({
+        where: { id: userId, tenantId },
       });
     }
 
@@ -118,8 +140,20 @@ export const accountService = {
   // ============================================================
   // ユーザー名変更
   // ============================================================
-  async changeDisplayName(userId: string, newDisplayName: string, userType: 'admin' | 'user' = 'admin') {
+  async changeDisplayName(
+    tenantId: string,
+    userId: string,
+    newDisplayName: string,
+    userType: 'admin' | 'user' = 'admin'
+  ) {
     if (userType === 'admin') {
+      const owned = await prisma.admin.findFirst({
+        where: { id: userId, tenantId },
+        select: { id: true },
+      });
+      if (!owned) {
+        throw new Error('Account not found');
+      }
       // 管理者のユーザー名更新
       return await prisma.admin.update({
         where: { id: userId },
@@ -131,6 +165,13 @@ export const accountService = {
         },
       });
     } else {
+      const owned = await prisma.user.findFirst({
+        where: { id: userId, tenantId },
+        select: { id: true },
+      });
+      if (!owned) {
+        throw new Error('Account not found');
+      }
       // 一般ユーザーのユーザー名更新
       return await prisma.user.update({
         where: { id: userId },
@@ -147,35 +188,18 @@ export const accountService = {
   // ============================================================
   // アカウント情報取得
   // ============================================================
-  async getAccount(userId: string, userType: 'admin' | 'user' = 'admin', accountId?: string) {
+  async getAccount(
+    tenantId: string,
+    userId: string,
+    userType: 'admin' | 'user' = 'admin',
+    accountId?: string
+  ) {
     // accountIdが指定されている場合は、そのIDのアカウントを取得
     // （管理者が別のアカウントを編集する場合）
-    if (accountId) {
-      if (userType === 'admin') {
-        return await prisma.admin.findUnique({
-          where: { id: accountId },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-          },
-        });
-      } else {
-        return await prisma.user.findUnique({
-          where: { id: accountId },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-          },
-        });
-      }
-    }
-
-    // accountIdがない場合は、現在ログイン中のアカウントを取得
+    const targetId = accountId || userId;
     if (userType === 'admin') {
-      return await prisma.admin.findUnique({
-        where: { id: userId },
+      return await prisma.admin.findFirst({
+        where: { id: targetId, tenantId },
         select: {
           id: true,
           email: true,
@@ -183,8 +207,8 @@ export const accountService = {
         },
       });
     } else {
-      return await prisma.user.findUnique({
-        where: { id: userId },
+      return await prisma.user.findFirst({
+        where: { id: targetId, tenantId },
         select: {
           id: true,
           email: true,
@@ -197,9 +221,10 @@ export const accountService = {
   // ============================================================
   // 全アカウント一覧取得（管理者専用）
   // ============================================================
-  async getAllAccounts(userType: 'admin' | 'user' = 'admin') {
+  async getAllAccounts(tenantId: string, userType: 'admin' | 'user' = 'admin') {
     if (userType === 'admin') {
       return await prisma.admin.findMany({
+        where: { tenantId },
         select: {
           id: true,
           email: true,
@@ -211,6 +236,7 @@ export const accountService = {
       });
     } else {
       return await prisma.user.findMany({
+        where: { tenantId },
         select: {
           id: true,
           email: true,

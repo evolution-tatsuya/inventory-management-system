@@ -6,16 +6,17 @@
 
 import { Router } from 'express';
 import { searchController } from '../controllers/searchController';
+import { publicTenant } from '../middleware/tenantContext';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // ============================================================
 // 検索エンドポイント（認証不要）
 // ============================================================
 // 収納ケース番号検索（全ジャンル横断）
-router.get('/search/by-storage-case', searchController.searchByStorageCase);
+router.get('/search/by-storage-case', publicTenant, searchController.searchByStorageCase);
 
 // 品番検索（全ジャンル横断）
-router.get('/search/by-part-number', searchController.searchByPartNumber);
+router.get('/search/by-part-number', publicTenant, searchController.searchByPartNumber);
 
 export default router;

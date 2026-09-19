@@ -8,7 +8,7 @@ import { Router } from 'express';
 import { accountController } from '../controllers/accountController';
 import { requireAuth } from '../middleware/requireAuth';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // デバッグ用ミドルウェア
 router.use((req, res, next) => {

@@ -12,6 +12,30 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8763';
 
 /**
+ * 現在のテナント slug（マルチテナント）。
+ * ログイン時に localStorage('currentTenantSlug') に保存され、
+ * 全 API リクエストの `/api/` 直後に `t/<slug>` として挿入される。
+ */
+export function getCurrentTenantSlug(): string | null {
+  return localStorage.getItem('currentTenantSlug');
+}
+
+/**
+ * エンドポイントにテナント slug を注入する。
+ * 例: '/api/categories' + slug='default' → '/api/t/default/categories'
+ * 既に '/api/t/' で始まる、または '/api/master/' はそのまま（二重付与・master導線を除外）。
+ */
+function withTenant(endpoint: string): string {
+  const slug = getCurrentTenantSlug();
+  if (!slug) return endpoint;
+  if (!endpoint.startsWith('/api/')) return endpoint;
+  if (endpoint.startsWith('/api/t/') || endpoint.startsWith('/api/master/')) {
+    return endpoint;
+  }
+  return endpoint.replace(/^\/api\//, `/api/t/${slug}/`);
+}
+
+/**
  * APIエラーレスポンス型
  */
 export interface ApiErrorResponse {
@@ -63,7 +87,7 @@ export async function apiClient<T = unknown>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${API_BASE_URL}${withTenant(endpoint)}`;
 
   // ローカルストレージからJWTトークンを取得（userType別）
   const currentUserType = localStorage.getItem('currentUserType');
@@ -181,7 +205,7 @@ export async function postFormData<T = unknown>(
   endpoint: string,
   formData: FormData,
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${API_BASE_URL}${withTenant(endpoint)}`;
 
   // ローカルストレージからJWTトークンを取得（userType別）
   const currentUserType = localStorage.getItem('currentUserType');

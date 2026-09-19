@@ -8,7 +8,7 @@ import { Router } from 'express';
 import { imageController, imageUploadMiddleware } from '../controllers/imageController';
 import { requireAuth } from '../middleware/requireAuth';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // ============================================================
 // 画像アップロード

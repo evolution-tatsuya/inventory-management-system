@@ -7,8 +7,9 @@
 import express from 'express';
 import * as unitController from '../controllers/unitController';
 import { requireAuth } from '../middleware/requireAuth';
+import { publicTenant } from '../middleware/tenantContext';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // ============================================================
 // 公開エンドポイント
@@ -18,7 +19,7 @@ const router = express.Router();
  * GET /api/genres/:genreId/units
  * ユニット一覧取得（一般ユーザー向け）
  */
-router.get('/genres/:genreId/units', unitController.getUnits);
+router.get('/genres/:genreId/units', publicTenant, unitController.getUnits);
 
 // ============================================================
 // 管理者専用エンドポイント

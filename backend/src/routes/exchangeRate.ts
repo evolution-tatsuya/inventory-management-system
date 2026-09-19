@@ -6,8 +6,9 @@
 
 import { Router } from 'express';
 import { exchangeRateController } from '../controllers/exchangeRateController';
+import { publicTenant } from '../middleware/tenantContext';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // 当日の為替レート取得（認証不要）
 router.get('/exchange-rates', exchangeRateController.getRates);
