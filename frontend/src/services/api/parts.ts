@@ -43,7 +43,9 @@ export async function createPart(data: {
   partNumber: string;
   partName: string;
   quantity?: number;
-  price?: number;
+  price?: number | null;
+  currency?: string;
+  originalPrice?: number | null;
   storageCase?: string;
   notes?: string;
   orderDate?: string;
@@ -70,7 +72,9 @@ export async function updatePart(
     partNumber?: string;
     partName?: string;
     quantity?: number;
-    price?: number;
+    price?: number | null;
+    currency?: string;
+    originalPrice?: number | null;
     storageCase?: string;
     notes?: string;
     orderDate?: string;

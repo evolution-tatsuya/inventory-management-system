@@ -75,7 +75,9 @@ export const partService = {
     partNumber: string;
     partName: string;
     quantity?: number;
-    price?: number;
+    price?: number | null;
+    currency?: string;
+    originalPrice?: number | null;
     storageCase?: string;
     orderDate?: string;
     expectedArrivalDate?: string;
@@ -115,7 +117,9 @@ export const partService = {
       partNumber?: string;
       partName?: string;
       quantity?: number;
-      price?: number;
+      price?: number | null;
+      currency?: string;
+      originalPrice?: number | null;
       storageCase?: string;
       orderDate?: string;
       expectedArrivalDate?: string;

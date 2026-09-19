@@ -75,7 +75,9 @@ export interface Part {
   partNumber: string;
   partName: string;
   quantity?: number;       // 数量
-  price?: number;          // 価格
+  price?: number;          // 価格（JPY登録時の手入力価格、または換算不要時の表示価格）
+  currency?: string;       // 元通貨（JPY/EUR/USD等）。海外通貨は表示時に当日レートで円換算
+  originalPrice?: number;  // 元通貨での価格（currencyがJPY以外のとき使用）
   storageCase?: string;
   notes?: string;
   orderDate?: Date;

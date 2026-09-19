@@ -23,3 +23,4 @@ export * as diagramImagesApi from './diagramImages';
 export * as systemSettingsApi from './systemSettings';
 export * as inventoryCountApi from './inventoryCount';
 export * as ownerApi from './owner';
+export * as exchangeRatesApi from './exchangeRates';

@@ -31,6 +31,7 @@ import { Add, DragIndicator, Upload, Delete, FileDownload, FileUpload } from '@m
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { partsApi, genresApi, categoriesApi, unitsApi, exportApi, systemSettingsApi } from '@/services/api';
 import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
+import { formatPartPrice } from '@/utils/priceDisplay';
 import type { Part, SystemSettings } from '@/types';
 import {
   DndContext,
@@ -148,7 +149,7 @@ const SortableRow = ({ part, onEdit, onDelete, sortable = true }: SortableRowPro
         color: (part.partMaster?.stockQuantity || 0) === 0 ? '#d32f2f' : 'inherit',
         fontWeight: (part.partMaster?.stockQuantity || 0) === 0 ? 600 : 400
       }}>{part.partMaster?.stockQuantity || 0}</TableCell>
-      <TableCell sx={{ padding: '12px 16px', textAlign: 'center' }}>{part.price ? `¥${part.price.toLocaleString()}` : '-'}</TableCell>
+      <TableCell sx={{ padding: '12px 16px', textAlign: 'center' }}>{formatPartPrice(part, false, undefined)}</TableCell>
       <TableCell sx={{ padding: '12px 16px', textAlign: 'center' }}>{part.storageCase}</TableCell>
       <TableCell sx={{ padding: '12px 16px', textAlign: 'center' }}>{part.orderDate ? part.orderDate.toString().split('T')[0] : '-'}</TableCell>
       <TableCell sx={{ padding: '12px 16px', textAlign: 'center' }}>{part.expectedArrivalDate ? part.expectedArrivalDate.toString().split('T')[0] : '-'}</TableCell>
@@ -218,6 +219,7 @@ export const PartsManagementPage = () => {
   const [quantity, setQuantity] = useState('');
   const [stockQuantity, setStockQuantity] = useState('0'); // 在庫数量
   const [price, setPrice] = useState('');
+  const [currency, setCurrency] = useState('JPY'); // 価格の通貨（JPY/EUR/USD/GBP）
   const [storageCase, setStorageCase] = useState('');
   const [orderDate, setOrderDate] = useState('');
   const [expectedArrivalDate, setExpectedArrivalDate] = useState('');
@@ -443,6 +445,7 @@ export const PartsManagementPage = () => {
     setQuantity('');
     setStockQuantity('0'); // 在庫数量を0にリセット
     setPrice('');
+    setCurrency('JPY'); // 通貨を初期値に戻す
     setStorageCase('');
     setOrderDate('');
     setExpectedArrivalDate('');
@@ -726,7 +729,10 @@ export const PartsManagementPage = () => {
       partNumber,
       partName,
       quantity: quantity ? parseInt(quantity) : undefined,
-      price: price ? parseFloat(price) : undefined,
+      // 通貨に応じて price / originalPrice を振り分け
+      price: currency === 'JPY' && price ? parseFloat(price) : undefined,
+      currency,
+      originalPrice: currency !== 'JPY' && price ? parseFloat(price) : undefined,
       storageCase,
       orderDate: orderDate || undefined,
       expectedArrivalDate: expectedArrivalDate || undefined,
@@ -752,7 +758,14 @@ export const PartsManagementPage = () => {
     // 在庫数量をpartMasterから取得して自動セット
     const partMaster = (part as any).partMaster;
     setStockQuantity(partMaster?.stockQuantity?.toString() || '0');
-    setPrice(part.price?.toString() || '');
+    // 通貨に応じて価格入力欄の値をセット（JPYはprice、海外通貨はoriginalPrice）
+    const partCurrency = part.currency || 'JPY';
+    setCurrency(partCurrency);
+    setPrice(
+      partCurrency === 'JPY'
+        ? part.price?.toString() || ''
+        : part.originalPrice?.toString() || '',
+    );
     setStorageCase(part.storageCase || '');
     setOrderDate(part.orderDate || '');
     setExpectedArrivalDate(part.expectedArrivalDate || '');
@@ -881,7 +894,10 @@ export const PartsManagementPage = () => {
         partNumber,
         partName,
         quantity: quantity ? parseInt(quantity) : undefined,
-        price: price ? parseFloat(price) : undefined,
+        // 通貨に応じて price / originalPrice を振り分け（使わない側はnullで明示的にクリア）
+        price: currency === 'JPY' ? (price ? parseFloat(price) : null) : null,
+        currency,
+        originalPrice: currency !== 'JPY' ? (price ? parseFloat(price) : null) : null,
         storageCase,
         orderDate: orderDate || undefined,
         expectedArrivalDate: expectedArrivalDate || undefined,
@@ -1851,14 +1867,32 @@ export const PartsManagementPage = () => {
               </Button>
             </Box>
           </Box>
-          <TextField
-            fullWidth
-            label="価格"
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            sx={{ marginTop: '16px' }}
-          />
+          <Box sx={{ display: 'flex', gap: 1, marginTop: '16px' }}>
+            <TextField
+              select
+              label="通貨"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              sx={{ width: 120 }}
+            >
+              <MenuItem value="JPY">円 (JPY)</MenuItem>
+              <MenuItem value="EUR">ユーロ (EUR)</MenuItem>
+              <MenuItem value="USD">ドル (USD)</MenuItem>
+              <MenuItem value="GBP">ポンド (GBP)</MenuItem>
+            </TextField>
+            <TextField
+              fullWidth
+              label={currency === 'JPY' ? '価格' : `価格（${currency}）`}
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              helperText={
+                currency !== 'JPY'
+                  ? '海外通貨は一覧で当日レートの円換算表示に切替できます'
+                  : undefined
+              }
+            />
+          </Box>
           <TextField
             fullWidth
             label="収納ケース"
@@ -2106,14 +2140,32 @@ export const PartsManagementPage = () => {
               </Button>
             </Box>
           </Box>
-          <TextField
-            fullWidth
-            label="価格"
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            sx={{ marginTop: '16px' }}
-          />
+          <Box sx={{ display: 'flex', gap: 1, marginTop: '16px' }}>
+            <TextField
+              select
+              label="通貨"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              sx={{ width: 120 }}
+            >
+              <MenuItem value="JPY">円 (JPY)</MenuItem>
+              <MenuItem value="EUR">ユーロ (EUR)</MenuItem>
+              <MenuItem value="USD">ドル (USD)</MenuItem>
+              <MenuItem value="GBP">ポンド (GBP)</MenuItem>
+            </TextField>
+            <TextField
+              fullWidth
+              label={currency === 'JPY' ? '価格' : `価格（${currency}）`}
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              helperText={
+                currency !== 'JPY'
+                  ? '海外通貨は一覧で当日レートの円換算表示に切替できます'
+                  : undefined
+              }
+            />
+          </Box>
           <TextField
             fullWidth
             label="収納ケース"

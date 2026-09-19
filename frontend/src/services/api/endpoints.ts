@@ -114,6 +114,13 @@ export const SYSTEM_SETTINGS_ENDPOINTS = {
 } as const;
 
 /**
+ * 為替レートエンドポイント（1）
+ */
+export const EXCHANGE_RATE_ENDPOINTS = {
+  GET: '/api/exchange-rates',
+} as const;
+
+/**
  * 全エンドポイント一覧（エクスポート用）
  */
 export const API_ENDPOINTS = {

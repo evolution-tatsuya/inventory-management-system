@@ -16,13 +16,14 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { ArrowBack, Visibility, VisibilityOff, PictureAsPdf, TableChart, Description, Search } from '@mui/icons-material';
+import { ArrowBack, Visibility, VisibilityOff, PictureAsPdf, TableChart, Description, Search, CurrencyYen } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
-import { partsApi, diagramImagesApi } from '@/services/api';
+import { partsApi, diagramImagesApi, exchangeRatesApi } from '@/services/api';
+import { formatPartPrice, hasForeignCurrencyParts } from '@/utils/priceDisplay';
 
 // ============================================================
 // PartsListPage
@@ -80,6 +81,19 @@ export const PartsListPage = () => {
   const [showDiagram, setShowDiagram] = useState(true);
   const [showPartImages, setShowPartImages] = useState(true);
   const [imagePosition, setImagePosition] = useState<'left' | 'right'>('left');
+
+  // 円換算トグル（A案: ボタンでリロードなしに 元通貨⇔円 を切替）
+  const [showJpy, setShowJpy] = useState(false);
+  // 表示中パーツに海外通貨（円換算対象）が含まれるか
+  const hasForeign = hasForeignCurrencyParts(parts);
+  // 当日レート取得（海外通貨パーツがある場合のみ有効化、1日キャッシュ）
+  const { data: rateInfo } = useQuery({
+    queryKey: ['exchange-rates'],
+    queryFn: () => exchangeRatesApi.getExchangeRates(),
+    enabled: hasForeign,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const rates = rateInfo?.rates;
 
   const handleExportPDF = async () => {
     // ユニット情報を取得（PDF用）
@@ -194,7 +208,7 @@ export const PartsListPage = () => {
                   <td>${part.partName}</td>
                   <td>${part.quantity || '-'}</td>
                   <td class="${(part.partMaster?.stockQuantity ?? 0) === 0 ? 'stock-zero' : ''}">${part.partMaster?.stockQuantity ?? 0}</td>
-                  <td>${part.price ? `¥${part.price.toLocaleString()}` : '-'}</td>
+                  <td>${formatPartPrice(part, showJpy, rates)}</td>
                   <td>${part.storageCase || ''}</td>
                   <td>${part.orderDate ? new Date(part.orderDate).toLocaleDateString('ja-JP') : ''}</td>
                   <td>${part.expectedArrivalDate ? new Date(part.expectedArrivalDate).toLocaleDateString('ja-JP') : ''}</td>
@@ -316,7 +330,7 @@ export const PartsListPage = () => {
         part.partName,
         part.quantity || '-',
         `="${part.partMaster?.stockQuantity ?? 0}"`, // ="値" 形式で文字列として扱う
-        part.price ? `¥${part.price.toLocaleString()}` : '-',
+        formatPartPrice(part, showJpy, rates),
         part.storageCase || '',
         part.orderDate ? new Date(part.orderDate).toLocaleDateString('ja-JP') : '',
         part.expectedArrivalDate ? new Date(part.expectedArrivalDate).toLocaleDateString('ja-JP') : '',
@@ -365,7 +379,7 @@ export const PartsListPage = () => {
           part.partName,
           part.quantity || '-',
           String(part.partMaster?.stockQuantity ?? 0), // 文字列に変換
-          part.price ? `¥${part.price.toLocaleString()}` : '-',
+          formatPartPrice(part, showJpy, rates),
           part.storageCase || '',
           part.orderDate ? new Date(part.orderDate).toLocaleDateString('ja-JP') : '',
           part.expectedArrivalDate ? new Date(part.expectedArrivalDate).toLocaleDateString('ja-JP') : '',
@@ -707,6 +721,28 @@ export const PartsListPage = () => {
           </Button>
         </Box>
 
+        {/* 円換算トグル（海外通貨パーツがある場合のみ表示） */}
+        {hasForeign && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1, flexWrap: 'wrap' }}>
+            <Button
+              variant={showJpy ? 'contained' : 'outlined'}
+              color="primary"
+              size="small"
+              startIcon={<CurrencyYen />}
+              onClick={() => setShowJpy((v) => !v)}
+              sx={{ textTransform: 'none', fontWeight: 600 }}
+            >
+              {showJpy ? '元の通貨で表示' : '日本円で表示'}
+            </Button>
+            {showJpy && (
+              <Typography variant="caption" sx={{ color: '#d32f2f', fontSize: '0.75rem' }}>
+                ※あくまで本日のレート表示の為、取引時は価格変更の可能性あり
+                {rateInfo?.isFallback && '（レート取得に失敗したため概算値を表示中）'}
+              </Typography>
+            )}
+          </Box>
+        )}
+
         {/* パーツ一覧テーブル */}
         <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e0e0e0' }}>
           <Table size="small">
@@ -803,7 +839,7 @@ export const PartsListPage = () => {
                     >
                       {part.partMaster?.stockQuantity ?? 0}
                     </TableCell>
-                    <TableCell align="center" sx={{ fontSize: '0.75rem', width: 90, px: 0.5, py: 0.3, height: 48 }}>{part.price ? `¥${part.price.toLocaleString()}` : '-'}</TableCell>
+                    <TableCell align="center" sx={{ fontSize: '0.75rem', width: 90, px: 0.5, py: 0.3, height: 48 }}>{formatPartPrice(part, showJpy, rates)}</TableCell>
                     <TableCell align="center" sx={{ fontSize: '0.75rem', width: 90, px: 0.5, py: 0.3, height: 48 }}>{part.storageCase || ''}</TableCell>
                     <TableCell align="center" sx={{ fontSize: '0.75rem', width: 100, px: 0.5, py: 0.3, height: 48 }}>{part.orderDate ? new Date(part.orderDate).toLocaleDateString('ja-JP') : ''}</TableCell>
                     <TableCell align="center" sx={{ fontSize: '0.75rem', width: 100, px: 0.5, py: 0.3, height: 48 }}>{part.expectedArrivalDate ? new Date(part.expectedArrivalDate).toLocaleDateString('ja-JP') : ''}</TableCell>
