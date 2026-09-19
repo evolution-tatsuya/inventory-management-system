@@ -206,6 +206,20 @@ export interface UpdatePasswordRequest {
 }
 
 // ============================================================
+// Tenant（テナント / マルチテナント）
+// ============================================================
+export interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  licenseKey: string | null;
+  stockMode: string;
+  status: 'pending' | 'active' | 'suspended';
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============================================================
 // システム設定
 // ============================================================
 export interface SystemSettings {

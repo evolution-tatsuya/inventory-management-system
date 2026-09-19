@@ -10,6 +10,7 @@ import { ApiError } from '@/services/api/client';
 interface AuthContextType {
   account: Admin | User | null;
   userType: UserType | null;
+  role: string | null;
   loading: boolean;
   login: (
     slug: string,
@@ -40,6 +41,7 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [account, setAccount] = useState<Admin | User | null>(null);
   const [userType, setUserType] = useState<UserType | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   // セッションチェック（初回マウント時）
@@ -55,6 +57,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.removeItem('adminAuthToken');
       localStorage.removeItem('userAuthToken');
       localStorage.removeItem('currentUserType');
+      localStorage.removeItem('currentRole');
     }
 
     checkSession();
@@ -66,14 +69,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     loginUserType: UserType,
     slug: string,
   ) => {
+    const resolvedRole = response.role || loginUserType;
     if (response.token) {
       const tokenKey = loginUserType === 'admin' ? 'adminAuthToken' : 'userAuthToken';
       localStorage.setItem(tokenKey, response.token);
       localStorage.setItem('currentUserType', loginUserType);
       localStorage.setItem('currentTenantSlug', slug); // 全APIリクエストの /api/t/<slug> に使用
+      localStorage.setItem('currentRole', resolvedRole);
     }
     setAccount(response.account);
     setUserType(loginUserType);
+    setRole(resolvedRole);
   };
 
   const toLoginError = (error: unknown): Error => {
@@ -137,18 +143,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
       localStorage.removeItem('currentUserType');
       localStorage.removeItem('currentTenantSlug');
+      localStorage.removeItem('currentRole');
 
       // アカウント情報をクリア
       setAccount(null);
       setUserType(null);
+      setRole(null);
     } catch (error) {
       console.error('ログアウトエラー:', error);
       // ログアウトは失敗してもフロントエンドの状態はクリア
       localStorage.removeItem('adminAuthToken');
       localStorage.removeItem('userAuthToken');
       localStorage.removeItem('currentUserType');
+      localStorage.removeItem('currentRole');
       setAccount(null);
       setUserType(null);
+      setRole(null);
       throw error;
     } finally {
       setLoading(false);
@@ -166,6 +176,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (!storedUserType) {
         setAccount(null);
         setUserType(null);
+        setRole(null);
         setLoading(false);
         return;
       }
@@ -177,7 +188,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (!token) {
         setAccount(null);
         setUserType(null);
+        setRole(null);
         localStorage.removeItem('currentUserType');
+        localStorage.removeItem('currentRole');
         setLoading(false);
         return;
       }
@@ -194,20 +207,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           updatedAt: new Date(),
         });
         setUserType(response.userType || storedUserType);
+        const resolvedRole =
+          response.role || localStorage.getItem('currentRole') || response.userType || storedUserType;
+        setRole(resolvedRole);
+        localStorage.setItem('currentRole', resolvedRole);
       } else {
         setAccount(null);
         setUserType(null);
+        setRole(null);
         localStorage.removeItem(tokenKey); // 無効なトークンを削除
         localStorage.removeItem('currentUserType');
+        localStorage.removeItem('currentRole');
       }
     } catch (error) {
       console.error('セッション確認エラー:', error);
       setAccount(null);
       setUserType(null);
+      setRole(null);
       // エラー時は両方のトークンを削除
       localStorage.removeItem('adminAuthToken');
       localStorage.removeItem('userAuthToken');
       localStorage.removeItem('currentUserType');
+      localStorage.removeItem('currentRole');
     } finally {
       setLoading(false);
     }
@@ -216,6 +237,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const value: AuthContextType = {
     account,
     userType,
+    role,
     loading,
     login,
     loginMaster,

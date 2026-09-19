@@ -29,7 +29,12 @@ function withTenant(endpoint: string): string {
   const slug = getCurrentTenantSlug();
   if (!slug) return endpoint;
   if (!endpoint.startsWith('/api/')) return endpoint;
-  if (endpoint.startsWith('/api/t/') || endpoint.startsWith('/api/master/')) {
+  // slug注入の除外: 既に/t/付き、master系、テナント非依存(activate等)
+  if (
+    endpoint.startsWith('/api/t/') ||
+    endpoint.startsWith('/api/master/') ||
+    endpoint.startsWith('/api/tenants/')
+  ) {
     return endpoint;
   }
   return endpoint.replace(/^\/api\//, `/api/t/${slug}/`);

@@ -12,6 +12,8 @@ import { Router } from 'express';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
 import { authController } from './controllers/authController';
+import masterRoutes from './routes/master';
+import { masterController } from './controllers/masterController';
 import categoryRoutes from './routes/category';
 import genreRoutes from './routes/genre';
 import unitRoutes from './routes/unit';
@@ -92,6 +94,12 @@ app.use(session({
 
 // 運営者(master)ログイン — テナント非依存の別導線
 app.post('/api/master/login', authController.loginMaster);
+
+// 運営者(master)のテナント管理 — requireMaster保護（全テナント横断）
+app.use('/api/master', masterRoutes);
+
+// ライセンスキー有効化 — 購入者用・無認証（テナント配下ではない）
+app.post('/api/tenants/activate', masterController.activate);
 
 // テナント配下ルーター（:slug は各子ルーターに mergeParams で伝播）
 const tenantRouter = Router({ mergeParams: true });

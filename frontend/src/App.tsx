@@ -1,8 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminRoute } from '@/components/AdminRoute';
+import { MasterRoute } from '@/components/MasterRoute';
 import { LoginPage } from '@/pages/LoginPage';
 import { AdminLoginPage } from '@/pages/AdminLoginPage';
+import { MasterLoginPage } from '@/pages/MasterLoginPage';
+import { MasterDashboardPage } from '@/pages/MasterDashboardPage';
+import { ActivatePage } from '@/pages/ActivatePage';
 import { CategoryListPage } from '@/pages/CategoryListPage';
 import { PartsListPage } from '@/pages/PartsListPage';
 import { SearchPage } from '@/pages/SearchPage';
@@ -36,6 +40,18 @@ function App() {
       {/* 公開ページ */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route path="/master/login" element={<MasterLoginPage />} />
+      <Route path="/activate" element={<ActivatePage />} />
+
+      {/* 運営者(master)専用ページ */}
+      <Route
+        path="/master/dashboard"
+        element={
+          <MasterRoute>
+            <MasterDashboardPage />
+          </MasterRoute>
+        }
+      />
 
       {/* 認証必須ページ */}
       <Route

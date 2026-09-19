@@ -26,6 +26,8 @@ export interface LoginResponse {
   token: string; // JWTトークン
   account: Admin | User; // Admin または User
   userType: 'admin' | 'user'; // アカウント種別
+  role?: 'master' | 'admin' | 'user'; // 権限ロール（masterは運営者）
+  tenantId?: string; // 所属テナントID
 }
 
 export interface LogoutResponse {
@@ -37,6 +39,8 @@ export interface SessionResponse {
   userId: string;
   email: string;
   userType: 'admin' | 'user';
+  role?: 'master' | 'admin' | 'user'; // 権限ロール
+  tenantId?: string; // 所属テナントID
 }
 
 // ============================================================
