@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { QRCodeCanvas } from 'qrcode.react';
 import {
   Alert,
   Box,
@@ -35,7 +36,10 @@ import {
   Delete,
   Logout,
   ManageAccounts,
+  OpenInNew,
+  QrCode2,
   Refresh,
+  Send,
   Visibility,
 } from '@mui/icons-material';
 import { useAuth } from '@/hooks/useAuth';
@@ -93,6 +97,11 @@ export const MasterDashboardPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<TenantListItem | null>(null);
   const [confirmName, setConfirmName] = useState('');
   const [backedUp, setBackedUp] = useState(false);
+  // 送付情報（URL/QR）ダイアログの対象テナント、QR表示中のラベル
+  const [shareTarget, setShareTarget] = useState<TenantListItem | null>(null);
+  const [qrShown, setQrShown] = useState<string | null>(null);
+  // QRコード canvas への参照（PNG保存用。ラベルごとに保持）
+  const qrRefs = useRef<Record<string, HTMLCanvasElement | null>>({});
 
   // 発行フォーム
   const [name, setName] = useState('');
@@ -168,6 +177,34 @@ export const MasterDashboardPage = () => {
 
   const copyKey = (key: string) => {
     navigator.clipboard.writeText(key).then(() => setSnack('コピーしました'));
+  };
+
+  // 任意テキスト（URL等）をコピー
+  const copyText = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => setSnack('URLをコピーしました'));
+  };
+
+  // テナントの各種URLを生成（オリジンは現在のドメイン＝本番/開発どちらでも正しい）。
+  // ログイン系は共通URL＋?tenant= でテナントを自動指定、有効化は?key= でキー自動入力。
+  // 受け取り側（/login /admin/login /activate）はいずれもこのクエリに対応済み。
+  const tenantUrls = (t: TenantListItem) => {
+    const origin = window.location.origin;
+    return {
+      activate: t.licenseKey ? `${origin}/activate?key=${t.licenseKey}` : null,
+      admin: `${origin}/admin/login?tenant=${t.slug}`,
+      user: `${origin}/login?tenant=${t.slug}`,
+    };
+  };
+
+  // QRコードをPNGでダウンロード
+  const downloadQr = (label: string, filename: string) => {
+    const canvas = qrRefs.current[label];
+    if (!canvas) return;
+    const url = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
   };
 
   // 削除前バックアップ（JSON + CSV両方）
@@ -346,6 +383,18 @@ export const MasterDashboardPage = () => {
                     </TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Tooltip title="送付情報（ログイン/有効化URL・QR）">
+                          <IconButton
+                            size="small"
+                            color="secondary"
+                            onClick={() => {
+                              setShareTarget(t);
+                              setQrShown(null);
+                            }}
+                          >
+                            <Send fontSize="inherit" />
+                          </IconButton>
+                        </Tooltip>
                         <Tooltip
                           title={
                             t.status === 'active'
@@ -561,6 +610,137 @@ export const MasterDashboardPage = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setKeyDialog(null)}>閉じる</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 送付情報（ログイン/有効化URL・QR）ダイアログ */}
+      <Dialog
+        open={!!shareTarget}
+        onClose={() => setShareTarget(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          送付情報 — {shareTarget?.name}（{shareTarget?.slug}）
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            顧客に渡すURLです。コピー・別タブで確認・QRコードで送付できます。
+            ログインURLはテナントIDが、有効化URLはライセンスキーが自動で入ります。
+          </DialogContentText>
+          {shareTarget &&
+            (() => {
+              const urls = tenantUrls(shareTarget);
+              const rows: { label: string; url: string; hint: string }[] = [];
+              if (shareTarget.status === 'pending' && urls.activate) {
+                rows.push({
+                  label: '有効化URL',
+                  url: urls.activate,
+                  hint: '購入者が最初にアカウント登録する画面（未有効化のみ）',
+                });
+              }
+              rows.push({
+                label: '管理ログインURL',
+                url: urls.admin,
+                hint: '管理者（顧客）がログインする画面',
+              });
+              rows.push({
+                label: 'ユーザーログインURL',
+                url: urls.user,
+                hint: '閲覧用の一般ユーザーがログインする画面',
+              });
+              return rows.map((r) => (
+                <Box key={r.label} sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2">{r.label}</Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {r.hint}
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      bgcolor: 'grey.100',
+                      borderRadius: 1,
+                      px: 1,
+                      py: 0.5,
+                      mt: 0.5,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontFamily: 'monospace',
+                        flex: 1,
+                        wordBreak: 'break-all',
+                      }}
+                    >
+                      {r.url}
+                    </Typography>
+                    <Tooltip title="URLをコピー">
+                      <IconButton size="small" onClick={() => copyText(r.url)}>
+                        <ContentCopy fontSize="inherit" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="別タブで開く">
+                      <IconButton
+                        size="small"
+                        onClick={() => window.open(r.url, '_blank', 'noopener')}
+                      >
+                        <OpenInNew fontSize="inherit" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="QRコード">
+                      <IconButton
+                        size="small"
+                        color={qrShown === r.label ? 'primary' : 'default'}
+                        onClick={() =>
+                          setQrShown(qrShown === r.label ? null : r.label)
+                        }
+                      >
+                        <QrCode2 fontSize="inherit" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                  {qrShown === r.label && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        mt: 1.5,
+                      }}
+                    >
+                      <Box sx={{ bgcolor: 'white', p: 1.5, borderRadius: 1 }}>
+                        <QRCodeCanvas
+                          value={r.url}
+                          size={200}
+                          ref={(el) => {
+                            qrRefs.current[r.label] = el;
+                          }}
+                        />
+                      </Box>
+                      <Button
+                        size="small"
+                        startIcon={<QrCode2 />}
+                        sx={{ mt: 1 }}
+                        onClick={() =>
+                          downloadQr(
+                            r.label,
+                            `${shareTarget.slug}-${r.label}.png`,
+                          )
+                        }
+                      >
+                        QRをPNGで保存
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+              ));
+            })()}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShareTarget(null)}>閉じる</Button>
         </DialogActions>
       </Dialog>
 
