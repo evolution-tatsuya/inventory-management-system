@@ -45,6 +45,10 @@ export const authController = {
       res.json({
         success: true,
         token,
+        // フロントの LoginResponse はトップレベルの role/tenantId/userType を参照する
+        userType,
+        role: account.role,
+        tenantId: account.tenantId,
         account: {
           id: account.id,
           email: account.email,
@@ -83,6 +87,10 @@ export const authController = {
       res.json({
         success: true,
         token,
+        // フロントの LoginResponse はトップレベルの role/tenantId/userType を参照する
+        userType: 'admin',
+        role: 'master',
+        tenantId: account.tenantId,
         account: {
           id: account.id,
           email: account.email,
