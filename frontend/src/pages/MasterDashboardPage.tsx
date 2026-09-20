@@ -7,7 +7,6 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Container,
   Dialog,
   DialogActions,
   DialogContent,
@@ -31,7 +30,14 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { ContentCopy, Delete, Logout, Refresh } from '@mui/icons-material';
+import {
+  ContentCopy,
+  Delete,
+  Logout,
+  ManageAccounts,
+  Refresh,
+  Visibility,
+} from '@mui/icons-material';
 import { useAuth } from '@/hooks/useAuth';
 import * as masterApi from '@/services/api/master';
 import type { TenantListItem } from '@/services/api/master';
@@ -42,6 +48,14 @@ const statusColor = (s: string): 'warning' | 'success' | 'default' =>
 
 const statusLabel = (s: string): string =>
   s === 'pending' ? '未有効化' : s === 'active' ? '稼働中' : '停止中';
+
+// ISO日時 → YYYY/MM/DD 表示（不正値は '—'）
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
 
 // BOM付きCSV文字列を生成（Excel互換）
 function toCsv(rows: Record<string, unknown>[]): string {
@@ -174,6 +188,23 @@ export const MasterDashboardPage = () => {
     }
   };
 
+  // 対象テナントを別タブで開く（サポート・入力代行時の動作確認用）。
+  // master のトークン(adminAuthToken)は全テナント横断可のため流用できる。
+  // currentTenantSlug を対象テナントに切り替えてから新規タブで開く。
+  // 総括ページ自体は master API を使うため、この slug 書き換えの影響を受けない。
+  const openTenantView = (t: TenantListItem, view: 'admin' | 'user') => {
+    if (t.status !== 'active') {
+      setSnack('稼働中のテナントのみ閲覧できます（未有効化/停止中は不可）');
+      return;
+    }
+    // master の閲覧は常に admin トークンで通す（user画面もmaster権限で閲覧可）
+    localStorage.setItem('currentTenantSlug', t.slug);
+    localStorage.setItem('currentUserType', 'admin');
+    const path = view === 'admin' ? '/admin/dashboard' : '/categories';
+    window.open(path, '_blank', 'noopener');
+    setSnack(`「${t.name}」の${view === 'admin' ? '管理画面' : 'ユーザー画面'}を新しいタブで開きました`);
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate('/master/login');
@@ -182,7 +213,19 @@ export const MasterDashboardPage = () => {
   const s = summaryQuery.data;
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        width: '100vw',
+        bgcolor: 'grey.50',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: 'auto',
+      }}
+    >
       {/* ヘッダー */}
       <Box
         sx={{
@@ -208,7 +251,7 @@ export const MasterDashboardPage = () => {
         </Button>
       </Box>
 
-      <Container maxWidth="lg" sx={{ py: 3 }}>
+      <Box sx={{ px: { xs: 2, md: 4 }, py: 3 }}>
         {/* サマリー */}
         {s && (
           <Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: 'wrap' }}>
@@ -285,15 +328,60 @@ export const MasterDashboardPage = () => {
                         </Typography>
                       ) : (
                         t.admins.map((a) => (
-                          <Typography key={a.id} variant="caption" display="block">
-                            {a.email}
-                            {a.role === 'master' ? '（運営者）' : ''}
-                          </Typography>
+                          <Box key={a.id} sx={{ mb: 0.5 }}>
+                            <Typography variant="caption" display="block">
+                              {a.email}
+                              {a.role === 'master' ? '（運営者）' : ''}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              display="block"
+                              color="text.secondary"
+                            >
+                              登録: {formatDate(a.createdAt)}
+                            </Typography>
+                          </Box>
                         ))
                       )}
                     </TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Tooltip
+                          title={
+                            t.status === 'active'
+                              ? '管理画面を別タブで開く'
+                              : '稼働中のみ閲覧可'
+                          }
+                        >
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              disabled={t.status !== 'active'}
+                              onClick={() => openTenantView(t, 'admin')}
+                            >
+                              <ManageAccounts fontSize="inherit" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip
+                          title={
+                            t.status === 'active'
+                              ? 'ユーザー画面を別タブで開く'
+                              : '稼働中のみ閲覧可'
+                          }
+                        >
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              disabled={t.status !== 'active'}
+                              onClick={() => openTenantView(t, 'user')}
+                            >
+                              <Visibility fontSize="inherit" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                         {t.status === 'active' && (
                           <Button
                             size="small"
@@ -352,7 +440,7 @@ export const MasterDashboardPage = () => {
             </Table>
           </TableContainer>
         )}
-      </Container>
+      </Box>
 
       {/* 発行フォーム */}
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
