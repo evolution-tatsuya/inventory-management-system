@@ -24,6 +24,13 @@ model Tenant {
   licenseKey String?  @unique                 // 発行キー。ユーザーが入力して有効化。既定テナントはnull可
   stockMode  String   @default("perCategory") // 発行時に固定する在庫モード（S1では予備。正はSystemSettings.stockMode）
   status     String   @default("active")      // pending / active / suspended
+  // 契約/課金（運営者が総括ページで管理。すべて任意）
+  plan              String?   // プラン名（自由入力。例: basic / pro）
+  monthlyFee        Int?      // 月額料金（円）
+  billingStatus     String?   // 課金状態: trial / paid / unpaid / free
+  contractStartDate DateTime? // 契約開始日
+  nextBillingDate   DateTime? // 次回請求日
+  billingNote       String?   // 課金メモ（連絡先・請求状況など自由記述）
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

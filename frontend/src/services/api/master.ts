@@ -28,6 +28,17 @@ export interface TenantCount {
 export interface TenantListItem extends Tenant {
   _count: TenantCount;
   admins: TenantAdmin[];
+  imageCount: number; // 画像枚数（Cloudinary容量の目安）
+}
+
+// 課金情報の更新リクエスト（すべて任意・渡した項目のみ更新）
+export interface UpdateBillingRequest {
+  plan?: string | null;
+  monthlyFee?: number | null;
+  billingStatus?: string | null;
+  contractStartDate?: string | null;
+  nextBillingDate?: string | null;
+  billingNote?: string | null;
 }
 
 export interface TenantSummary {
@@ -78,6 +89,14 @@ export async function setStatus(
   status: 'active' | 'suspended',
 ): Promise<Tenant> {
   return put<Tenant>(`/api/master/tenants/${id}/status`, { status });
+}
+
+// 契約/課金情報の更新
+export async function updateBilling(
+  id: string,
+  data: UpdateBillingRequest,
+): Promise<Tenant> {
+  return put<Tenant>(`/api/master/tenants/${id}/billing`, data);
 }
 
 // ライセンスキー再発行

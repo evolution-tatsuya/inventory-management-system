@@ -37,6 +37,7 @@ import {
   Logout,
   ManageAccounts,
   OpenInNew,
+  Payments,
   QrCode2,
   Refresh,
   Send,
@@ -52,6 +53,35 @@ const statusColor = (s: string): 'warning' | 'success' | 'default' =>
 
 const statusLabel = (s: string): string =>
   s === 'pending' ? '未有効化' : s === 'active' ? '稼働中' : '停止中';
+
+// 課金ステータス → ラベル・色
+const billingLabel = (s: string | null): string => {
+  switch (s) {
+    case 'trial':
+      return '試用';
+    case 'paid':
+      return '支払い済み';
+    case 'unpaid':
+      return '未払い';
+    case 'free':
+      return '無料';
+    default:
+      return '未設定';
+  }
+};
+
+const billingColor = (s: string | null): 'info' | 'success' | 'error' | 'default' => {
+  switch (s) {
+    case 'trial':
+      return 'info';
+    case 'paid':
+      return 'success';
+    case 'unpaid':
+      return 'error';
+    default:
+      return 'default';
+  }
+};
 
 // ISO日時 → YYYY/MM/DD 表示（不正値は '—'）
 function formatDate(iso: string | null | undefined): string {
@@ -116,6 +146,16 @@ export const MasterDashboardPage = () => {
   const [qrShown, setQrShown] = useState<string | null>(null);
   // QRコード canvas への参照（PNG保存用。ラベルごとに保持）
   const qrRefs = useRef<Record<string, HTMLCanvasElement | null>>({});
+  // 課金編集ダイアログの対象テナントとフォーム値
+  const [billingTarget, setBillingTarget] = useState<TenantListItem | null>(null);
+  const [billingForm, setBillingForm] = useState({
+    plan: '',
+    monthlyFee: '',
+    billingStatus: '',
+    contractStartDate: '',
+    nextBillingDate: '',
+    billingNote: '',
+  });
 
   // 発行フォーム
   const [name, setName] = useState('');
@@ -161,6 +201,30 @@ export const MasterDashboardPage = () => {
     },
     onError: (e: Error) => setSnack(e.message),
   });
+
+  const billingMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: masterApi.UpdateBillingRequest }) =>
+      masterApi.updateBilling(id, data),
+    onSuccess: () => {
+      invalidate();
+      setBillingTarget(null);
+      setSnack('課金情報を更新しました');
+    },
+    onError: (e: Error) => setSnack(e.message),
+  });
+
+  // 課金編集ダイアログを開く（現在値をフォームに反映）
+  const openBilling = (t: TenantListItem) => {
+    setBillingForm({
+      plan: t.plan || '',
+      monthlyFee: t.monthlyFee != null ? String(t.monthlyFee) : '',
+      billingStatus: t.billingStatus || '',
+      contractStartDate: t.contractStartDate ? t.contractStartDate.slice(0, 10) : '',
+      nextBillingDate: t.nextBillingDate ? t.nextBillingDate.slice(0, 10) : '',
+      billingNote: t.billingNote || '',
+    });
+    setBillingTarget(t);
+  };
 
   const regenerateMutation = useMutation({
     mutationFn: (id: string) => masterApi.regenerateKey(id),
@@ -336,7 +400,8 @@ export const MasterDashboardPage = () => {
                   <TableCell>slug</TableCell>
                   <TableCell>状態</TableCell>
                   <TableCell>ライセンスキー</TableCell>
-                  <TableCell>件数(cat/genre/unit/part)</TableCell>
+                  <TableCell>件数(cat/genre/unit/part/画像)</TableCell>
+                  <TableCell>課金</TableCell>
                   <TableCell>管理者</TableCell>
                   <TableCell align="right">操作</TableCell>
                 </TableRow>
@@ -370,7 +435,27 @@ export const MasterDashboardPage = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      {t._count.categories}/{t._count.genres}/{t._count.units}/{t._count.parts}
+                      {t._count.categories}/{t._count.genres}/{t._count.units}/{t._count.parts}/
+                      {t.imageCount}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={billingLabel(t.billingStatus)}
+                        color={billingColor(t.billingStatus)}
+                        variant={t.billingStatus ? 'filled' : 'outlined'}
+                      />
+                      {t.plan && (
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          {t.plan}
+                          {t.monthlyFee != null ? ` ・¥${t.monthlyFee.toLocaleString()}/月` : ''}
+                        </Typography>
+                      )}
+                      {t.nextBillingDate && (
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          次回: {formatDate(t.nextBillingDate)}
+                        </Typography>
+                      )}
                     </TableCell>
                     <TableCell>
                       {t.admins.length === 0 ? (
@@ -414,6 +499,15 @@ export const MasterDashboardPage = () => {
                             }}
                           >
                             <Send fontSize="inherit" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="課金情報を編集">
+                          <IconButton
+                            size="small"
+                            color="secondary"
+                            onClick={() => openBilling(t)}
+                          >
+                            <Payments fontSize="inherit" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip
@@ -762,6 +856,111 @@ export const MasterDashboardPage = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShareTarget(null)}>閉じる</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 課金編集ダイアログ */}
+      <Dialog
+        open={!!billingTarget}
+        onClose={() => setBillingTarget(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          課金情報 — {billingTarget?.name}（{billingTarget?.slug}）
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="subtitle2" sx={{ mb: 1, mt: 1 }}>
+            課金ステータス
+          </Typography>
+          <RadioGroup
+            row
+            value={billingForm.billingStatus}
+            onChange={(e) =>
+              setBillingForm({ ...billingForm, billingStatus: e.target.value })
+            }
+            sx={{ mb: 2 }}
+          >
+            <FormControlLabel value="" control={<Radio />} label="未設定" />
+            <FormControlLabel value="trial" control={<Radio />} label="試用" />
+            <FormControlLabel value="paid" control={<Radio />} label="支払い済み" />
+            <FormControlLabel value="unpaid" control={<Radio />} label="未払い" />
+            <FormControlLabel value="free" control={<Radio />} label="無料" />
+          </RadioGroup>
+          <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+            <TextField
+              label="プラン名"
+              fullWidth
+              value={billingForm.plan}
+              onChange={(e) => setBillingForm({ ...billingForm, plan: e.target.value })}
+              placeholder="例: basic / pro"
+            />
+            <TextField
+              label="月額料金（円）"
+              type="number"
+              fullWidth
+              value={billingForm.monthlyFee}
+              onChange={(e) =>
+                setBillingForm({ ...billingForm, monthlyFee: e.target.value })
+              }
+            />
+          </Stack>
+          <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+            <TextField
+              label="契約開始日"
+              type="date"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={billingForm.contractStartDate}
+              onChange={(e) =>
+                setBillingForm({ ...billingForm, contractStartDate: e.target.value })
+              }
+            />
+            <TextField
+              label="次回請求日"
+              type="date"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={billingForm.nextBillingDate}
+              onChange={(e) =>
+                setBillingForm({ ...billingForm, nextBillingDate: e.target.value })
+              }
+            />
+          </Stack>
+          <TextField
+            label="メモ（連絡先・請求状況など）"
+            fullWidth
+            multiline
+            minRows={2}
+            value={billingForm.billingNote}
+            onChange={(e) =>
+              setBillingForm({ ...billingForm, billingNote: e.target.value })
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBillingTarget(null)}>キャンセル</Button>
+          <Button
+            variant="contained"
+            disabled={billingMutation.isPending}
+            onClick={() =>
+              billingTarget &&
+              billingMutation.mutate({
+                id: billingTarget.id,
+                data: {
+                  plan: billingForm.plan,
+                  monthlyFee:
+                    billingForm.monthlyFee === '' ? null : Number(billingForm.monthlyFee),
+                  billingStatus: billingForm.billingStatus,
+                  contractStartDate: billingForm.contractStartDate,
+                  nextBillingDate: billingForm.nextBillingDate,
+                  billingNote: billingForm.billingNote,
+                },
+              })
+            }
+          >
+            {billingMutation.isPending ? '保存中...' : '保存'}
+          </Button>
         </DialogActions>
       </Dialog>
 

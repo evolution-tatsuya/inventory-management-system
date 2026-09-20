@@ -64,6 +64,26 @@ export const masterController = {
     }
   },
 
+  // 契約/課金情報の更新
+  async updateBilling(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { plan, monthlyFee, billingStatus, contractStartDate, nextBillingDate, billingNote } =
+        req.body;
+      res.json(
+        await tenantService.updateBilling(req.params.id, {
+          plan,
+          monthlyFee,
+          billingStatus,
+          contractStartDate,
+          nextBillingDate,
+          billingNote,
+        }),
+      );
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  },
+
   // ライセンスキー再発行
   async regenerateKey(req: Request, res: Response, next: NextFunction) {
     try {

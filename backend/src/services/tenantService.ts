@@ -65,7 +65,21 @@ export const tenantService = {
         },
       },
     });
-    return tenants;
+
+    // 画像枚数を集計（imageUrl が入っている genre/unit/part ＋ 全 diagramImage）。
+    // Cloudinary容量の目安。テナント数は少ないので個別集計で十分。
+    const withImages = await Promise.all(
+      tenants.map(async (t) => {
+        const [genreImg, unitImg, partImg, diagramImg] = await Promise.all([
+          prisma.genre.count({ where: { tenantId: t.id, imageUrl: { not: null } } }),
+          prisma.unit.count({ where: { tenantId: t.id, imageUrl: { not: null } } }),
+          prisma.part.count({ where: { tenantId: t.id, imageUrl: { not: null } } }),
+          prisma.diagramImage.count({ where: { tenantId: t.id } }),
+        ]);
+        return { ...t, imageCount: genreImg + unitImg + partImg + diagramImg };
+      }),
+    );
+    return withImages;
   },
 
   // テナント詳細（顧客の登録/変更が反映される。運営者が確認用）
@@ -293,6 +307,49 @@ export const tenantService = {
       throw new Error('未有効化テナントは停止/再開できません（キー有効化待ち）');
     }
     return prisma.tenant.update({ where: { id }, data: { status } });
+  },
+
+  // 契約/課金情報の更新（運営者用）。渡されたフィールドのみ更新。
+  async updateBilling(
+    id: string,
+    data: {
+      plan?: string | null;
+      monthlyFee?: number | null;
+      billingStatus?: string | null;
+      contractStartDate?: string | null;
+      nextBillingDate?: string | null;
+      billingNote?: string | null;
+    },
+  ) {
+    const tenant = await prisma.tenant.findUnique({ where: { id } });
+    if (!tenant) throw new Error('Tenant not found');
+
+    const ALLOWED_STATUS = ['trial', 'paid', 'unpaid', 'free'];
+    if (
+      data.billingStatus != null &&
+      data.billingStatus !== '' &&
+      !ALLOWED_STATUS.includes(data.billingStatus)
+    ) {
+      throw new Error('課金ステータスが不正です（trial/paid/unpaid/free）');
+    }
+
+    // 空文字は null に正規化。日付は Date へ。undefined は「更新しない」
+    const toDate = (v: string | null | undefined) =>
+      v === undefined ? undefined : v ? new Date(v) : null;
+    const toStr = (v: string | null | undefined) =>
+      v === undefined ? undefined : v === '' ? null : v;
+
+    return prisma.tenant.update({
+      where: { id },
+      data: {
+        plan: toStr(data.plan),
+        monthlyFee: data.monthlyFee === undefined ? undefined : data.monthlyFee,
+        billingStatus: toStr(data.billingStatus),
+        contractStartDate: toDate(data.contractStartDate),
+        nextBillingDate: toDate(data.nextBillingDate),
+        billingNote: toStr(data.billingNote),
+      },
+    });
   },
 
   // ライセンスキー再発行

@@ -194,6 +194,13 @@ export interface Tenant {
   licenseKey: string | null;
   stockMode: string;
   status: 'pending' | 'active' | 'suspended';
+  // 契約/課金（運営者が総括ページで管理。すべて任意）
+  plan: string | null;
+  monthlyFee: number | null;
+  billingStatus: string | null;
+  contractStartDate: string | null;
+  nextBillingDate: string | null;
+  billingNote: string | null;
   createdAt: string;
   updatedAt: string;
 }
