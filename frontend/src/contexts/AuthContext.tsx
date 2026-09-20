@@ -195,6 +195,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return;
       }
 
+      // テナント slug が無いと session API が旧パス(/api/auth/session)になり404になるため、
+      // slug が確定していない状態では未認証扱いにする（コンソール404エラー防止）。
+      const slug = localStorage.getItem('currentTenantSlug');
+      if (!slug) {
+        setAccount(null);
+        setUserType(null);
+        setRole(null);
+        setLoading(false);
+        return;
+      }
+
       // 実APIを呼び出し
       const response = await authApi.checkSession();
 

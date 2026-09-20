@@ -152,24 +152,10 @@ export const AdminLoginPage = () => {
           {loading ? 'ログイン中...' : '管理者ログイン'}
         </Button>
 
-        <Box
-          sx={{
-            p: 2,
-            backgroundColor: 'grey.100',
-            borderRadius: 1,
-            border: '1px solid',
-            borderColor: 'grey.300',
-          }}
-        >
-          <Typography variant="caption" display="block" sx={{ fontWeight: 600, mb: 1 }}>
-            デモアカウント
-          </Typography>
-          <Typography variant="caption" display="block" sx={{ fontFamily: 'monospace' }}>
-            email: admin@inventory-system.local
-          </Typography>
-          <Typography variant="caption" display="block" sx={{ fontFamily: 'monospace' }}>
-            password: Admin2025Pass
-          </Typography>
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Button variant="text" size="small" onClick={() => navigate('/login')}>
+            一般利用者の方はこちら
+          </Button>
         </Box>
       </Box>
     </PublicLayout>

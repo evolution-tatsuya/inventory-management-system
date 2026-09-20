@@ -150,6 +150,12 @@ export const LoginPage = () => {
           {loading ? 'ログイン中...' : 'ログイン'}
         </Button>
 
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Button variant="text" size="small" onClick={() => navigate('/admin/login')}>
+            管理者の方はこちら
+          </Button>
+        </Box>
+
         <Box
           sx={{
             p: 2,
