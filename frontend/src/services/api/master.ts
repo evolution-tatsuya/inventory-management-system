@@ -15,6 +15,7 @@ export interface TenantAdmin {
   name: string | null;
   role: string;
   createdAt: string;
+  lastLoginAt: string | null;
 }
 
 export interface TenantCount {

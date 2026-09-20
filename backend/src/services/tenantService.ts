@@ -60,7 +60,7 @@ export const tenantService = {
           select: { categories: true, genres: true, units: true, parts: true },
         },
         admins: {
-          select: { id: true, email: true, name: true, role: true, createdAt: true },
+          select: { id: true, email: true, name: true, role: true, createdAt: true, lastLoginAt: true },
           orderBy: { createdAt: 'asc' },
         },
       },

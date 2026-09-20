@@ -50,11 +50,12 @@ model Admin {
   email     String   // テナント内で一意（@@unique([tenantId, email])）。別テナントの同一emailは許容
   password  String   // bcryptでハッシュ化
   name      String?  // 表示名（オプション）
-  role      String   @default("admin") // master / admin（masterは運営者=全テナント横断）
-  tenantId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role        String    @default("admin") // master / admin（masterは運営者=全テナント横断）
+  tenantId    String
+  lastLoginAt DateTime? // 最終ログイン日時（総括ページで休眠顧客把握に使用。未ログインはnull）
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, email])
   @@index([tenantId])

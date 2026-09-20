@@ -56,6 +56,14 @@ export const authService = {
       throw new Error('Invalid credentials');
     }
 
+    // 最終ログイン日時を記録（admin のみ。User は lastLoginAt を持たない）
+    if (userType === 'admin') {
+      await prisma.admin.update({
+        where: { id: account.id },
+        data: { lastLoginAt: new Date() },
+      });
+    }
+
     return {
       id: account.id,
       email: account.email,
@@ -82,6 +90,11 @@ export const authService = {
     if (!isValid) {
       throw new Error('Invalid credentials');
     }
+    // 最終ログイン日時を記録
+    await prisma.admin.update({
+      where: { id: account.id },
+      data: { lastLoginAt: new Date() },
+    });
     return {
       id: account.id,
       email: account.email,

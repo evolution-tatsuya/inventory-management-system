@@ -61,6 +61,20 @@ function formatDate(iso: string | null | undefined): string {
   return d.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
+// ISO日時 → YYYY/MM/DD HH:mm 表示（最終ログイン用。未ログインは '未ログイン'）
+function formatLastLogin(iso: string | null | undefined): string {
+  if (!iso) return '未ログイン';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '未ログイン';
+  return d.toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 // BOM付きCSV文字列を生成（Excel互換）
 function toCsv(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return '﻿';
@@ -376,6 +390,13 @@ export const MasterDashboardPage = () => {
                               color="text.secondary"
                             >
                               登録: {formatDate(a.createdAt)}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              display="block"
+                              color={a.lastLoginAt ? 'text.secondary' : 'warning.main'}
+                            >
+                              最終ログイン: {formatLastLogin(a.lastLoginAt)}
                             </Typography>
                           </Box>
                         ))
