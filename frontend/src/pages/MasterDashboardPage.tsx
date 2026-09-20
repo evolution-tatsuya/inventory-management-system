@@ -468,8 +468,11 @@ export const MasterDashboardPage = () => {
             helperText="顧客希望の識別子。例: tanaka-parts"
             sx={{ mb: 2 }}
           />
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
             在庫モード
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            同じ品番が複数カテゴリーに登場したとき、在庫数を分けるか共有するか
           </Typography>
           <RadioGroup
             value={stockMode}
@@ -479,9 +482,29 @@ export const MasterDashboardPage = () => {
             <FormControlLabel
               value="perCategory"
               control={<Radio />}
-              label="カテゴリー独立（推奨）"
+              sx={{ alignItems: 'flex-start', mb: 1 }}
+              label={
+                <Box sx={{ pt: 0.5 }}>
+                  <Typography variant="body2">カテゴリー独立（推奨）</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    同じ品番でもカテゴリーごとに在庫を別々に管理。車種・案件ごとに在庫を分ける場合はこちら。
+                  </Typography>
+                </Box>
+              }
             />
-            <FormControlLabel value="shared" control={<Radio />} label="全カテゴリー共有" />
+            <FormControlLabel
+              value="shared"
+              control={<Radio />}
+              sx={{ alignItems: 'flex-start' }}
+              label={
+                <Box sx={{ pt: 0.5 }}>
+                  <Typography variant="body2">全カテゴリー共有</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    同じ品番の在庫を全カテゴリーで1つの数字として共有。倉庫に在庫が1箇所だけの場合はこちら。
+                  </Typography>
+                </Box>
+              }
+            />
           </RadioGroup>
           <Divider sx={{ my: 2 }} />
           <TextField
@@ -489,7 +512,7 @@ export const MasterDashboardPage = () => {
             fullWidth
             value={sourceCategoryId}
             onChange={(e) => setSourceCategoryId(e.target.value)}
-            helperText="既定テナントのカテゴリーIDを指定するとその内容を複製します"
+            helperText="空欄＝データなしの空テナント。IDを入れると既定テナントのそのカテゴリー1件を複製します"
           />
         </DialogContent>
         <DialogActions>
