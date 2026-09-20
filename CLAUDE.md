@@ -432,7 +432,9 @@ Neon:
   (有効化/管理/ユーザーの3URL・?key/?tenant自動入力・コピー/別タブ/QR)。壊れたgainer-copyを
   停止→バックアップ→削除し、新規テナントgainer-parts-list(GAINER在庫管理)を作成→有効化→全カテゴリー
   複製(10539部品・在庫一致)まで検証。複製ロジックにバグ無しと判明(default在庫のshared/perCategory分裂が
-  誤診の元)。複製スクリプトclone-into-existing-tenant.ts追加。default(10539)は全作業通じて無傷
+  誤診の元)。複製スクリプトclone-into-existing-tenant.ts追加。default(10539)は全作業通じて無傷。
+  ＋段階B: Admin.lastLoginAt追加→ログイン時記録→総括に最終ログイン表示(未ログインは警告色)。
+  本番DB db push→Cloud Run(00033)デプロイ→本番フル検証済み
 - 2026-09-20: マルチテナント化(フェーズ3 S1-S4)を本番反映完了。全10モデルにtenantId、
   URLパス方式(/api/t/:slug)、master別導線(/api/master/*)、ライセンスキー方式でテナント発行→
   顧客が有効化時に自分でアカウント登録→総括ページで確認。多段階削除(suspended/pending・名前一致・
