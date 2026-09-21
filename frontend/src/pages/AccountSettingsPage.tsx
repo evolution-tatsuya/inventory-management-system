@@ -23,7 +23,7 @@ import {
 } from '@mui/material';
 import { Logout, Visibility, VisibilityOff, Upload } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { accountApi, authApi, systemSettingsApi, imagesApi } from '@/services/api';
+import { accountApi, systemSettingsApi, imagesApi } from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
 import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
 import type { SystemSettings } from '@/services/api/types';
@@ -37,7 +37,7 @@ import type { SystemSettings } from '@/services/api/types';
 export const AccountSettingsPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { account } = useAuth();
+  const { account, logout: authLogout } = useAuth();
 
   // 基本情報フォーム
   const [displayName, setDisplayName] = useState('');
@@ -153,13 +153,15 @@ export const AccountSettingsPage = () => {
     fetchSettings();
   }, []);
 
-  // ログアウト
+  // ログアウト（AuthContext経由で全認証キーを確実にクリアする）
   const handleLogout = async () => {
     try {
-      await authApi.logout();
-      navigate('/login');
+      await authLogout();
     } catch (error) {
       console.error('Logout error:', error);
+    } finally {
+      // 成否に関わらずログイン画面へ（authLogoutが失敗してもキーはクリア済み）
+      navigate('/login');
     }
   };
 
