@@ -7,6 +7,7 @@
 import bcrypt from 'bcrypt';
 
 import { prisma } from '../lib/prisma';
+import { AppError } from '../middleware/errorHandler';
 
 // ============================================================
 // アカウントサービス
@@ -37,7 +38,7 @@ export const accountService = {
         select: { id: true },
       });
       if (!owned) {
-        throw new Error('Account not found');
+        throw new AppError('Account not found', 404);
       }
 
       // メールアドレス更新
@@ -65,7 +66,7 @@ export const accountService = {
         select: { id: true },
       });
       if (!owned) {
-        throw new Error('Account not found');
+        throw new AppError('Account not found', 404);
       }
 
       // メールアドレス更新
@@ -107,7 +108,7 @@ export const accountService = {
     }
 
     if (!account) {
-      throw new Error('Account not found');
+      throw new AppError('Account not found', 404);
     }
 
     // 現在のパスワード検証（管理者が他のアカウントを変更する場合はスキップ）
@@ -152,7 +153,7 @@ export const accountService = {
         select: { id: true },
       });
       if (!owned) {
-        throw new Error('Account not found');
+        throw new AppError('Account not found', 404);
       }
       // 管理者のユーザー名更新
       return await prisma.admin.update({
@@ -170,7 +171,7 @@ export const accountService = {
         select: { id: true },
       });
       if (!owned) {
-        throw new Error('Account not found');
+        throw new AppError('Account not found', 404);
       }
       // 一般ユーザーのユーザー名更新
       return await prisma.user.update({
@@ -196,14 +197,14 @@ export const accountService = {
   ) {
     const name = (data.name || '').trim();
     if (!name) {
-      throw new Error('お名前を入力してください');
+      throw new AppError('お名前を入力してください', 400);
     }
     const owned = await prisma.admin.findFirst({
       where: { id: userId, tenantId },
       select: { id: true },
     });
     if (!owned) {
-      throw new Error('Account not found');
+      throw new AppError('Account not found', 404);
     }
     return await prisma.admin.update({
       where: { id: userId },

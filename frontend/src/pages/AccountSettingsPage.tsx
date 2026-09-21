@@ -241,6 +241,11 @@ export const AccountSettingsPage = () => {
 
   // 基本情報変更処理（まとめて保存）
   const handleSaveBasicInfo = async () => {
+    // 対象アカウントが未取得（種別に該当アカウントが無い等）の場合は保存しない
+    if (!accountData) {
+      setErrorMessage('先に「現在の登録状況確認」で対象アカウントを表示してください');
+      return;
+    }
     const prof = (accountData ?? {}) as {
       companyName?: string | null;
       department?: string | null;
