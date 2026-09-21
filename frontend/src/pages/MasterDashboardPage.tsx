@@ -649,7 +649,7 @@ export const MasterDashboardPage = () => {
             required
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
-            helperText="顧客希望の識別子。例: tanaka-parts"
+            helperText="顧客希望の識別子。例: my-parts / sample-shop"
             sx={{ mb: 2 }}
           />
           <Typography variant="subtitle2" sx={{ mb: 0.5 }}>

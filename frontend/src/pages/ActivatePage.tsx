@@ -118,7 +118,7 @@ export const ActivatePage = () => {
           value={companyName}
           onChange={(e) => setCompanyName(e.target.value)}
           sx={{ mb: 2 }}
-          placeholder="例: 株式会社ゲイナー"
+          placeholder="例: 株式会社◯◯◯"
         />
         <TextField
           label="部署（任意）"

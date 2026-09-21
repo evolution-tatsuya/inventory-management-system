@@ -841,7 +841,7 @@ export const AccountSettingsPage = () => {
                     fullWidth
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="例: 株式会社ゲイナー"
+                    placeholder="例: 株式会社◯◯◯"
                     sx={{
                       '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '13px' },
                       '& .MuiOutlinedInput-input': { padding: '13px 11px' },
