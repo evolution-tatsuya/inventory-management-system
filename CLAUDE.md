@@ -443,7 +443,10 @@ Neon:
   ＋バグ修正3件: ①ログアウトがlocalStorageを消さず別テナントにログイン不可→AuthContext.logoutで
   全キークリアに統一+AccountSettingsPageの独自ログアウトも統一(a5339e3)②アカウント設定で対象
   アカウント未取得時に保存すると500→フロントでブロック+バックはAppError(404/400)化(6934f5b,00036)
-  ③入力例から実在名除去(株式会社ゲイナー→◯◯◯、tanaka-parts→my-parts)(5ec76df)。全て本番検証済み
+  ③入力例から実在名除去(株式会社ゲイナー→◯◯◯、tanaka-parts→my-parts)(5ec76df)。全て本番検証済み。
+  ＋閲覧専用ユーザー機能: accountService.createUser/deleteUser、POST/DELETE /account/users(管理者用)、
+  POST /master/tenants/:id/users(運営者代理作成)。管理画面アカウント設定に一覧・追加・削除UI、
+  総括に代理作成ダイアログ。閲覧ユーザーは在庫閲覧のみ(編集不可)。Cloud Run(00037)まで本番検証済み
 - 2026-09-20: マルチテナント化(フェーズ3 S1-S4)を本番反映完了。全10モデルにtenantId、
   URLパス方式(/api/t/:slug)、master別導線(/api/master/*)、ライセンスキー方式でテナント発行→
   顧客が有効化時に自分でアカウント登録→総括ページで確認。多段階削除(suspended/pending・名前一致・
