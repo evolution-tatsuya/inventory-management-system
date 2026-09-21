@@ -436,7 +436,10 @@ Neon:
   ＋段階B: Admin.lastLoginAt追加→ログイン時記録→総括に最終ログイン表示(未ログインは警告色)。
   ＋段階C: Tenantに課金6項目(plan/monthlyFee/billingStatus/契約日/次回請求日/メモ)追加、
   更新API・課金編集ダイアログ・課金列。＋データ量監視(画像枚数集計を件数列に追加)。
-  本番DB db push→Cloud Run(00033→00034)デプロイ→Vercel→本番フル検証済み
+  本番DB db push→Cloud Run(00033→00034)デプロイ→Vercel→本番フル検証済み。
+  ＋企業向け登録: Admin に companyName/department追加。有効化フォームに会社名・部署欄＋お名前必須化、
+  アカウント設定で会社名/部署/名前を後から変更可(PUT /account/profile)、総括に会社名・部署・名前表示。
+  Cloud Run(00035)まで本番反映済み
 - 2026-09-20: マルチテナント化(フェーズ3 S1-S4)を本番反映完了。全10モデルにtenantId、
   URLパス方式(/api/t/:slug)、master別導線(/api/master/*)、ライセンスキー方式でテナント発行→
   顧客が有効化時に自分でアカウント登録→総括ページで確認。多段階削除(suspended/pending・名前一致・
