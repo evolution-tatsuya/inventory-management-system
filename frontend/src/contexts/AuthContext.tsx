@@ -28,6 +28,21 @@ interface AuthContextType {
 // ============================================================
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// 認証関連の localStorage キーを全てクリアする（ログアウト・再ログイン時に使用）。
+// 片方のトークンだけ消すと master トークン等が残り、別テナントにログインし直せなくなる。
+const clearAllAuthStorage = () => {
+  [
+    'adminAuthToken',
+    'userAuthToken',
+    'currentUserType',
+    'currentTenantSlug',
+    'currentRole',
+    // 旧バージョンのキー（残っていれば掃除）
+    'authToken',
+    'userType',
+  ].forEach((k) => localStorage.removeItem(k));
+};
+
 // ============================================================
 // AuthProvider Props
 // ============================================================
@@ -135,27 +150,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // 実APIを呼び出し
       await authApi.logout();
 
-      // JWTトークンを削除（現在のuserTypeに応じて）
-      const currentType = localStorage.getItem('currentUserType') as UserType | null;
-      if (currentType) {
-        const tokenKey = currentType === 'admin' ? 'adminAuthToken' : 'userAuthToken';
-        localStorage.removeItem(tokenKey);
-      }
-      localStorage.removeItem('currentUserType');
-      localStorage.removeItem('currentTenantSlug');
-      localStorage.removeItem('currentRole');
-
-      // アカウント情報をクリア
+      // 全認証キーを無条件でクリア（別テナント/別ロールへログインし直せるように）。
+      // currentUserTypeに依存して片方だけ消すと、masterトークン等が残る不具合になる。
+      clearAllAuthStorage();
       setAccount(null);
       setUserType(null);
       setRole(null);
     } catch (error) {
       console.error('ログアウトエラー:', error);
-      // ログアウトは失敗してもフロントエンドの状態はクリア
-      localStorage.removeItem('adminAuthToken');
-      localStorage.removeItem('userAuthToken');
-      localStorage.removeItem('currentUserType');
-      localStorage.removeItem('currentRole');
+      // ログアウトAPIが失敗してもフロントエンドの状態は必ずクリア
+      clearAllAuthStorage();
       setAccount(null);
       setUserType(null);
       setRole(null);
