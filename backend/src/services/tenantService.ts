@@ -469,4 +469,82 @@ export const tenantService = {
 
     return { slug: tenant.slug };
   },
+
+  // ============================================================
+  // EC連携：注文から pending テナントを発行する（冪等）。
+  // 同一 orderId で再呼び出しされても新規発行せず既存を返す。
+  // 決済確定後にECから呼ばれる想定。有効化は顧客が activate で行う。
+  // ============================================================
+  async provisionFromOrder(data: {
+    orderId: string;
+    email: string;
+    plan?: string;
+    billingType?: string; // monthly / yearly / onetime
+    frontendUrl: string;
+  }) {
+    const orderId = (data.orderId || '').trim();
+    if (!orderId) throw new Error('orderId は必須です');
+
+    const activationUrlOf = (key: string) =>
+      `${data.frontendUrl.replace(/\/+$/, '')}/activate?key=${key}`;
+
+    // 冪等：同一注文で発行済みならそれを返す
+    const existing = await prisma.tenant.findUnique({ where: { provisionOrderId: orderId } });
+    if (existing) {
+      return {
+        alreadyProvisioned: true,
+        slug: existing.slug,
+        licenseKey: existing.licenseKey,
+        activationUrl: existing.licenseKey ? activationUrlOf(existing.licenseKey) : null,
+        status: existing.status,
+      };
+    }
+
+    // billingType → 課金ステータス（決済確定後に呼ばれる前提なので paid）
+    const billingType = data.billingType || null;
+    const billingStatus = 'paid';
+
+    // slug 自動生成（ec-xxxxxxxx、英小文字数字）。衝突時リトライ。
+    const genSlug = () =>
+      'ec-' +
+      Array.from(crypto.randomBytes(6))
+        .map((b) => 'abcdefghijkmnpqrstuvwxyz23456789'[b % 32])
+        .join('');
+
+    let slug = genSlug();
+    for (let i = 0; i < 5; i++) {
+      const dup = await prisma.tenant.findUnique({ where: { slug } });
+      if (!dup) break;
+      slug = genSlug();
+    }
+
+    // テナント名は暫定（顧客が有効化時に会社名等を登録）。email をラベルに使う。
+    const name = data.plan ? `${data.plan}（${data.email}）` : data.email;
+
+    const tenant = await createWithUniqueKey((licenseKey) =>
+      prisma.tenant.create({
+        data: {
+          name,
+          slug,
+          stockMode: 'perCategory',
+          status: 'pending',
+          licenseKey,
+          plan: data.plan || null,
+          billingType,
+          billingStatus,
+          provisionOrderId: orderId,
+          contractStartDate: new Date(),
+          systemSettings: { create: { stockMode: 'perCategory', systemName: name } },
+        },
+      }),
+    );
+
+    return {
+      alreadyProvisioned: false,
+      slug: tenant.slug,
+      licenseKey: tenant.licenseKey,
+      activationUrl: tenant.licenseKey ? activationUrlOf(tenant.licenseKey) : null,
+      status: tenant.status,
+    };
+  },
 };

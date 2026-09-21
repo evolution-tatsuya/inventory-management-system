@@ -14,6 +14,7 @@ import authRoutes from './routes/auth';
 import { authController } from './controllers/authController';
 import masterRoutes from './routes/master';
 import { masterController } from './controllers/masterController';
+import integrationRoutes from './routes/integration';
 import categoryRoutes from './routes/category';
 import genreRoutes from './routes/genre';
 import unitRoutes from './routes/unit';
@@ -97,6 +98,7 @@ app.post('/api/master/login', authController.loginMaster);
 
 // 運営者(master)のテナント管理 — requireMaster保護（全テナント横断）
 app.use('/api/master', masterRoutes);
+app.use('/api/integration', integrationRoutes);
 
 // ライセンスキー有効化 — 購入者用・無認証（テナント配下ではない）
 app.post('/api/tenants/activate', masterController.activate);

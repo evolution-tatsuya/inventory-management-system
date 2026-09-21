@@ -31,6 +31,8 @@ model Tenant {
   contractStartDate DateTime? // 契約開始日
   nextBillingDate   DateTime? // 次回請求日
   billingNote       String?   // 課金メモ（連絡先・請求状況など自由記述）
+  billingType       String?   // EC課金種別: monthly / yearly / onetime（EC連携発行時に記録）
+  provisionOrderId  String?  @unique // EC注文ID（連携発行の冪等キー。同一注文の二重発行を防止）
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
