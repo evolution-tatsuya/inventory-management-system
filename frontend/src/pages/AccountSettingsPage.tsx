@@ -59,6 +59,12 @@ export const AccountSettingsPage = () => {
   const [selectedUserType, setSelectedUserType] = useState<'admin' | 'user'>('admin');
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [showAccountDetails, setShowAccountDetails] = useState(false); // 詳細表示フラグ
+
+  // 一般ユーザー(閲覧専用)の新規追加フォーム
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [showNewUserPassword, setShowNewUserPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -118,6 +124,54 @@ export const AccountSettingsPage = () => {
     retry: false, // 404エラー時にリトライしない
     staleTime: 0, // 常に最新のデータを取得
   });
+
+  // 一般ユーザー(閲覧専用)の一覧（管理者が管理するため常に取得）
+  const { data: usersList } = useQuery({
+    queryKey: ['accountList', 'user'],
+    queryFn: () => accountApi.getAllAccounts('user'),
+    staleTime: 0,
+  });
+
+  // 一般ユーザーを新規作成
+  const handleCreateUser = async () => {
+    try {
+      if (!newUserEmail.trim()) {
+        setErrorMessage('メールアドレスを入力してください');
+        return;
+      }
+      if (newUserPassword.length < 8) {
+        setErrorMessage('パスワードは8文字以上で入力してください');
+        return;
+      }
+      await accountApi.createUser({
+        email: newUserEmail.trim(),
+        password: newUserPassword,
+        name: newUserName.trim() || undefined,
+      });
+      setSuccessMessage('一般ユーザーを追加しました');
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setNewUserName('');
+      queryClient.invalidateQueries({ queryKey: ['accountList', 'user'] });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : '一般ユーザーの追加に失敗しました',
+      );
+    }
+  };
+
+  // 一般ユーザーを削除
+  const handleDeleteUser = async (id: string) => {
+    try {
+      await accountApi.deleteUser(id);
+      setSuccessMessage('一般ユーザーを削除しました');
+      queryClient.invalidateQueries({ queryKey: ['accountList', 'user'] });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : '一般ユーザーの削除に失敗しました',
+      );
+    }
+  };
 
   // アカウントデータが取得されたら、フォームに反映
   useEffect(() => {
@@ -1114,6 +1168,113 @@ export const AccountSettingsPage = () => {
               </Button>
             </Box>
           </Box>
+          )}
+
+          {/* 一般ユーザー(閲覧専用)管理セクション（管理者アカウント表示時のみ） */}
+          {showAccountDetails && selectedUserType === 'admin' && (
+            <Box
+              sx={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '19px',
+                marginBottom: '19px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              }}
+            >
+              <Typography sx={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px', color: '#333' }}>
+                閲覧専用ユーザーの管理
+              </Typography>
+              <Typography sx={{ fontSize: '12px', color: '#888', marginBottom: '14px' }}>
+                在庫の閲覧のみ可能なユーザーを追加できます（編集・削除はできません）。
+              </Typography>
+
+              {/* 既存ユーザー一覧 */}
+              {usersList && usersList.length > 0 ? (
+                <Box sx={{ marginBottom: '16px' }}>
+                  {usersList.map((u) => (
+                    <Box
+                      key={u.id}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        background: '#f7f7f7',
+                        marginBottom: '6px',
+                      }}
+                    >
+                      <Box>
+                        <Typography sx={{ fontSize: '13px', fontWeight: 500 }}>
+                          {u.name || '（名前未設定）'}
+                        </Typography>
+                        <Typography sx={{ fontSize: '12px', color: '#888' }}>{u.email}</Typography>
+                      </Box>
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteUser(u.id)}
+                        sx={{ fontSize: '12px', minWidth: 'auto' }}
+                      >
+                        削除
+                      </Button>
+                    </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Typography sx={{ fontSize: '13px', color: '#aaa', marginBottom: '16px' }}>
+                  閲覧専用ユーザーはまだ登録されていません。
+                </Typography>
+              )}
+
+              {/* 新規追加フォーム */}
+              <Typography sx={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: '#333' }}>
+                新規ユーザーを追加
+              </Typography>
+              <TextField
+                fullWidth
+                type="email"
+                placeholder="メールアドレス"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                sx={{ marginBottom: '10px', '& .MuiOutlinedInput-input': { padding: '12px 11px', fontSize: '13px' } }}
+              />
+              <TextField
+                fullWidth
+                type={showNewUserPassword ? 'text' : 'password'}
+                placeholder="パスワード（8文字以上）"
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                sx={{ marginBottom: '10px', '& .MuiOutlinedInput-input': { padding: '12px 11px', fontSize: '13px' } }}
+                InputProps={{
+                  endAdornment: (
+                    <IconButton onClick={() => setShowNewUserPassword(!showNewUserPassword)} edge="end" size="small">
+                      {showNewUserPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                    </IconButton>
+                  ),
+                }}
+              />
+              <TextField
+                fullWidth
+                placeholder="表示名（任意）"
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+                sx={{ marginBottom: '12px', '& .MuiOutlinedInput-input': { padding: '12px 11px', fontSize: '13px' } }}
+              />
+              <Button
+                variant="contained"
+                onClick={handleCreateUser}
+                disabled={!newUserEmail.trim() || newUserPassword.length < 8}
+                sx={{
+                  fontSize: '13px',
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                }}
+              >
+                ＋ ユーザーを追加
+              </Button>
+            </Box>
           )}
 
           {/* システム設定セクション（詳細表示時のみ） */}

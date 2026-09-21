@@ -308,4 +308,44 @@ export const accountController = {
       next(error);
     }
   },
+
+  // 一般ユーザー(閲覧専用)を新規作成（管理者のみ）
+  async createUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const authHeader = req.headers.authorization;
+      const { email, password, name } = req.body;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const decoded = verifyToken(authHeader.substring(7));
+      if (decoded.userType !== 'admin') {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+      if (!validateEmail(email)) {
+        return res.status(400).json({ error: 'メールアドレスの形式が不正です' });
+      }
+      const user = await accountService.createUser(decoded.tenantId, { email, password, name });
+      res.json({ success: true, user });
+    } catch (error: any) {
+      next(error);
+    }
+  },
+
+  // 一般ユーザーを削除（管理者のみ）
+  async deleteUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const decoded = verifyToken(authHeader.substring(7));
+      if (decoded.userType !== 'admin') {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+      const result = await accountService.deleteUser(decoded.tenantId, req.params.id);
+      res.json(result);
+    } catch (error: any) {
+      next(error);
+    }
+  },
 };

@@ -282,4 +282,52 @@ export const accountService = {
       });
     }
   },
+
+  // ============================================================
+  // 一般ユーザー(閲覧専用)を新規作成する。email はテナント内で一意。
+  // ============================================================
+  async createUser(
+    tenantId: string,
+    data: { email: string; password: string; name?: string },
+  ) {
+    const email = (data.email || '').trim();
+    if (!email) {
+      throw new AppError('メールアドレスを入力してください', 400);
+    }
+    if (!data.password || data.password.length < 8) {
+      throw new AppError('パスワードは8文字以上で入力してください', 400);
+    }
+    // テナント内 email 重複チェック
+    const existing = await prisma.user.findUnique({
+      where: { tenantId_email: { tenantId, email } },
+    });
+    if (existing) {
+      throw new AppError('このメールアドレスは既に使用されています', 400);
+    }
+    const hashed = await bcrypt.hash(data.password, 10);
+    return prisma.user.create({
+      data: {
+        email,
+        password: hashed,
+        name: data.name?.trim() || null,
+        tenantId,
+      },
+      select: { id: true, email: true, name: true, createdAt: true },
+    });
+  },
+
+  // ============================================================
+  // 一般ユーザーを削除する（自テナントのユーザーのみ）。
+  // ============================================================
+  async deleteUser(tenantId: string, userId: string) {
+    const owned = await prisma.user.findFirst({
+      where: { id: userId, tenantId },
+      select: { id: true },
+    });
+    if (!owned) {
+      throw new AppError('User not found', 404);
+    }
+    await prisma.user.delete({ where: { id: userId } });
+    return { success: true };
+  },
 };

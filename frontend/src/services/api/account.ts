@@ -4,7 +4,7 @@
 // アカウント設定のAPI呼び出しを管理
 // ============================================================
 
-import { get, put } from './client';
+import { get, put, post, del } from './client';
 import { ACCOUNT_ENDPOINTS } from './endpoints';
 import type { UpdateEmailResponse, UpdatePasswordResponse } from './types';
 import type { UpdateEmailRequest, UpdatePasswordRequest, Admin, User } from '../../types';
@@ -92,4 +92,18 @@ export async function updateProfile(data: {
   accountId?: string;
 }): Promise<{ success: boolean; account: Admin }> {
   return put<{ success: boolean; account: Admin }>('/api/admin/account/profile', data);
+}
+
+// 一般ユーザー(閲覧専用)を新規作成（管理者のみ）
+export async function createUser(data: {
+  email: string;
+  password: string;
+  name?: string;
+}): Promise<{ success: boolean; user: User }> {
+  return post<{ success: boolean; user: User }>('/api/admin/account/users', data);
+}
+
+// 一般ユーザーを削除（管理者のみ）
+export async function deleteUser(id: string): Promise<{ success: boolean }> {
+  return del<{ success: boolean }>(`/api/admin/account/users/${id}`);
 }

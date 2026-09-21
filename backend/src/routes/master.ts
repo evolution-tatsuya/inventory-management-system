@@ -18,6 +18,7 @@ router.get('/tenants/:id', requireMaster, masterController.getTenantDetail);
 router.get('/tenants/:id/backup', requireMaster, masterController.backup);
 router.put('/tenants/:id/status', requireMaster, masterController.setStatus);
 router.put('/tenants/:id/billing', requireMaster, masterController.updateBilling);
+router.post('/tenants/:id/users', requireMaster, masterController.createTenantUser);
 router.post('/tenants/:id/regenerate-key', requireMaster, masterController.regenerateKey);
 router.delete('/tenants/:id', requireMaster, masterController.deleteTenant);
 

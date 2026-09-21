@@ -101,6 +101,14 @@ export async function updateBilling(
   return put<Tenant>(`/api/master/tenants/${id}/billing`, data);
 }
 
+// 指定テナントに一般ユーザー(閲覧専用)を作成（運営者の代理作成）
+export async function createTenantUser(
+  id: string,
+  data: { email: string; password: string; name?: string },
+): Promise<{ success: boolean; user: { id: string; email: string; name: string | null } }> {
+  return post(`/api/master/tenants/${id}/users`, data);
+}
+
 // ライセンスキー再発行
 export async function regenerateKey(id: string): Promise<{ licenseKey: string }> {
   return post<{ licenseKey: string }>(`/api/master/tenants/${id}/regenerate-key`);

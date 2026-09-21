@@ -42,4 +42,10 @@ router.put('/displayname', requireAuth, accountController.changeDisplayName);
 // PUT /api/admin/account/profile - プロフィール更新（名前・会社名・部署）
 router.put('/profile', requireAuth, accountController.changeProfile);
 
+// POST /api/admin/account/users - 一般ユーザー(閲覧専用)を新規作成（管理者のみ）
+router.post('/users', requireAuth, accountController.createUser);
+
+// DELETE /api/admin/account/users/:id - 一般ユーザーを削除（管理者のみ）
+router.delete('/users/:id', requireAuth, accountController.deleteUser);
+
 export default router;

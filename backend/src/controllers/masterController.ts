@@ -3,6 +3,7 @@
 // ============================================================
 import { Request, Response, NextFunction } from 'express';
 import { tenantService } from '../services/tenantService';
+import { accountService } from '../services/accountService';
 import { validateEmail, validatePassword } from '../utils/validators';
 
 export const masterController = {
@@ -79,6 +80,22 @@ export const masterController = {
           billingNote,
         }),
       );
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  },
+
+  // 指定テナントに一般ユーザー(閲覧専用)を作成（運営者の代理作成）
+  async createTenantUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email, password, name } = req.body;
+      if (!validateEmail(email)) {
+        return res.status(400).json({ error: 'メールアドレスの形式が不正です' });
+      }
+      // テナント存在確認（無ければ getTenantDetail が throw）
+      await tenantService.getTenantDetail(req.params.id);
+      const user = await accountService.createUser(req.params.id, { email, password, name });
+      res.json({ success: true, user });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }

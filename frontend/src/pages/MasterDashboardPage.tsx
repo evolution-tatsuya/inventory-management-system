@@ -38,6 +38,7 @@ import {
   ManageAccounts,
   OpenInNew,
   Payments,
+  PersonAddAlt,
   QrCode2,
   Refresh,
   Send,
@@ -156,6 +157,9 @@ export const MasterDashboardPage = () => {
     nextBillingDate: '',
     billingNote: '',
   });
+  // 一般ユーザー代理作成ダイアログの対象テナントとフォーム
+  const [userTarget, setUserTarget] = useState<TenantListItem | null>(null);
+  const [userForm, setUserForm] = useState({ email: '', password: '', name: '' });
 
   // 発行フォーム
   const [name, setName] = useState('');
@@ -209,6 +213,18 @@ export const MasterDashboardPage = () => {
       invalidate();
       setBillingTarget(null);
       setSnack('課金情報を更新しました');
+    },
+    onError: (e: Error) => setSnack(e.message),
+  });
+
+  // 一般ユーザー代理作成
+  const createUserMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { email: string; password: string; name?: string } }) =>
+      masterApi.createTenantUser(id, data),
+    onSuccess: () => {
+      setUserTarget(null);
+      setUserForm({ email: '', password: '', name: '' });
+      setSnack('閲覧専用ユーザーを追加しました');
     },
     onError: (e: Error) => setSnack(e.message),
   });
@@ -529,6 +545,27 @@ export const MasterDashboardPage = () => {
                           >
                             <Payments fontSize="inherit" />
                           </IconButton>
+                        </Tooltip>
+                        <Tooltip
+                          title={
+                            t.status === 'active'
+                              ? '閲覧専用ユーザーを追加'
+                              : '稼働中のみ追加可'
+                          }
+                        >
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="secondary"
+                              disabled={t.status !== 'active'}
+                              onClick={() => {
+                                setUserForm({ email: '', password: '', name: '' });
+                                setUserTarget(t);
+                              }}
+                            >
+                              <PersonAddAlt fontSize="inherit" />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                         <Tooltip
                           title={
@@ -980,6 +1017,73 @@ export const MasterDashboardPage = () => {
             }
           >
             {billingMutation.isPending ? '保存中...' : '保存'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 閲覧専用ユーザー代理作成ダイアログ */}
+      <Dialog
+        open={!!userTarget}
+        onClose={() => setUserTarget(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          閲覧専用ユーザーを追加 — {userTarget?.name}（{userTarget?.slug}）
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            このテナントの在庫を閲覧のみできるユーザーを作成します。
+            ログイン用のメールアドレスとパスワードを設定してください。
+          </DialogContentText>
+          <TextField
+            label="メールアドレス"
+            type="email"
+            fullWidth
+            required
+            value={userForm.email}
+            onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+            sx={{ mb: 2, mt: 1 }}
+          />
+          <TextField
+            label="パスワード（8文字以上）"
+            type="text"
+            fullWidth
+            required
+            value={userForm.password}
+            onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+            helperText="このパスワードを利用者に伝えてください"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="表示名（任意）"
+            fullWidth
+            value={userForm.name}
+            onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUserTarget(null)}>キャンセル</Button>
+          <Button
+            variant="contained"
+            disabled={
+              !userForm.email.trim() ||
+              userForm.password.length < 8 ||
+              createUserMutation.isPending
+            }
+            onClick={() =>
+              userTarget &&
+              createUserMutation.mutate({
+                id: userTarget.id,
+                data: {
+                  email: userForm.email.trim(),
+                  password: userForm.password,
+                  name: userForm.name.trim() || undefined,
+                },
+              })
+            }
+          >
+            {createUserMutation.isPending ? '追加中...' : '追加'}
           </Button>
         </DialogActions>
       </Dialog>
