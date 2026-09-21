@@ -29,6 +29,8 @@ export const ActivatePage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [department, setDepartment] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,7 +45,9 @@ export const ActivatePage = () => {
         licenseKey: licenseKey.trim(),
         email: email.trim(),
         password,
-        name: name.trim() || undefined,
+        name: name.trim(),
+        companyName: companyName.trim() || undefined,
+        department: department.trim() || undefined,
       });
       setDoneSlug(res.slug);
     } catch (err) {
@@ -109,11 +113,29 @@ export const ActivatePage = () => {
           autoComplete="email"
         />
         <TextField
-          label="表示名（任意）"
+          label="会社名（任意）"
           fullWidth
+          value={companyName}
+          onChange={(e) => setCompanyName(e.target.value)}
+          sx={{ mb: 2 }}
+          placeholder="例: 株式会社ゲイナー"
+        />
+        <TextField
+          label="部署（任意）"
+          fullWidth
+          value={department}
+          onChange={(e) => setDepartment(e.target.value)}
+          sx={{ mb: 2 }}
+          placeholder="例: 購買部"
+        />
+        <TextField
+          label="お名前"
+          fullWidth
+          required
           value={name}
           onChange={(e) => setName(e.target.value)}
           sx={{ mb: 2 }}
+          helperText="どなたが登録したか分かるようご入力ください"
         />
         <TextField
           label="パスワード（8文字以上）"
@@ -140,7 +162,7 @@ export const ActivatePage = () => {
           variant="contained"
           fullWidth
           size="large"
-          disabled={loading || !licenseKey || !email || !password}
+          disabled={loading || !licenseKey || !email || !password || !name.trim()}
         >
           {loading ? '有効化中...' : '有効化する'}
         </Button>

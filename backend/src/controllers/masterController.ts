@@ -120,7 +120,7 @@ export const masterController = {
   // ライセンスキー有効化（購入者用・無認証）
   async activate(req: Request, res: Response, next: NextFunction) {
     try {
-      const { licenseKey, email, password, name } = req.body;
+      const { licenseKey, email, password, name, companyName, department } = req.body;
       if (!licenseKey) {
         return res.status(400).json({ error: 'ライセンスキーが必要です' });
       }
@@ -130,7 +130,14 @@ export const masterController = {
       if (!validatePassword(password)) {
         return res.status(400).json({ error: 'パスワードの形式が不正です' });
       }
-      const result = await tenantService.activate({ licenseKey, email, password, name });
+      const result = await tenantService.activate({
+        licenseKey,
+        email,
+        password,
+        name,
+        companyName,
+        department,
+      });
       res.json({ success: true, ...result });
     } catch (e: any) {
       res.status(400).json({ error: e.message });

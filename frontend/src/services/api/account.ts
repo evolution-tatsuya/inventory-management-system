@@ -83,3 +83,13 @@ export async function updateDisplayName(data: {
     data
   );
 }
+
+// プロフィール更新（管理者のみ。名前・会社名・部署）
+export async function updateProfile(data: {
+  name: string;
+  companyName?: string;
+  department?: string;
+  accountId?: string;
+}): Promise<{ success: boolean; account: Admin }> {
+  return put<{ success: boolean; account: Admin }>('/api/admin/account/profile', data);
+}

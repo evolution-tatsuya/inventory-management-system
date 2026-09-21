@@ -10,7 +10,9 @@
 export interface Admin {
   id: string;
   email: string;
-  name?: string;           // 表示名（オプション）
+  name?: string;           // 登録者名
+  companyName?: string | null; // 会社名（企業登録時。任意）
+  department?: string | null;  // 部署（企業登録時。任意）
   createdAt: Date;
   updatedAt: Date;
 }

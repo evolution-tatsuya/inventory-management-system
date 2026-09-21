@@ -56,7 +56,9 @@ model Admin {
   id        String   @id @default(cuid())
   email     String   // テナント内で一意（@@unique([tenantId, email])）。別テナントの同一emailは許容
   password  String   // bcryptでハッシュ化
-  name      String?  // 表示名（オプション）
+  name        String?   // 登録者名（有効化フォームでは必須。DB上は既存互換でoptional）
+  companyName String?   // 会社名（企業登録時。任意）
+  department  String?   // 部署（企業登録時。任意）
   role        String    @default("admin") // master / admin（masterは運営者=全テナント横断）
   tenantId    String
   lastLoginAt DateTime? // 最終ログイン日時（総括ページで休眠顧客把握に使用。未ログインはnull）

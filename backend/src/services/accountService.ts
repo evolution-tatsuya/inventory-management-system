@@ -186,6 +186,37 @@ export const accountService = {
   },
 
   // ============================================================
+  // プロフィール更新（管理者のみ。名前・会社名・部署をまとめて更新）
+  // 名前は必須。会社名・部署は任意（空はnull）。
+  // ============================================================
+  async changeProfile(
+    tenantId: string,
+    userId: string,
+    data: { name: string; companyName?: string; department?: string },
+  ) {
+    const name = (data.name || '').trim();
+    if (!name) {
+      throw new Error('お名前を入力してください');
+    }
+    const owned = await prisma.admin.findFirst({
+      where: { id: userId, tenantId },
+      select: { id: true },
+    });
+    if (!owned) {
+      throw new Error('Account not found');
+    }
+    return await prisma.admin.update({
+      where: { id: userId },
+      data: {
+        name,
+        companyName: data.companyName?.trim() || null,
+        department: data.department?.trim() || null,
+      },
+      select: { id: true, email: true, name: true, companyName: true, department: true },
+    });
+  },
+
+  // ============================================================
   // アカウント情報取得
   // ============================================================
   async getAccount(
@@ -204,6 +235,8 @@ export const accountService = {
           id: true,
           email: true,
           name: true,
+          companyName: true,
+          department: true,
         },
       });
     } else {

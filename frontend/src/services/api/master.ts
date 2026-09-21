@@ -13,6 +13,8 @@ export interface TenantAdmin {
   id: string;
   email: string;
   name: string | null;
+  companyName: string | null;
+  department: string | null;
   role: string;
   createdAt: string;
   lastLoginAt: string | null;
@@ -125,7 +127,9 @@ export async function activate(data: {
   licenseKey: string;
   email: string;
   password: string;
-  name?: string;
+  name: string; // 登録者名（必須）
+  companyName?: string;
+  department?: string;
 }): Promise<{ success: boolean; slug: string }> {
   return post<{ success: boolean; slug: string }>('/api/tenants/activate', data);
 }

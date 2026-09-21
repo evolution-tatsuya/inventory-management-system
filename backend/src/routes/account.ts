@@ -39,4 +39,7 @@ router.put('/password', requireAuth, accountController.changePassword);
 // PUT /api/admin/account/displayname - ユーザー名変更
 router.put('/displayname', requireAuth, accountController.changeDisplayName);
 
+// PUT /api/admin/account/profile - プロフィール更新（名前・会社名・部署）
+router.put('/profile', requireAuth, accountController.changeProfile);
+
 export default router;

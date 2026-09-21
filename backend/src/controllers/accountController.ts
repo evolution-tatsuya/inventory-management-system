@@ -179,6 +179,39 @@ export const accountController = {
   },
 
   // ============================================================
+  // プロフィール更新（管理者のみ。名前・会社名・部署をまとめて更新）
+  // ============================================================
+  async changeProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const authHeader = req.headers.authorization;
+      const { name, companyName, department, accountId } = req.body;
+
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const token = authHeader.substring(7);
+      const decoded = verifyToken(token);
+
+      // 更新対象（accountId指定時は管理者が他アカウントを編集、無ければ自分）
+      const targetUserId = accountId || decoded.userId;
+
+      const account = await accountService.changeProfile(decoded.tenantId, targetUserId, {
+        name,
+        companyName,
+        department,
+      });
+      res.json({ success: true, account });
+    } catch (error: any) {
+      console.error('❌ changeProfile Error:', error);
+      // バリデーションエラーは400で返す
+      if (error?.message === 'お名前を入力してください') {
+        return res.status(400).json({ error: error.message });
+      }
+      next(error);
+    }
+  },
+
+  // ============================================================
   // アカウント情報取得
   // ============================================================
   async getAccount(req: Request, res: Response, next: NextFunction) {

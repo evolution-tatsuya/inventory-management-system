@@ -465,7 +465,27 @@ export const MasterDashboardPage = () => {
                       ) : (
                         t.admins.map((a) => (
                           <Box key={a.id} sx={{ mb: 0.5 }}>
-                            <Typography variant="caption" display="block">
+                            {(a.companyName || a.department) && (
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                sx={{ fontWeight: 600 }}
+                              >
+                                {a.companyName || ''}
+                                {a.companyName && a.department ? ' / ' : ''}
+                                {a.department || ''}
+                              </Typography>
+                            )}
+                            {a.name && (
+                              <Typography variant="caption" display="block">
+                                {a.name}
+                              </Typography>
+                            )}
+                            <Typography
+                              variant="caption"
+                              display="block"
+                              color="text.secondary"
+                            >
                               {a.email}
                               {a.role === 'master' ? '（運営者）' : ''}
                             </Typography>

@@ -42,6 +42,8 @@ export const AccountSettingsPage = () => {
   // 基本情報フォーム
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [department, setDepartment] = useState('');
 
   // パスワード変更フォーム
   const [currentPassword, setCurrentPassword] = useState('');
@@ -127,6 +129,10 @@ export const AccountSettingsPage = () => {
       });
       setDisplayName(accountData.name || '');
       setEmail(accountData.email || '');
+      // 会社名・部署は admin のみ（User型には存在しない）
+      const prof = accountData as { companyName?: string | null; department?: string | null };
+      setCompanyName(prof.companyName ?? '');
+      setDepartment(prof.department ?? '');
     }
   }, [accountData]);
 
@@ -162,6 +168,9 @@ export const AccountSettingsPage = () => {
     if (accountData) {
       setDisplayName(accountData.name || '');
       setEmail(accountData.email || '');
+      const prof = accountData as { companyName?: string | null; department?: string | null };
+      setCompanyName(prof.companyName ?? '');
+      setDepartment(prof.department ?? '');
     }
   };
 
@@ -207,11 +216,51 @@ export const AccountSettingsPage = () => {
     }
   };
 
+  // プロフィール（名前・会社名・部署）変更処理（管理者のみ）
+  const handleProfileChange = async () => {
+    try {
+      if (!displayName.trim()) {
+        setErrorMessage('お名前を入力してください');
+        return;
+      }
+      await accountApi.updateProfile({
+        name: displayName.trim(),
+        companyName,
+        department,
+        accountId: selectedAccountId,
+      });
+      setSuccessMessage('プロフィールを変更しました');
+      queryClient.invalidateQueries({ queryKey: ['account', selectedUserType, selectedAccountId] });
+      queryClient.invalidateQueries({ queryKey: ['accountList', selectedUserType] });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'プロフィールの変更に失敗しました',
+      );
+    }
+  };
+
   // 基本情報変更処理（まとめて保存）
   const handleSaveBasicInfo = async () => {
-    // ユーザー名が変更されている場合
-    if (displayName !== accountData?.name) {
-      await handleDisplayNameChange();
+    const prof = (accountData ?? {}) as {
+      companyName?: string | null;
+      department?: string | null;
+    };
+    const prevCompany = prof.companyName ?? '';
+    const prevDept = prof.department ?? '';
+    if (selectedUserType === 'admin') {
+      // admin は名前・会社名・部署をまとめて更新
+      if (
+        displayName !== (accountData?.name || '') ||
+        companyName !== prevCompany ||
+        department !== prevDept
+      ) {
+        await handleProfileChange();
+      }
+    } else {
+      // user は従来通り名前のみ
+      if (displayName !== accountData?.name) {
+        await handleDisplayNameChange();
+      }
     }
     // メールアドレスが変更されている場合
     if (email !== accountData?.email) {
@@ -757,7 +806,7 @@ export const AccountSettingsPage = () => {
                   color: '#333',
                 }}
               >
-                表示名
+                {selectedUserType === 'admin' ? 'お名前' : '表示名'}
               </Typography>
               <TextField
                 fullWidth
@@ -774,6 +823,55 @@ export const AccountSettingsPage = () => {
                 }}
               />
             </Box>
+
+            {selectedUserType === 'admin' && (
+              <>
+                <Box sx={{ marginBottom: '13px' }}>
+                  <Typography
+                    sx={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      marginBottom: '5px',
+                      color: '#333',
+                    }}
+                  >
+                    会社名（任意）
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="例: 株式会社ゲイナー"
+                    sx={{
+                      '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '13px' },
+                      '& .MuiOutlinedInput-input': { padding: '13px 11px' },
+                    }}
+                  />
+                </Box>
+                <Box sx={{ marginBottom: '13px' }}>
+                  <Typography
+                    sx={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      marginBottom: '5px',
+                      color: '#333',
+                    }}
+                  >
+                    部署（任意）
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    placeholder="例: 購買部"
+                    sx={{
+                      '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '13px' },
+                      '& .MuiOutlinedInput-input': { padding: '13px 11px' },
+                    }}
+                  />
+                </Box>
+              </>
+            )}
 
             <Box sx={{ marginBottom: '16px' }}>
               <Typography

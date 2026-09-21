@@ -60,7 +60,16 @@ export const tenantService = {
           select: { categories: true, genres: true, units: true, parts: true },
         },
         admins: {
-          select: { id: true, email: true, name: true, role: true, createdAt: true, lastLoginAt: true },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            companyName: true,
+            department: true,
+            role: true,
+            createdAt: true,
+            lastLoginAt: true,
+          },
           orderBy: { createdAt: 'asc' },
         },
       },
@@ -420,8 +429,20 @@ export const tenantService = {
   },
 
   // ライセンスキー有効化（購入者用・無認証）。顧客が自分のadminを登録する。
-  async activate(data: { licenseKey: string; email: string; password: string; name?: string }) {
+  async activate(data: {
+    licenseKey: string;
+    email: string;
+    password: string;
+    name?: string;
+    companyName?: string;
+    department?: string;
+  }) {
     const key = data.licenseKey.trim().toUpperCase();
+    // 登録者名は必須（企業登録時に誰が登録したか不明にしないため）
+    const name = (data.name || '').trim();
+    if (!name) {
+      throw new Error('お名前を入力してください');
+    }
     const tenant = await prisma.tenant.findUnique({ where: { licenseKey: key } });
     if (!tenant) {
       throw new Error('無効なライセンスキーです');
@@ -436,7 +457,9 @@ export const tenantService = {
         data: {
           email: data.email,
           password: hashed,
-          name: data.name || null,
+          name,
+          companyName: data.companyName?.trim() || null,
+          department: data.department?.trim() || null,
           role: 'admin',
           tenantId: tenant.id,
         },
