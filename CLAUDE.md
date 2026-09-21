@@ -439,7 +439,11 @@ Neon:
   本番DB db push→Cloud Run(00033→00034)デプロイ→Vercel→本番フル検証済み。
   ＋企業向け登録: Admin に companyName/department追加。有効化フォームに会社名・部署欄＋お名前必須化、
   アカウント設定で会社名/部署/名前を後から変更可(PUT /account/profile)、総括に会社名・部署・名前表示。
-  Cloud Run(00035)まで本番反映済み
+  Cloud Run(00035)まで本番反映済み。
+  ＋バグ修正3件: ①ログアウトがlocalStorageを消さず別テナントにログイン不可→AuthContext.logoutで
+  全キークリアに統一+AccountSettingsPageの独自ログアウトも統一(a5339e3)②アカウント設定で対象
+  アカウント未取得時に保存すると500→フロントでブロック+バックはAppError(404/400)化(6934f5b,00036)
+  ③入力例から実在名除去(株式会社ゲイナー→◯◯◯、tanaka-parts→my-parts)(5ec76df)。全て本番検証済み
 - 2026-09-20: マルチテナント化(フェーズ3 S1-S4)を本番反映完了。全10モデルにtenantId、
   URLパス方式(/api/t/:slug)、master別導線(/api/master/*)、ライセンスキー方式でテナント発行→
   顧客が有効化時に自分でアカウント登録→総括ページで確認。多段階削除(suspended/pending・名前一致・
