@@ -446,7 +446,11 @@ Neon:
   ③入力例から実在名除去(株式会社ゲイナー→◯◯◯、tanaka-parts→my-parts)(5ec76df)。全て本番検証済み。
   ＋閲覧専用ユーザー機能: accountService.createUser/deleteUser、POST/DELETE /account/users(管理者用)、
   POST /master/tenants/:id/users(運営者代理作成)。管理画面アカウント設定に一覧・追加・削除UI、
-  総括に代理作成ダイアログ。閲覧ユーザーは在庫閲覧のみ(編集不可)。Cloud Run(00037)まで本番検証済み
+  総括に代理作成ダイアログ。閲覧ユーザーは在庫閲覧のみ(編集不可)。Cloud Run(00037)まで本番検証済み。
+  ＋EC連携P1: 発行API POST /api/integration/provision(x-integration-keyシークレット認証・冪等)。
+  TenantにprovisionOrderId(unique)/billingType追加。注文からpendingテナント発行→キー/有効化URL返却。
+  同一orderIdは二重発行しない。Secret Manager integration-api-key→Cloud Run(00038)マウント。本番検証済み。
+  EC設計書Artifact/連携ロードマップは[[inventory-sales-roadmap]]。次=EC側P2(呼出+Resendメール)
 - 2026-09-20: マルチテナント化(フェーズ3 S1-S4)を本番反映完了。全10モデルにtenantId、
   URLパス方式(/api/t/:slug)、master別導線(/api/master/*)、ライセンスキー方式でテナント発行→
   顧客が有効化時に自分でアカウント登録→総括ページで確認。多段階削除(suspended/pending・名前一致・
