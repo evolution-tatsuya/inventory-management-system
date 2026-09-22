@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { imageService } from '../services/imageService';
+import { limitService } from '../services/limitService';
 import multer from 'multer';
 
 const upload = multer({
@@ -27,6 +28,12 @@ export const imageController = {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No image file provided' });
+      }
+
+      // プラン上限チェック（画像容量。tenantId は requireAuth で確立済み）
+      const tenantId = (req as any).tenantId;
+      if (tenantId) {
+        await limitService.assertImageLimit(tenantId, 1);
       }
 
       const result: any = await imageService.uploadImage(req.file.buffer);

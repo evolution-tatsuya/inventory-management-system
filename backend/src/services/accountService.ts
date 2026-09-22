@@ -8,6 +8,7 @@ import bcrypt from 'bcrypt';
 
 import { prisma } from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
+import { limitService } from './limitService';
 
 // ============================================================
 // アカウントサービス
@@ -304,6 +305,8 @@ export const accountService = {
     if (existing) {
       throw new AppError('このメールアドレスは既に使用されています', 400);
     }
+    // プラン上限チェック（閲覧ユーザー数の上限）
+    await limitService.assertUserLimit(tenantId);
     const hashed = await bcrypt.hash(data.password, 10);
     return prisma.user.create({
       data: {

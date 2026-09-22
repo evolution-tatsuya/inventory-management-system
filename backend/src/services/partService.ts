@@ -16,6 +16,7 @@ import {
 } from './stockHelper';
 
 import { prisma } from '../lib/prisma';
+import { limitService } from './limitService';
 
 // パーツ配列に partMaster.stockQuantity を付与する（APIレスポンス互換のため）
 async function attachStock(tenantId: string, parts: any[]): Promise<any[]> {
@@ -91,6 +92,8 @@ export const partService = {
       stockQuantity?: number;
     },
   ) {
+    // プラン上限チェック（超過なら403で作成をブロック）
+    await limitService.assertPartLimit(tenantId, 1);
     const created = await prisma.$transaction(async (tx) => {
       const mode = await getStockMode(tx, tenantId);
       // genre はテナント所有を確認しつつ categoryId を得る

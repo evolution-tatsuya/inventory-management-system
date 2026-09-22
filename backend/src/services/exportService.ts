@@ -10,6 +10,7 @@ import * as XLSX from 'xlsx';
 import { getStockMode, loadStockMap, upsertStock, stockCategoryKey } from './stockHelper';
 
 import { prisma } from '../lib/prisma';
+import { limitService } from './limitService';
 
 // ============================================================
 // エクスポートサービス
@@ -290,6 +291,9 @@ export const exportService = {
     if (parsed.errors && parsed.errors.length > 0) {
       throw new Error(`CSV parse error: ${parsed.errors[0].message}`);
     }
+
+    // プラン上限チェック（インポート行数分を追加してよいか。超過なら403でブロック）
+    await limitService.assertPartLimit(tenantId, parsed.data.length);
 
     const errors: string[] = [];
     let created = 0;
