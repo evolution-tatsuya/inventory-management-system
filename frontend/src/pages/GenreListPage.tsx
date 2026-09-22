@@ -337,32 +337,34 @@ export const GenreListPage = () => {
                 </Box>
               ))}
             </Box>
-
-            {/* 戻るボタン */}
-            <Box sx={{ textAlign: 'center' }}>
-              <Button
-                onClick={handleBackClick}
-                sx={{
-                  padding: '12px 40px',
-                  background: 'white',
-                  color: '#667eea',
-                  border: '2px solid #667eea',
-                  borderRadius: '25px',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    background: '#667eea',
-                    color: 'white',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 5px 15px rgba(102, 126, 234, 0.3)',
-                  },
-                }}
-              >
-                ← カテゴリー選択へ戻る
-              </Button>
-            </Box>
           </>
+        )}
+
+        {/* 戻るボタン（ジャンルの有無に関わらず表示） */}
+        {!genresLoading && !genresError && (
+          <Box sx={{ textAlign: 'center' }}>
+            <Button
+              onClick={handleBackClick}
+              sx={{
+                padding: '12px 40px',
+                background: 'white',
+                color: '#667eea',
+                border: '2px solid #667eea',
+                borderRadius: '25px',
+                fontSize: '1rem',
+                fontWeight: 600,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  background: '#667eea',
+                  color: 'white',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 5px 15px rgba(102, 126, 234, 0.3)',
+                },
+              }}
+            >
+              ← カテゴリー選択へ戻る
+            </Button>
+          </Box>
         )}
       </Box>
     </Box>

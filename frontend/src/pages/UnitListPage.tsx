@@ -248,6 +248,15 @@ export const UnitListPage = () => {
           </Box>
         )}
 
+        {/* ユニットが見つからない場合 */}
+        {!unitsLoading && !unitsError && units.length === 0 && (
+          <Box sx={{ marginBottom: '20px' }}>
+            <Alert severity="warning">
+              このジャンルにはユニットが登録されていません
+            </Alert>
+          </Box>
+        )}
+
         {/* Unit Grid */}
         {!unitsLoading && !unitsError && (
           <>
