@@ -33,10 +33,11 @@ model Tenant {
   billingNote       String?   // 課金メモ（連絡先・請求状況など自由記述）
   billingType       String?   // EC課金種別: monthly / yearly / onetime（EC連携発行時に記録）
   provisionOrderId  String?  @unique // EC注文ID（連携発行の冪等キー。同一注文の二重発行を防止）
-  // プラン上限（null=無制限＝プロ相当。プラン発行/変更時にセット）
+  // プラン上限（null=無制限＝プロ相当。プラン発行/変更時にECから受け取ってセット）
   maxParts          Int?      // 登録パーツ数の上限
   maxImageMB        Int?      // 画像容量の上限（MB）
   maxUsers          Int?      // 一般ユーザー数の上限（管理者は含めない）
+  ecProductId       String?   // EC の商品ID（どのプランか。記録・参照用）
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

@@ -15,7 +15,7 @@ export const integrationController = {
   // POST /api/integration/provision
   async provision(req: Request, res: Response, next: NextFunction) {
     try {
-      const { orderId, email, plan, billingType } = req.body;
+      const { orderId, email, plan, billingType, productId, limits } = req.body;
 
       if (!orderId || typeof orderId !== 'string') {
         return res.status(400).json({ error: 'orderId は必須です' });
@@ -35,6 +35,8 @@ export const integrationController = {
         email: email.trim(),
         plan: plan?.trim() || undefined,
         billingType: billingType || undefined,
+        productId: productId || undefined,
+        limits: limits || undefined,
         frontendUrl,
       });
 
@@ -43,6 +45,32 @@ export const integrationController = {
         success: true,
         ...result,
       });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  },
+
+  // POST /api/integration/plan-change - 既存テナントのプラン変更（上/下）
+  async planChange(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { orderId, slug, plan, billingType, productId, limits } = req.body;
+      if (!orderId && !slug) {
+        return res.status(400).json({ error: 'orderId または slug が必要です' });
+      }
+      if (billingType && !ALLOWED_BILLING.includes(billingType)) {
+        return res
+          .status(400)
+          .json({ error: 'billingType は monthly / yearly / onetime のいずれか' });
+      }
+      const result = await tenantService.changePlan({
+        orderId,
+        slug,
+        plan,
+        billingType,
+        productId,
+        limits,
+      });
+      res.json(result);
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }

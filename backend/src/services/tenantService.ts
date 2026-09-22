@@ -480,6 +480,8 @@ export const tenantService = {
     email: string;
     plan?: string;
     billingType?: string; // monthly / yearly / onetime
+    productId?: string; // EC の商品ID（記録用）
+    limits?: { maxParts?: number | null; maxImageMB?: number | null; maxUsers?: number | null };
     frontendUrl: string;
   }) {
     const orderId = (data.orderId || '').trim();
@@ -533,6 +535,10 @@ export const tenantService = {
           billingType,
           billingStatus,
           provisionOrderId: orderId,
+          ecProductId: data.productId || null,
+          maxParts: data.limits?.maxParts ?? null,
+          maxImageMB: data.limits?.maxImageMB ?? null,
+          maxUsers: data.limits?.maxUsers ?? null,
           contractStartDate: new Date(),
           systemSettings: { create: { stockMode: 'perCategory', systemName: name } },
         },
@@ -546,5 +552,46 @@ export const tenantService = {
       activationUrl: tenant.licenseKey ? activationUrlOf(tenant.licenseKey) : null,
       status: tenant.status,
     };
+  },
+
+  // ============================================================
+  // EC連携：既存テナントのプランを変更する（アップ/ダウングレード）。
+  // ECのプラン変更(B:固定変更)を受けて上限・プラン情報を上書きする。
+  // テナントは orderId（発行時の注文ID）または slug で特定。
+  // 上限を下げても既存データは消さない（新規追加のみブロックされる設計）。
+  // ============================================================
+  async changePlan(data: {
+    orderId?: string;
+    slug?: string;
+    plan?: string;
+    billingType?: string;
+    productId?: string;
+    limits?: { maxParts?: number | null; maxImageMB?: number | null; maxUsers?: number | null };
+  }) {
+    let tenant = null;
+    if (data.orderId) {
+      tenant = await prisma.tenant.findUnique({ where: { provisionOrderId: data.orderId.trim() } });
+    } else if (data.slug) {
+      tenant = await prisma.tenant.findUnique({ where: { slug: data.slug.trim() } });
+    }
+    if (!tenant) throw new Error('対象テナントが見つかりません');
+
+    const updated = await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: {
+        plan: data.plan ?? tenant.plan,
+        billingType: data.billingType ?? tenant.billingType,
+        ecProductId: data.productId ?? tenant.ecProductId,
+        // limits が渡された項目のみ更新（undefined は据え置き、null は無制限化）
+        maxParts: data.limits && 'maxParts' in data.limits ? data.limits.maxParts ?? null : tenant.maxParts,
+        maxImageMB: data.limits && 'maxImageMB' in data.limits ? data.limits.maxImageMB ?? null : tenant.maxImageMB,
+        maxUsers: data.limits && 'maxUsers' in data.limits ? data.limits.maxUsers ?? null : tenant.maxUsers,
+      },
+      select: {
+        slug: true, plan: true, ecProductId: true,
+        maxParts: true, maxImageMB: true, maxUsers: true,
+      },
+    });
+    return { success: true, ...updated };
   },
 };
