@@ -31,6 +31,9 @@ export const categoryService = {
       name: string;
       categoryId?: string;
       subtitle?: string;
+      imageUrl?: string;
+      cropPositionX?: number;
+      cropPositionY?: number;
       createdAt?: Date;
     }
   ) {
@@ -39,6 +42,9 @@ export const categoryService = {
         name: data.name,
         categoryId: data.categoryId,
         subtitle: data.subtitle,
+        imageUrl: data.imageUrl,
+        cropPositionX: data.cropPositionX,
+        cropPositionY: data.cropPositionY,
         createdAt: data.createdAt,
         tenantId,
       },

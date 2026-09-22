@@ -29,7 +29,7 @@ export const categoryController = {
   // ============================================================
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const { name, categoryId, subtitle, createdAt } = req.body;
+      const { name, categoryId, subtitle, imageUrl, cropPositionX, cropPositionY, createdAt } = req.body;
 
       // バリデーション
       if (!validateCategoryName(name)) {
@@ -42,6 +42,9 @@ export const categoryController = {
         name,
         categoryId,
         subtitle,
+        imageUrl,
+        cropPositionX,
+        cropPositionY,
         createdAt: createdAt ? new Date(createdAt) : undefined,
       });
       res.status(201).json(category);

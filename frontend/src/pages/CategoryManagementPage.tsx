@@ -323,10 +323,108 @@ export const CategoryManagementPage = () => {
   };
 
   const handleAdd = async () => {
+    let uploadedImageUrl = '';
+
+    // 画像が選択された場合、トリミングしてCloudinaryにアップロード（編集と同じロジック）
+    if (imageFile && imageDimensions) {
+      try {
+        // Canvasで画像をトリミング
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          alert('Canvas初期化エラー');
+          return;
+        }
+
+        // トリミング範囲を計算（objectFit: 'cover' と同じロジック）
+        const targetAspect = 1;
+        const imgAspect = imageDimensions.width / imageDimensions.height;
+
+        let visibleWidth, visibleHeight, cropLeft, cropTop;
+
+        if (imgAspect > targetAspect) {
+          // 横長の画像
+          visibleHeight = imageDimensions.height;
+          visibleWidth = imageDimensions.height * targetAspect;
+          const maxCropX = imageDimensions.width - visibleWidth;
+          cropLeft = maxCropX * cropPosition.x;
+          cropTop = 0;
+        } else {
+          // 縦長の画像
+          visibleWidth = imageDimensions.width;
+          visibleHeight = imageDimensions.width / targetAspect;
+          const maxCropY = imageDimensions.height - visibleHeight;
+          cropLeft = 0;
+          cropTop = maxCropY * cropPosition.y;
+        }
+
+        // Canvasサイズを正方形に設定
+        canvas.width = visibleWidth;
+        canvas.height = visibleHeight;
+
+        // 元画像を読み込んでトリミング
+        const img = new Image();
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = reject;
+          img.src = imagePreview;
+        });
+
+        // トリミングして描画
+        ctx.drawImage(
+          img,
+          cropLeft, cropTop, visibleWidth, visibleHeight,  // ソース範囲
+          0, 0, visibleWidth, visibleHeight                // 描画範囲
+        );
+
+        // CanvasをBlobに変換
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((b) => {
+            if (b) resolve(b);
+            else reject(new Error('Blob変換失敗'));
+          }, 'image/jpeg', 0.9);
+        });
+
+        // Cloudinaryにアップロード
+        const formData = new FormData();
+        formData.append('file', blob, 'cropped-image.jpg');
+        formData.append('upload_preset', 'ml_default');
+
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+          {
+            method: 'POST',
+            body: formData,
+          }
+        );
+
+        const data = await response.json();
+
+        // エラーチェック
+        if (data.error) {
+          alert(`画像のアップロードに失敗しました: ${data.error.message}`);
+          return;
+        }
+
+        if (!data.secure_url) {
+          alert('画像のアップロードに失敗しました: URLが取得できませんでした');
+          return;
+        }
+
+        uploadedImageUrl = data.secure_url;
+      } catch (error) {
+        alert('画像のアップロードに失敗しました');
+        return;
+      }
+    }
+
     createMutation.mutate({
       name: categoryName,
       categoryId: categoryId || undefined,
       subtitle: subtitle || undefined,
+      imageUrl: uploadedImageUrl || undefined,
+      cropPositionX: uploadedImageUrl ? cropPosition.x : undefined,
+      cropPositionY: uploadedImageUrl ? cropPosition.y : undefined,
       createdAt: createdAt ? new Date(createdAt).toISOString() : undefined,
     });
   };

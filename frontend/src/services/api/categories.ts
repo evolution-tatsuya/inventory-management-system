@@ -29,6 +29,9 @@ export async function createCategory(data: {
   name: string;
   categoryId?: string;
   subtitle?: string;
+  imageUrl?: string;
+  cropPositionX?: number;
+  cropPositionY?: number;
   createdAt?: string;
 }): Promise<CategoryResponse> {
   return post<CategoryResponse>(CATEGORY_ENDPOINTS.CREATE, data);
