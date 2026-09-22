@@ -1,0 +1,20 @@
+- generic [ref=f4e76]:
+  - heading "Master Sign In" [level=2] [ref=f4e80]
+  - generic [ref=f4e81]:
+    - generic [ref=f4e82]:
+      - text: メールアドレス
+      - generic [aria-hidden] [ref=f4e83]: "*"
+    - generic [ref=f4e84]:
+      - textbox "メールアドレス" [active] [ref=f4e85]
+      - group [aria-hidden]:
+        - generic: メールアドレス *
+  - generic [ref=f4e86]:
+    - generic:
+      - text: パスワード
+      - generic [aria-hidden]: "*"
+    - generic [ref=f4e87]:
+      - textbox "パスワード" [ref=f4e88]
+      - button "パスワードの表示/非表示を切り替え" [ref=f4e90] [cursor=pointer]
+      - group [aria-hidden]:
+        - generic: パスワード *
+  - button "運営者ログイン" [disabled]

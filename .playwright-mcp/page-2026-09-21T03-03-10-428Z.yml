@@ -1,0 +1,9 @@
+- generic [ref=f26e22]:
+  - generic [ref=f26e23]:
+    - heading "運営者総括ページ" [level=5] [ref=f26e24]
+    - button [ref=f26e25] [cursor=pointer]
+  - generic [ref=f26e29]:
+    - generic [ref=f26e30]:
+      - heading "テナント一覧" [level=6] [ref=f26e31]
+      - button "+ 新規テナント発行" [ref=f26e32] [cursor=pointer]
+    - progressbar [ref=f26e34]

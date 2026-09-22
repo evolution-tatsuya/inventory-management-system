@@ -225,6 +225,10 @@ export const PartsManagementPage = () => {
   const [expectedArrivalDate, setExpectedArrivalDate] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [notes, setNotes] = useState('');
+  const [description, setDescription] = useState(''); // 商品説明（詳細モーダル用）
+  const [pdfUrl, setPdfUrl] = useState(''); // 資料URL（画像/PDF）
+  const [pdfUploading, setPdfUploading] = useState(false); // 資料アップロード中フラグ
+  const [pdfFileName, setPdfFileName] = useState(''); // アップロード中/済みの資料ファイル名
   const [filterCategoryId, setFilterCategoryId] = useState<string>(''); // カテゴリーフィルター用
   const [filterGenreId, setFilterGenreId] = useState<string>(''); // ジャンルフィルター用
   const [filterUnitId, setFilterUnitId] = useState<string>(''); // ユニットフィルター用
@@ -451,6 +455,9 @@ export const PartsManagementPage = () => {
     setExpectedArrivalDate('');
     setImageUrl('');
     setNotes('');
+    setDescription('');
+    setPdfUrl('');
+    setPdfFileName('');
     setImageFile(null);
     setImagePreview('');
     setImageDimensions(null);
@@ -738,6 +745,8 @@ export const PartsManagementPage = () => {
       expectedArrivalDate: expectedArrivalDate || undefined,
       imageUrl: uploadedImageUrl || undefined,
       notes: notes || undefined,
+      description: description || undefined,
+      pdfUrl: pdfUrl || undefined,
       stockQuantity: stockQuantity ? parseInt(stockQuantity) : undefined, // 在庫数量を追加
     });
   };
@@ -771,6 +780,9 @@ export const PartsManagementPage = () => {
     setExpectedArrivalDate(part.expectedArrivalDate || '');
     setImageUrl(part.imageUrl || '');
     setNotes(part.notes || '');
+    setDescription(part.description || '');
+    setPdfUrl(part.pdfUrl || '');
+    setPdfFileName('');
     setImageFile(null);
     setImagePreview(part.imageUrl || '');
     setCropPosition({
@@ -903,6 +915,8 @@ export const PartsManagementPage = () => {
         expectedArrivalDate: expectedArrivalDate || undefined,
         imageUrl: uploadedImageUrl || undefined,
         notes: notes || undefined,
+        description, // 空文字でクリア可能
+        pdfUrl, // 空文字で資料削除
         cropPositionX: cropPosition.x,
         cropPositionY: cropPosition.y,
         stockQuantity: stockQuantity ? parseInt(stockQuantity) : undefined, // 在庫数量を追加
@@ -938,6 +952,56 @@ export const PartsManagementPage = () => {
         img.src = result;
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // 資料（画像/PDF）を切り抜きせずそのままCloudinaryへアップロード
+  const handlePdfChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // サイズ上限: PDF 10MB / 画像 5MB（CLAUDE.md準拠）
+    const isPdf = file.type === 'application/pdf';
+    const maxSize = isPdf ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(`ファイルサイズが大きすぎます（上限 ${isPdf ? '10MB' : '5MB'}）`);
+      e.target.value = '';
+      return;
+    }
+
+    setPdfUploading(true);
+    setPdfFileName(file.name);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'ml_default');
+
+      // resource_type: auto でPDF/画像どちらも受け付ける
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${
+          import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+        }/auto/upload`,
+        { method: 'POST', body: formData }
+      );
+      const data = await response.json();
+      if (data.error) {
+        alert(`資料のアップロードに失敗しました: ${data.error.message}`);
+        setPdfFileName('');
+        return;
+      }
+      if (!data.secure_url) {
+        alert('資料のアップロードに失敗しました: URLが取得できませんでした');
+        setPdfFileName('');
+        return;
+      }
+      setPdfUrl(data.secure_url);
+    } catch (error) {
+      console.error('資料アップロードエラー:', error);
+      alert('資料のアップロードに失敗しました');
+      setPdfFileName('');
+    } finally {
+      setPdfUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -1927,6 +1991,43 @@ export const PartsManagementPage = () => {
             rows={3}
             sx={{ marginTop: '16px' }}
           />
+          <TextField
+            fullWidth
+            label="商品説明（詳細画面で表示）"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            multiline
+            rows={4}
+            placeholder="ユーザーがパーツをクリックした際に表示される説明文"
+            sx={{ marginTop: '16px' }}
+          />
+          <Box sx={{ marginTop: '16px' }}>
+            <Button
+              variant="outlined"
+              component="label"
+              fullWidth
+              disabled={pdfUploading}
+              sx={{ py: 1.5 }}
+            >
+              {pdfUploading ? 'アップロード中…' : '資料（画像/PDF）を選択'}
+              <input
+                type="file"
+                hidden
+                accept="application/pdf,image/*"
+                onChange={handlePdfChange}
+              />
+            </Button>
+            {pdfUrl && (
+              <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1, wordBreak: 'break-all' }}>
+                  資料登録済み: {pdfFileName || pdfUrl.split('/').pop()}
+                </Typography>
+                <Button size="small" color="error" onClick={() => { setPdfUrl(''); setPdfFileName(''); }}>
+                  削除
+                </Button>
+              </Box>
+            )}
+          </Box>
           <Box sx={{ marginTop: '16px' }}>
             <Button variant="outlined" component="label" fullWidth sx={{ py: 1.5 }}>
               画像を選択
@@ -2200,6 +2301,43 @@ export const PartsManagementPage = () => {
             rows={3}
             sx={{ marginTop: '16px' }}
           />
+          <TextField
+            fullWidth
+            label="商品説明（詳細画面で表示）"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            multiline
+            rows={4}
+            placeholder="ユーザーがパーツをクリックした際に表示される説明文"
+            sx={{ marginTop: '16px' }}
+          />
+          <Box sx={{ marginTop: '16px' }}>
+            <Button
+              variant="outlined"
+              component="label"
+              fullWidth
+              disabled={pdfUploading}
+              sx={{ py: 1.5 }}
+            >
+              {pdfUploading ? 'アップロード中…' : '資料（画像/PDF）を選択'}
+              <input
+                type="file"
+                hidden
+                accept="application/pdf,image/*"
+                onChange={handlePdfChange}
+              />
+            </Button>
+            {pdfUrl && (
+              <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1, wordBreak: 'break-all' }}>
+                  資料登録済み: {pdfFileName || pdfUrl.split('/').pop()}
+                </Typography>
+                <Button size="small" color="error" onClick={() => { setPdfUrl(''); setPdfFileName(''); }}>
+                  削除
+                </Button>
+              </Box>
+            )}
+          </Box>
           <Box sx={{ marginTop: '16px' }}>
             <Button variant="outlined" component="label" fullWidth sx={{ py: 1.5 }}>
               画像を選択

@@ -1,0 +1,125 @@
+- generic [ref=f28e7]:
+  - generic [ref=f28e8]:
+    - heading "運営者総括ページ" [level=5] [ref=f28e272]
+    - button [ref=f28e273] [cursor=pointer]
+  - generic [ref=f28e14]:
+    - generic [ref=f28e15]:
+      - generic [ref=f28e16]:
+        - text: テナント総数
+        - heading "3" [level=5] [ref=f28e274]
+      - generic [ref=f28e18]:
+        - text: 稼働中
+        - heading "3" [level=5] [ref=f28e275]
+      - generic [ref=f28e20]:
+        - text: 未有効化
+        - heading "0" [level=5] [ref=f28e276]
+      - generic [ref=f28e22]:
+        - text: 停止中
+        - heading "0" [level=5] [ref=f28e277]
+      - generic [ref=f28e24]:
+        - text: 総パーツ数
+        - heading "21078" [level=5] [ref=f28e278]
+    - generic [ref=f28e26]:
+      - heading "テナント一覧" [level=6] [ref=f28e279]
+      - button "+ 新規テナント発行" [ref=f28e280] [cursor=pointer]
+    - table [ref=f28e30]:
+      - rowgroup [ref=f28e31]:
+        - row [ref=f28e281]:
+          - columnheader "テナント名" [ref=f28e282]
+          - columnheader "slug" [ref=f28e283]
+          - columnheader "状態" [ref=f28e284]
+          - columnheader "ライセンスキー" [ref=f28e285]
+          - columnheader "件数(cat/genre/unit/part/画像)" [ref=f28e286]
+          - columnheader "課金" [ref=f28e287]
+          - columnheader "管理者" [ref=f28e288]
+          - columnheader "操作" [ref=f28e289]
+      - rowgroup [ref=f28e41]:
+        - row [ref=f28e290]:
+          - cell "プラモデル管理" [ref=f28e291]
+          - cell "gunpla-list" [ref=f28e292]
+          - cell "稼働中" [ref=f28e293]
+          - cell "E48P-3JD5-HB9M-T594 コピー" [ref=f28e294]:
+            - generic [ref=f28e49]:
+              - generic [ref=f28e50]: E48P-3JD5-HB9M-T594
+              - button "コピー" [ref=f28e295] [cursor=pointer]
+          - cell "0/0/0/0/0" [ref=f28e296]
+          - cell "未設定" [ref=f28e297]
+          - 'cell "GANPLA / New TATSUYA t.evolution.no.1@hotmail.com 登録: 2026/09/21 最終ログイン: 2026/09/21 12:02" [ref=f28e298]':
+            - generic [ref=f28e59]:
+              - generic [ref=f28e60]: GANPLA / New
+              - generic [ref=f28e61]: TATSUYA
+              - generic [ref=f28e62]: t.evolution.no.1@hotmail.com
+              - generic [ref=f28e63]: "登録: 2026/09/21"
+              - generic [ref=f28e64]: "最終ログイン: 2026/09/21 12:02"
+          - cell [ref=f28e299]:
+            - generic [ref=f28e66]:
+              - button "送付情報（ログイン/有効化URL・QR）" [ref=f28e300] [cursor=pointer]
+              - button "課金情報を編集" [ref=f28e301] [cursor=pointer]
+              - generic "閲覧専用ユーザーを追加" [ref=f28e302]:
+                - button [active] [ref=f28e74] [cursor=pointer]
+              - generic "管理画面を別タブで開く" [ref=f28e303]:
+                - button [ref=f28e78] [cursor=pointer]
+              - generic "ユーザー画面を別タブで開く" [ref=f28e304]:
+                - button [ref=f28e83] [cursor=pointer]
+              - button "停止" [ref=f28e305] [cursor=pointer]
+              - button "キー再発行" [ref=f28e306] [cursor=pointer]
+              - generic "稼働中は削除不可（先に停止）" [ref=f28e307]:
+                - button [disabled]
+        - row [ref=f28e308]:
+          - cell "GAINER在庫管理" [ref=f28e309]
+          - cell "gainer-parts-list" [ref=f28e310]
+          - cell "稼働中" [ref=f28e311]
+          - cell "W47S-XZ4Z-CJHD-4V8F コピー" [ref=f28e312]:
+            - generic [ref=f28e98]:
+              - generic [ref=f28e99]: W47S-XZ4Z-CJHD-4V8F
+              - button "コピー" [ref=f28e313] [cursor=pointer]
+          - cell "6/182/794/10539/711" [ref=f28e314]
+          - cell "未設定" [ref=f28e315]
+          - 'cell "ゲイナー gainer@inventory.local 登録: 2026/09/21 最終ログイン: 未ログイン" [ref=f28e316]':
+            - generic [ref=f28e108]:
+              - generic [ref=f28e109]: ゲイナー
+              - generic [ref=f28e110]: gainer@inventory.local
+              - generic [ref=f28e111]: "登録: 2026/09/21"
+              - generic [ref=f28e112]: "最終ログイン: 未ログイン"
+          - cell [ref=f28e317]:
+            - generic [ref=f28e114]:
+              - button "送付情報（ログイン/有効化URL・QR）" [ref=f28e318] [cursor=pointer]
+              - button "課金情報を編集" [ref=f28e319] [cursor=pointer]
+              - generic "閲覧専用ユーザーを追加" [ref=f28e320]:
+                - button [ref=f28e122] [cursor=pointer]
+              - generic "管理画面を別タブで開く" [ref=f28e321]:
+                - button [ref=f28e126] [cursor=pointer]
+              - generic "ユーザー画面を別タブで開く" [ref=f28e322]:
+                - button [ref=f28e131] [cursor=pointer]
+              - button "停止" [ref=f28e323] [cursor=pointer]
+              - button "キー再発行" [ref=f28e324] [cursor=pointer]
+              - generic "稼働中は削除不可（先に停止）" [ref=f28e325]:
+                - button [disabled]
+        - row [ref=f28e326]:
+          - cell "GAINER" [ref=f28e327]
+          - cell "default" [ref=f28e328]
+          - cell "稼働中" [ref=f28e329]
+          - cell "—" [ref=f28e330]
+          - cell "6/182/794/10539/711" [ref=f28e331]
+          - cell "未設定" [ref=f28e332]
+          - 'cell "admin@inventory-system.local（運営者） 登録: 2025/11/28 最終ログイン: 2026/09/21 12:03" [ref=f28e333]':
+            - generic [ref=f28e151]:
+              - generic [ref=f28e152]: admin@inventory-system.local（運営者）
+              - generic [ref=f28e153]: "登録: 2025/11/28"
+              - generic [ref=f28e154]: "最終ログイン: 2026/09/21 12:03"
+          - cell [ref=f28e334]:
+            - generic [ref=f28e156]:
+              - button "送付情報（ログイン/有効化URL・QR）" [ref=f28e335] [cursor=pointer]
+              - button "課金情報を編集" [ref=f28e336] [cursor=pointer]
+              - generic "閲覧専用ユーザーを追加" [ref=f28e337]:
+                - button [ref=f28e164] [cursor=pointer]
+              - generic "管理画面を別タブで開く" [ref=f28e338]:
+                - button [ref=f28e168] [cursor=pointer]
+              - generic "ユーザー画面を別タブで開く" [ref=f28e339]:
+                - button [ref=f28e173] [cursor=pointer]
+              - button "停止" [ref=f28e340] [cursor=pointer]
+              - button "キー再発行" [ref=f28e341] [cursor=pointer]
+              - generic "既定テナントは削除不可" [ref=f28e342]:
+                - button [disabled]
+  - alert [ref=f28e343]:
+    - generic [ref=f28e344]: 閲覧専用ユーザーを追加しました

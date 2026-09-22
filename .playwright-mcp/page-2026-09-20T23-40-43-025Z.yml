@@ -1,0 +1,60 @@
+- generic [ref=f9e25]:
+  - generic [ref=f9e26]:
+    - heading "運営者総括ページ" [level=5] [ref=f9e27]
+    - button [ref=f9e28] [cursor=pointer]
+  - generic [ref=f9e32]:
+    - generic [ref=f9e33]:
+      - generic [ref=f9e34]:
+        - text: テナント総数
+        - heading "1" [level=5] [ref=f9e35]
+      - generic [ref=f9e36]:
+        - text: 稼働中
+        - heading "1" [level=5] [ref=f9e37]
+      - generic [ref=f9e38]:
+        - text: 未有効化
+        - heading "0" [level=5] [ref=f9e39]
+      - generic [ref=f9e40]:
+        - text: 停止中
+        - heading "0" [level=5] [ref=f9e41]
+      - generic [ref=f9e42]:
+        - text: 総パーツ数
+        - heading "10539" [level=5] [ref=f9e43]
+    - generic [ref=f9e44]:
+      - heading "テナント一覧" [level=6] [ref=f9e45]
+      - button "+ 新規テナント発行" [ref=f9e46] [cursor=pointer]
+    - table [ref=f9e48]:
+      - rowgroup [ref=f9e49]:
+        - row [ref=f9e50]:
+          - columnheader "テナント名" [ref=f9e51]
+          - columnheader "slug" [ref=f9e52]
+          - columnheader "状態" [ref=f9e53]
+          - columnheader "ライセンスキー" [ref=f9e54]
+          - columnheader "件数(cat/genre/unit/part/画像)" [ref=f9e55]
+          - columnheader "課金" [ref=f9e56]
+          - columnheader "管理者" [ref=f9e57]
+          - columnheader "操作" [ref=f9e58]
+      - rowgroup [ref=f9e59]:
+        - row [ref=f9e60]:
+          - cell "GAINER" [ref=f9e61]
+          - cell "default" [ref=f9e62]
+          - cell "稼働中" [ref=f9e63]
+          - cell "—" [ref=f9e66]
+          - cell "6/182/794/10539/711" [ref=f9e67]
+          - cell "未設定" [ref=f9e68]
+          - 'cell "admin@inventory-system.local（運営者） 登録: 2025/11/28 最終ログイン: 2026/09/21 08:40" [ref=f9e71]':
+            - generic [ref=f9e72]:
+              - generic [ref=f9e73]: admin@inventory-system.local（運営者）
+              - generic [ref=f9e74]: "登録: 2025/11/28"
+              - generic [ref=f9e75]: "最終ログイン: 2026/09/21 08:40"
+          - cell [ref=f9e76]:
+            - generic [ref=f9e77]:
+              - button "送付情報（ログイン/有効化URL・QR）" [ref=f9e78] [cursor=pointer]
+              - button "課金情報を編集" [ref=f9e81] [cursor=pointer]
+              - generic "管理画面を別タブで開く" [ref=f9e84]:
+                - button [ref=f9e85] [cursor=pointer]
+              - generic "ユーザー画面を別タブで開く" [ref=f9e89]:
+                - button [ref=f9e90] [cursor=pointer]
+              - button "停止" [ref=f9e93] [cursor=pointer]
+              - button "キー再発行" [ref=f9e94] [cursor=pointer]
+              - generic "既定テナントは削除不可" [ref=f9e97]:
+                - button [disabled]

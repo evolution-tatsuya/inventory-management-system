@@ -1,0 +1,103 @@
+- generic [ref=f19e7]:
+  - generic [ref=f19e8]:
+    - generic [ref=f19e9]:
+      - img "Logo" [ref=f19e10]
+      - paragraph [ref=f19e11]: プラモデル管理
+    - generic [ref=f19e12]:
+      - button "ユーザー画面を見る" [ref=f19e13] [cursor=pointer]
+      - button "ログアウト" [ref=f19e14] [cursor=pointer]
+  - generic [ref=f19e15]:
+    - button "ダッシュボード" [ref=f19e16] [cursor=pointer]
+    - button "カテゴリー管理" [ref=f19e17] [cursor=pointer]
+    - button "ジャンル管理" [ref=f19e18] [cursor=pointer]
+    - button "ユニット管理" [ref=f19e19] [cursor=pointer]
+    - button "パーツ管理" [ref=f19e20] [cursor=pointer]
+    - button "棚卸し" [ref=f19e21] [cursor=pointer]
+    - button "運営者" [ref=f19e22] [cursor=pointer]
+    - button "アカウント設定" [ref=f19e23] [cursor=pointer]
+    - button "QRコード" [ref=f19e24] [cursor=pointer]
+  - generic [ref=f19e27]:
+    - paragraph [ref=f19e28]: アカウント設定
+    - generic [ref=f19e29]:
+      - generic [ref=f19e30]: A
+      - paragraph [ref=f19e31]: TATSUYA
+      - paragraph [ref=f19e32]: t.evolution.no.1@hotmail.com
+    - generic [ref=f19e33]:
+      - paragraph [ref=f19e34]: アカウント種別
+      - radiogroup [ref=f19e35]:
+        - generic [ref=f19e36] [cursor=pointer]:
+          - radio "管理者アカウント" [checked] [ref=f19e38]
+          - generic [ref=f19e44]: 管理者アカウント
+        - generic [ref=f19e45] [cursor=pointer]:
+          - radio "一般ユーザーアカウント" [ref=f19e47]
+          - generic [ref=f19e51]: 一般ユーザーアカウント
+      - button "現在の登録状況確認" [active] [ref=f19e53] [cursor=pointer]
+    - generic [ref=f19e54]:
+      - paragraph [ref=f19e55]: 基本情報（管理者）
+      - generic [ref=f19e56]:
+        - paragraph [ref=f19e57]: お名前
+        - generic [ref=f19e59]:
+          - textbox [ref=f19e60]: TATSUYA
+          - group [aria-hidden]
+      - generic [ref=f19e61]:
+        - paragraph [ref=f19e62]: 会社名（任意）
+        - generic [ref=f19e64]:
+          - 'textbox "例: 株式会社◯◯◯" [ref=f19e65]': GANPLA
+          - group [aria-hidden]
+      - generic [ref=f19e66]:
+        - paragraph [ref=f19e67]: 部署（任意）
+        - generic [ref=f19e69]:
+          - 'textbox "例: 購買部" [ref=f19e70]': New
+          - group [aria-hidden]
+      - generic [ref=f19e71]:
+        - paragraph [ref=f19e72]: メールアドレス
+        - generic [ref=f19e74]:
+          - textbox [ref=f19e75]: t.evolution.no.1@hotmail.com
+          - group [aria-hidden]
+      - generic [ref=f19e76]:
+        - button "キャンセル" [ref=f19e77] [cursor=pointer]
+        - button "変更を保存" [ref=f19e78] [cursor=pointer]
+    - generic [ref=f19e79]:
+      - paragraph [ref=f19e80]: パスワード変更 (管理者)
+      - generic [ref=f19e81]:
+        - paragraph [ref=f19e82]: 新しいパスワード
+        - generic [ref=f19e84]:
+          - textbox "新しいパスワードを入力" [ref=f19e85]
+          - button [ref=f19e87] [cursor=pointer]
+          - group [aria-hidden]
+      - generic [ref=f19e90]:
+        - paragraph [ref=f19e91]: 新しいパスワード（確認）
+        - generic [ref=f19e93]:
+          - textbox "新しいパスワードを再入力" [ref=f19e94]
+          - button [ref=f19e96] [cursor=pointer]
+          - group [aria-hidden]
+      - button "パスワードを変更" [ref=f19e100] [cursor=pointer]
+    - generic [ref=f19e101]:
+      - paragraph [ref=f19e102]: システム設定
+      - generic [ref=f19e103]:
+        - paragraph [ref=f19e104]: システム名
+        - generic [ref=f19e105]:
+          - generic [ref=f19e106]:
+            - textbox [ref=f19e107]: プラモデル管理
+            - group [aria-hidden]
+          - paragraph [ref=f19e108]: 7/50文字
+      - generic [ref=f19e109]:
+        - paragraph [ref=f19e110]: ロゴ画像（任意、2MB以下）
+        - button [ref=f19e111] [cursor=pointer]
+        - generic [ref=f19e115]:
+          - img "Logo preview" [ref=f19e116]
+          - button "削除" [ref=f19e117] [cursor=pointer]
+      - generic [ref=f19e118]:
+        - paragraph [ref=f19e119]: ロゴの大きさ
+        - group [ref=f19e120]:
+          - button "小" [pressed] [ref=f19e121] [cursor=pointer]
+          - button "中" [ref=f19e122] [cursor=pointer]
+          - button "大" [ref=f19e123] [cursor=pointer]
+      - generic [ref=f19e124]:
+        - paragraph [ref=f19e125]: ヘッダー背景色
+        - generic [ref=f19e126]:
+          - generic [ref=f19e127]:
+            - 'textbox "例: #667eea または linear-gradient(135deg, #667eea 0%, #764ba2 100%)" [ref=f19e128]': "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+            - group [aria-hidden]
+          - paragraph [ref=f19e129]: 単色の場合は#667eea、グラデーションの場合はlinear-gradient(...)形式で入力
+      - button "システム設定を保存" [ref=f19e132] [cursor=pointer]

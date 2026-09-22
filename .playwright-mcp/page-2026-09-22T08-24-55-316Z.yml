@@ -1,0 +1,109 @@
+- generic [ref=e93]:
+  - generic [ref=e94]:
+    - generic [ref=e95]:
+      - img "Logo" [ref=e539]
+      - paragraph [ref=e97]: パーツリスト＆在庫＋管理 - 管理画面
+    - generic [ref=e98]:
+      - button "ユーザー画面を見る" [ref=e540] [cursor=pointer]
+      - button "ログアウト" [ref=e541] [cursor=pointer]
+  - generic [ref=e101]:
+    - generic [ref=e102]:
+      - button "ダッシュボード" [ref=e542] [cursor=pointer]
+      - button "カテゴリー管理" [ref=e543] [cursor=pointer]
+      - button "ジャンル管理" [ref=e544] [cursor=pointer]
+      - button "ユニット管理" [ref=e545] [cursor=pointer]
+      - button "パーツ管理" [ref=e546] [cursor=pointer]
+      - button "棚卸し" [ref=e547] [cursor=pointer]
+      - button "運営者" [ref=e548] [cursor=pointer]
+      - button "アカウント設定" [ref=e549] [cursor=pointer]
+      - button "QRコード" [ref=e550] [cursor=pointer]
+    - generic [ref=e112]:
+      - generic [ref=e113]:
+        - paragraph [ref=e114]: カテゴリー管理
+        - button [ref=e551] [cursor=pointer]
+      - table [ref=e120]:
+        - rowgroup [ref=e121]:
+          - row [ref=e552]:
+            - columnheader [ref=e123]
+            - columnheader "画像" [ref=e553]
+            - columnheader "カテゴリーID" [ref=e554]
+            - columnheader "カテゴリー名" [ref=e555]
+            - columnheader "サブタイトル" [ref=e556]
+            - columnheader "ジャンル数" [ref=e557]
+            - columnheader "作成日" [ref=e558]
+            - columnheader "操作" [ref=e559]
+        - rowgroup [ref=e131]:
+          - row [ref=e560]:
+            - cell [ref=e133]:
+              - button [ref=e134]
+            - cell [ref=e561]:
+              - img "RZ34" [ref=e562]
+            - cell "GTA-GT" [ref=e563]
+            - cell "RZ34" [ref=e564]
+            - cell "Fairlady Z" [ref=e565]
+            - cell "27" [ref=e566]
+            - cell "2025/11/28" [ref=e567]
+            - cell [ref=e568]:
+              - button "編集" [ref=e569] [cursor=pointer]
+              - button "削除" [ref=e570] [cursor=pointer]
+          - row [ref=e571]:
+            - cell [ref=e148]:
+              - button [ref=e149]
+            - cell "(R" [ref=e572]
+            - cell "G\bTA-GT" [ref=e573]
+            - cell "(RZ34)GT3-049(2025~)" [ref=e574]
+            - cell "Fairlady Z" [ref=e575]
+            - cell "30" [ref=e576]
+            - cell "2025/11/28" [ref=e577]
+            - cell [ref=e578]:
+              - button "編集" [ref=e579] [cursor=pointer]
+              - button "削除" [ref=e580] [cursor=pointer]
+          - row [ref=e581]:
+            - cell [ref=e163]:
+              - button [ref=e164]
+            - cell "GT" [ref=e582]
+            - cell "GTR-GT3(MY20)" [ref=e583]
+            - cell "GTR-GT3 Rev.4.1" [ref=e584]
+            - cell "R35 GTR" [ref=e585]
+            - cell "30" [ref=e586]
+            - cell "2024/1/20" [ref=e587]
+            - cell [ref=e588]:
+              - button "編集" [ref=e589] [cursor=pointer]
+              - button "削除" [ref=e590] [cursor=pointer]
+          - row [ref=e591]:
+            - cell [ref=e178]:
+              - button [ref=e179]
+            - cell "AB" [ref=e592]
+            - cell "HONDA" [ref=e593]
+            - cell "ABA-FK2" [ref=e594]
+            - cell "CIVIC TYPE R (RH)" [ref=e595]
+            - cell "47" [ref=e596]
+            - cell "2026/9/17" [ref=e597]
+            - cell [ref=e598]:
+              - button "編集" [ref=e599] [cursor=pointer]
+              - button "削除" [ref=e600] [cursor=pointer]
+          - row [ref=e601]:
+            - cell [ref=e193]:
+              - button [ref=e194]
+            - cell "AB" [ref=e602]
+            - cell "HONDA" [ref=e603]
+            - cell "ABA-FK2" [ref=e604]
+            - cell "CIVIC TYPE R (LH)" [ref=e605]
+            - cell "47" [ref=e606]
+            - cell "2025/11/28" [ref=e607]
+            - cell [ref=e608]:
+              - button "編集" [ref=e609] [cursor=pointer]
+              - button "削除" [ref=e610] [cursor=pointer]
+          - row [ref=e611]:
+            - cell [ref=e208]:
+              - button [ref=e209]
+            - cell "AB" [ref=e612]
+            - cell "HONDA" [ref=e613]
+            - cell "ABA-FD2" [ref=e614]
+            - cell "CIVIC TYPE R" [ref=e615]
+            - cell "1" [ref=e616]
+            - cell "2025/11/28" [ref=e617]
+            - cell [ref=e618]:
+              - button "編集" [ref=e619] [cursor=pointer]
+              - button "削除" [ref=e620] [cursor=pointer]
+      - status [ref=e222]

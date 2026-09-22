@@ -89,6 +89,8 @@ export const partService = {
       expectedArrivalDate?: string;
       imageUrl?: string;
       notes?: string;
+      description?: string;
+      pdfUrl?: string;
       stockQuantity?: number;
     },
   ) {
@@ -142,6 +144,8 @@ export const partService = {
       expectedArrivalDate?: string;
       imageUrl?: string;
       notes?: string;
+      description?: string;
+      pdfUrl?: string;
       cropPositionX?: number;
       cropPositionY?: number;
       stockQuantity?: number;

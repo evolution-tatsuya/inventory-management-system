@@ -15,8 +15,14 @@ import {
   Paper,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
 } from '@mui/material';
-import { ArrowBack, Visibility, VisibilityOff, PictureAsPdf, TableChart, Description, Search, CurrencyYen } from '@mui/icons-material';
+import { ArrowBack, Visibility, VisibilityOff, PictureAsPdf, TableChart, Description, Search, CurrencyYen, Close } from '@mui/icons-material';
+import type { Part } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import jsPDF from 'jspdf';
@@ -81,6 +87,7 @@ export const PartsListPage = () => {
   const [showDiagram, setShowDiagram] = useState(true);
   const [showPartImages, setShowPartImages] = useState(true);
   const [imagePosition, setImagePosition] = useState<'left' | 'right'>('left');
+  const [selectedPart, setSelectedPart] = useState<Part | null>(null); // 詳細モーダル表示中のパーツ
 
   // 円換算トグル（A案: ボタンでリロードなしに 元通貨⇔円 を切替）
   const [showJpy, setShowJpy] = useState(false);
@@ -794,7 +801,9 @@ export const PartsListPage = () => {
                 parts.map((part) => (
                   <TableRow
                     key={part.id}
+                    onClick={() => setSelectedPart(part as Part)}
                     sx={{
+                      cursor: 'pointer',
                       '&:hover': {
                         backgroundColor: '#f5f5f5',
                       },
@@ -939,6 +948,105 @@ export const PartsListPage = () => {
           </Button>
         </Box>
       </Box>
+
+      {/* パーツ詳細モーダル（行クリックで表示、ページ遷移なし） */}
+      <Dialog
+        open={!!selectedPart}
+        onClose={() => setSelectedPart(null)}
+        maxWidth="md"
+        fullWidth
+        scroll="paper"
+      >
+        {selectedPart && (
+          <>
+            <DialogTitle sx={{ pr: 6, fontWeight: 700 }}>
+              {selectedPart.partName}
+              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                品番: {selectedPart.partNumber}
+              </Typography>
+              <IconButton
+                aria-label="閉じる"
+                onClick={() => setSelectedPart(null)}
+                sx={{ position: 'absolute', right: 8, top: 8, color: 'grey.500' }}
+              >
+                <Close />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
+              {/* パーツ画像 */}
+              {selectedPart.imageUrl && (
+                <Box sx={{ textAlign: 'center', mb: 2 }}>
+                  <Box
+                    component="img"
+                    src={selectedPart.imageUrl}
+                    alt={selectedPart.partName}
+                    sx={{
+                      maxWidth: '100%',
+                      maxHeight: 320,
+                      objectFit: 'contain',
+                      borderRadius: 1,
+                    }}
+                  />
+                </Box>
+              )}
+
+              {/* 商品説明 */}
+              {selectedPart.description ? (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                    商品説明
+                  </Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+                    {selectedPart.description}
+                  </Typography>
+                </Box>
+              ) : (
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                  商品説明は登録されていません。
+                </Typography>
+              )}
+
+              {/* 資料（画像/PDF） */}
+              {selectedPart.pdfUrl && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                    資料
+                  </Typography>
+                  {/\.pdf($|\?)/i.test(selectedPart.pdfUrl) ? (
+                    <Box
+                      component="iframe"
+                      src={selectedPart.pdfUrl}
+                      title="資料PDF"
+                      sx={{ width: '100%', height: { xs: 400, md: 560 }, border: '1px solid #e0e0e0', borderRadius: 1 }}
+                    />
+                  ) : (
+                    <Box
+                      component="img"
+                      src={selectedPart.pdfUrl}
+                      alt="資料"
+                      sx={{ width: '100%', maxHeight: 560, objectFit: 'contain', borderRadius: 1 }}
+                    />
+                  )}
+                  <Box sx={{ mt: 1 }}>
+                    <Button
+                      href={selectedPart.pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      size="small"
+                      startIcon={<PictureAsPdf />}
+                    >
+                      別タブで開く
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setSelectedPart(null)}>閉じる</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
     </Box>
   );
 };

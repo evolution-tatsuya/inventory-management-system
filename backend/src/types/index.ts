@@ -83,6 +83,8 @@ export interface Part {
   originalPrice?: number;  // 元通貨での価格（currencyがJPY以外のとき使用）
   storageCase?: string;
   notes?: string;
+  description?: string;    // 商品説明（詳細モーダルで表示、プロ購入者向け）
+  pdfUrl?: string;         // 資料URL（画像またはPDF）
   orderDate?: Date;
   expectedArrivalDate?: Date;
   imageUrl?: string;

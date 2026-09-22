@@ -1,0 +1,151 @@
+- generic [ref=f28e1]:
+  - generic [ref=f28e7]:
+    - generic [ref=f28e8]:
+      - heading [level=5] [ref=f28e181]: 運営者総括ページ
+      - button [ref=f28e182] [cursor=pointer]: ログアウト
+    - generic [ref=f28e14]:
+      - generic [ref=f28e15]:
+        - generic [ref=f28e16]:
+          - text: テナント総数
+          - heading [level=5] [ref=f28e183]: "3"
+        - generic [ref=f28e18]:
+          - text: 稼働中
+          - heading [level=5] [ref=f28e184]: "3"
+        - generic [ref=f28e20]:
+          - text: 未有効化
+          - heading [level=5] [ref=f28e185]: "0"
+        - generic [ref=f28e22]:
+          - text: 停止中
+          - heading [level=5] [ref=f28e186]: "0"
+        - generic [ref=f28e24]:
+          - text: 総パーツ数
+          - heading [level=5] [ref=f28e187]: "21078"
+      - generic [ref=f28e26]:
+        - heading [level=6] [ref=f28e188]: テナント一覧
+        - button [ref=f28e189] [cursor=pointer]: + 新規テナント発行
+      - table [ref=f28e30]:
+        - rowgroup [ref=f28e31]:
+          - row [ref=f28e190]:
+            - columnheader [ref=f28e191]: テナント名
+            - columnheader [ref=f28e192]: slug
+            - columnheader [ref=f28e193]: 状態
+            - columnheader [ref=f28e194]: ライセンスキー
+            - columnheader [ref=f28e195]: 件数(cat/genre/unit/part/画像)
+            - columnheader [ref=f28e196]: 課金
+            - columnheader [ref=f28e197]: 管理者
+            - columnheader [ref=f28e198]: 操作
+        - rowgroup [ref=f28e41]:
+          - row [ref=f28e199]:
+            - cell [ref=f28e200]: プラモデル管理
+            - cell [ref=f28e201]: gunpla-list
+            - cell [ref=f28e202]:
+              - generic [ref=f28e46]: 稼働中
+            - cell [ref=f28e203]:
+              - generic [ref=f28e49]:
+                - generic [ref=f28e50]: E48P-3JD5-HB9M-T594
+                - button [ref=f28e204] [cursor=pointer]
+            - cell [ref=f28e205]: 0/0/0/0/0
+            - cell [ref=f28e206]:
+              - generic [ref=f28e56]: 未設定
+            - cell [ref=f28e207]:
+              - generic [ref=f28e59]:
+                - generic [ref=f28e60]: GANPLA / New
+                - generic [ref=f28e61]: TATSUYA
+                - generic [ref=f28e62]: t.evolution.no.1@hotmail.com
+                - generic [ref=f28e63]: "登録: 2026/09/21"
+                - generic [ref=f28e64]: "最終ログイン: 2026/09/21 12:02"
+            - cell [ref=f28e208]:
+              - generic [ref=f28e66]:
+                - button [ref=f28e209] [cursor=pointer]
+                - button [ref=f28e210] [cursor=pointer]
+                - button [ref=f28e74] [cursor=pointer]
+                - button [ref=f28e78] [cursor=pointer]
+                - button [ref=f28e83] [cursor=pointer]
+                - button [ref=f28e214] [cursor=pointer]: 停止
+                - button [ref=f28e215] [cursor=pointer]
+                - generic [ref=f28e216]:
+                  - button [disabled]
+          - row [ref=f28e217]:
+            - cell [ref=f28e218]: GAINER在庫管理
+            - cell [ref=f28e219]: gainer-parts-list
+            - cell [ref=f28e220]:
+              - generic [ref=f28e95]: 稼働中
+            - cell [ref=f28e221]:
+              - generic [ref=f28e98]:
+                - generic [ref=f28e99]: W47S-XZ4Z-CJHD-4V8F
+                - button [ref=f28e222] [cursor=pointer]
+            - cell [ref=f28e223]: 6/182/794/10539/711
+            - cell [ref=f28e224]:
+              - generic [ref=f28e105]: 未設定
+            - cell [ref=f28e225]:
+              - generic [ref=f28e108]:
+                - generic [ref=f28e109]: ゲイナー
+                - generic [ref=f28e110]: gainer@inventory.local
+                - generic [ref=f28e111]: "登録: 2026/09/21"
+                - generic [ref=f28e112]: "最終ログイン: 未ログイン"
+            - cell [ref=f28e226]:
+              - generic [ref=f28e114]:
+                - button [ref=f28e227] [cursor=pointer]
+                - button [ref=f28e228] [cursor=pointer]
+                - button [ref=f28e122] [cursor=pointer]
+                - button [ref=f28e126] [cursor=pointer]
+                - button [ref=f28e131] [cursor=pointer]
+                - button [ref=f28e232] [cursor=pointer]: 停止
+                - button [ref=f28e233] [cursor=pointer]
+                - generic [ref=f28e234]:
+                  - button [disabled]
+          - row [ref=f28e235]:
+            - cell [ref=f28e236]: GAINER
+            - cell [ref=f28e237]: default
+            - cell [ref=f28e238]:
+              - generic [ref=f28e143]: 稼働中
+            - cell [ref=f28e239]: —
+            - cell [ref=f28e240]: 6/182/794/10539/711
+            - cell [ref=f28e241]:
+              - generic [ref=f28e148]: 未設定
+            - cell [ref=f28e242]:
+              - generic [ref=f28e151]:
+                - generic [ref=f28e152]: admin@inventory-system.local（運営者）
+                - generic [ref=f28e153]: "登録: 2025/11/28"
+                - generic [ref=f28e154]: "最終ログイン: 2026/09/21 12:03"
+            - cell [ref=f28e243]:
+              - generic [ref=f28e156]:
+                - button [ref=f28e244] [cursor=pointer]
+                - button [ref=f28e245] [cursor=pointer]
+                - button [ref=f28e164] [cursor=pointer]
+                - button [ref=f28e168] [cursor=pointer]
+                - button [ref=f28e173] [cursor=pointer]
+                - button [ref=f28e249] [cursor=pointer]: 停止
+                - button [ref=f28e250] [cursor=pointer]
+                - generic [ref=f28e251]:
+                  - button [disabled]
+  - dialog [active] [ref=f28e254]:
+    - heading "閲覧専用ユーザーを追加 — プラモデル管理（gunpla-list）" [level=2] [ref=f28e255]
+    - generic [ref=f28e256]:
+      - paragraph [ref=f28e257]: このテナントの在庫を閲覧のみできるユーザーを作成します。 ログイン用のメールアドレスとパスワードを設定してください。
+      - generic [ref=f28e258]:
+        - generic:
+          - text: メールアドレス
+          - generic [aria-hidden]: "*"
+        - generic [ref=f28e259]:
+          - textbox "メールアドレス" [ref=f28e260]
+          - group [aria-hidden]:
+            - generic: メールアドレス *
+      - generic [ref=f28e261]:
+        - generic:
+          - text: パスワード（8文字以上）
+          - generic [aria-hidden]: "*"
+        - generic [ref=f28e262]:
+          - textbox "パスワード（8文字以上）" [ref=f28e263]
+          - group [aria-hidden]:
+            - generic: パスワード（8文字以上） *
+        - paragraph [ref=f28e264]: このパスワードを利用者に伝えてください
+      - generic [ref=f28e265]:
+        - generic: 表示名（任意）
+        - generic [ref=f28e266]:
+          - textbox "表示名（任意）" [ref=f28e267]
+          - group [aria-hidden]:
+            - generic: 表示名（任意）
+    - generic [ref=f28e268]:
+      - button "キャンセル" [ref=f28e269] [cursor=pointer]
+      - button "追加" [disabled]

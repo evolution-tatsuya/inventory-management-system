@@ -63,6 +63,8 @@ export const partController = {
         expectedArrivalDate,
         imageUrl,
         notes,
+        description,
+        pdfUrl,
         stockQuantity, // 在庫数量を追加
       } = req.body;
 
@@ -85,6 +87,9 @@ export const partController = {
       if (imageUrl && !validateUrl(imageUrl)) {
         return res.status(400).json({ error: 'Invalid image URL' });
       }
+      if (pdfUrl && !validateUrl(pdfUrl)) {
+        return res.status(400).json({ error: 'Invalid pdf URL' });
+      }
       if (stockQuantity !== undefined && !validateStockQuantity(stockQuantity)) {
         return res.status(400).json({ error: 'Invalid stock quantity' });
       }
@@ -105,6 +110,8 @@ export const partController = {
         imageUrl,
         stockQuantity, // 在庫数量を渡す
         notes,
+        description,
+        pdfUrl,
       });
 
       res.status(201).json(part);
@@ -130,6 +137,8 @@ export const partController = {
         expectedArrivalDate,
         imageUrl,
         notes,
+        description,
+        pdfUrl,
         cropPositionX,
         cropPositionY,
         stockQuantity, // 在庫数量を追加
@@ -150,6 +159,9 @@ export const partController = {
       if (imageUrl && !validateUrl(imageUrl)) {
         return res.status(400).json({ error: 'Invalid image URL' });
       }
+      if (pdfUrl && !validateUrl(pdfUrl)) {
+        return res.status(400).json({ error: 'Invalid pdf URL' });
+      }
       if (stockQuantity !== undefined && !validateStockQuantity(stockQuantity)) {
         return res.status(400).json({ error: 'Invalid stock quantity' });
       }
@@ -167,6 +179,8 @@ export const partController = {
         expectedArrivalDate,
         imageUrl,
         notes,
+        description,
+        pdfUrl,
         cropPositionX,
         cropPositionY,
         stockQuantity, // 在庫数量を渡す

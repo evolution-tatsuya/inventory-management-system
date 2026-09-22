@@ -191,6 +191,8 @@ model Part {
   originalPrice       Float?     // 元通貨での価格（currencyがJPY以外のとき使用）
   storageCase         String?
   notes               String?
+  description         String?    @db.Text // 商品説明（詳細モーダルで表示、プロ購入者向け）
+  pdfUrl              String?    // 資料URL（画像またはPDF。Cloudinary secure_url）
   orderDate           DateTime?
   expectedArrivalDate DateTime?
   imageUrl            String?

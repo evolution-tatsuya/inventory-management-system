@@ -1,0 +1,30 @@
+- generic [ref=f25e10]:
+  - heading "Admin Sign In" [level=2] [ref=f25e15]
+  - generic [ref=f25e16]:
+    - generic [ref=f25e17]:
+      - text: テナントID
+      - generic [aria-hidden] [ref=f25e18]: "*"
+    - generic [ref=f25e19]:
+      - textbox "テナントID" [ref=f25e20]: default
+      - group [aria-hidden]:
+        - generic: テナントID *
+    - paragraph [ref=f25e21]: "在庫管理システムの識別子（例: default）"
+  - generic [ref=f25e22]:
+    - generic [ref=f25e23]:
+      - text: メールアドレス
+      - generic [aria-hidden] [ref=f25e24]: "*"
+    - generic [ref=f25e25]:
+      - textbox "メールアドレス" [active] [ref=f25e26]
+      - group [aria-hidden]:
+        - generic: メールアドレス *
+  - generic [ref=f25e27]:
+    - generic:
+      - text: パスワード
+      - generic [aria-hidden]: "*"
+    - generic [ref=f25e28]:
+      - textbox "パスワード" [ref=f25e29]
+      - button "パスワードの表示/非表示を切り替え" [ref=f25e31] [cursor=pointer]
+      - group [aria-hidden]:
+        - generic: パスワード *
+  - button "管理者ログイン" [disabled]
+  - button "一般利用者の方はこちら" [ref=f25e35] [cursor=pointer]

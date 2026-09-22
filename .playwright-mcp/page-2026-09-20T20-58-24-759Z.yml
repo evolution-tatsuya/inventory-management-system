@@ -1,0 +1,77 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e7]:
+    - generic [ref=f2e8]:
+      - heading [level=5] [ref=f2e72]: 運営者総括ページ
+      - button [ref=f2e73] [cursor=pointer]: ログアウト
+    - generic [ref=f2e14]:
+      - generic [ref=f2e15]:
+        - generic [ref=f2e16]:
+          - text: テナント総数
+          - heading [level=5] [ref=f2e74]: "1"
+        - generic [ref=f2e18]:
+          - text: 稼働中
+          - heading [level=5] [ref=f2e75]: "1"
+        - generic [ref=f2e20]:
+          - text: 未有効化
+          - heading [level=5] [ref=f2e76]: "0"
+        - generic [ref=f2e22]:
+          - text: 停止中
+          - heading [level=5] [ref=f2e77]: "0"
+        - generic [ref=f2e24]:
+          - text: 総パーツ数
+          - heading [level=5] [ref=f2e78]: "10539"
+      - generic [ref=f2e26]:
+        - heading [level=6] [ref=f2e79]: テナント一覧
+        - button [ref=f2e80] [cursor=pointer]: + 新規テナント発行
+      - table [ref=f2e30]:
+        - rowgroup [ref=f2e31]:
+          - row [ref=f2e81]:
+            - columnheader [ref=f2e82]: テナント名
+            - columnheader [ref=f2e83]: slug
+            - columnheader [ref=f2e84]: 状態
+            - columnheader [ref=f2e85]: ライセンスキー
+            - columnheader [ref=f2e86]: 件数(cat/genre/unit/part)
+            - columnheader [ref=f2e87]: 管理者
+            - columnheader [ref=f2e88]: 操作
+        - rowgroup [ref=f2e40]:
+          - row [ref=f2e89]:
+            - cell [ref=f2e90]: GAINER
+            - cell [ref=f2e91]: default
+            - cell [ref=f2e92]:
+              - generic [ref=f2e45]: 稼働中
+            - cell [ref=f2e93]: —
+            - cell [ref=f2e94]: 6/182/794/10539
+            - cell [ref=f2e95]:
+              - generic [ref=f2e50]:
+                - generic [ref=f2e51]: admin@inventory-system.local（運営者）
+                - generic [ref=f2e52]: "登録: 2025/11/28"
+            - cell [ref=f2e96]:
+              - generic [ref=f2e54]:
+                - button [ref=f2e97] [cursor=pointer]
+                - button [ref=f2e59] [cursor=pointer]
+                - button [ref=f2e64] [cursor=pointer]
+                - button [ref=f2e100] [cursor=pointer]: 停止
+                - button [ref=f2e101] [cursor=pointer]
+                - generic [ref=f2e102]:
+                  - button [disabled]
+  - dialog [ref=f2e105]:
+    - heading "送付情報 — GAINER（default）" [level=2] [ref=f2e106]
+    - generic [ref=f2e107]:
+      - paragraph [ref=f2e108]: 顧客に渡すURLです。コピー・別タブで確認・QRコードで送付できます。 ログインURLはテナントIDが、有効化URLはライセンスキーが自動で入ります。
+      - generic [ref=f2e109]:
+        - heading "管理ログインURL" [level=6] [ref=f2e110]
+        - generic [ref=f2e111]: 管理者（顧客）がログインする画面
+        - generic [ref=f2e112]:
+          - generic [ref=f2e113]: http://localhost:3589/admin/login?tenant=default
+          - button "URLをコピー" [ref=f2e114] [cursor=pointer]
+          - button "別タブで開く" [ref=f2e117] [cursor=pointer]
+          - button "QRコード" [ref=f2e120] [cursor=pointer]
+      - generic [ref=f2e123]:
+        - heading "ユーザーログインURL" [level=6] [ref=f2e124]
+        - generic [ref=f2e125]: 閲覧用の一般ユーザーがログインする画面
+        - generic [ref=f2e126]:
+          - generic [ref=f2e127]: http://localhost:3589/login?tenant=default
+          - button "URLをコピー" [ref=f2e128] [cursor=pointer]
+          - button "別タブで開く" [ref=f2e131] [cursor=pointer]
+          - button "QRコード" [ref=f2e134] [cursor=pointer]
+    - button "閉じる" [ref=f2e138] [cursor=pointer]

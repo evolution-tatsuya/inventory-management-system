@@ -1,0 +1,30 @@
+- generic [ref=f24e5]:
+  - heading "Admin Sign In" [level=2] [ref=f24e10]
+  - generic [ref=f24e11]:
+    - generic [ref=f24e12]:
+      - text: テナントID
+      - generic [aria-hidden] [ref=f24e13]: "*"
+    - generic [ref=f24e14]:
+      - textbox "テナントID" [ref=f24e15]: gunpla-list
+      - group [aria-hidden]:
+        - generic: テナントID *
+    - paragraph [ref=f24e16]: "在庫管理システムの識別子（例: default）"
+  - generic [ref=f24e17]:
+    - generic [ref=f24e18]:
+      - text: メールアドレス
+      - generic [aria-hidden] [ref=f24e19]: "*"
+    - generic [ref=f24e20]:
+      - textbox "メールアドレス" [active] [ref=f24e21]
+      - group [aria-hidden]:
+        - generic: メールアドレス *
+  - generic [ref=f24e22]:
+    - generic:
+      - text: パスワード
+      - generic [aria-hidden]: "*"
+    - generic [ref=f24e23]:
+      - textbox "パスワード" [ref=f24e24]
+      - button "パスワードの表示/非表示を切り替え" [ref=f24e26] [cursor=pointer]
+      - group [aria-hidden]:
+        - generic: パスワード *
+  - button "管理者ログイン" [disabled]
+  - button "一般利用者の方はこちら" [ref=f24e30] [cursor=pointer]

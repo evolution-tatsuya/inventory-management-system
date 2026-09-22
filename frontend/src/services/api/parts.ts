@@ -48,6 +48,8 @@ export async function createPart(data: {
   originalPrice?: number | null;
   storageCase?: string;
   notes?: string;
+  description?: string;
+  pdfUrl?: string;
   orderDate?: string;
   expectedArrivalDate?: string;
   imageUrl?: string;
@@ -77,6 +79,8 @@ export async function updatePart(
     originalPrice?: number | null;
     storageCase?: string;
     notes?: string;
+    description?: string;
+    pdfUrl?: string;
     orderDate?: string;
     expectedArrivalDate?: string;
     imageUrl?: string;

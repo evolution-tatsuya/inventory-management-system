@@ -1,0 +1,47 @@
+- generic [ref=f24e31]:
+  - generic [ref=f24e32]:
+    - paragraph [ref=f24e34]: 階層型在庫管理システム - 管理画面
+    - generic [ref=f24e35]:
+      - button "ユーザー画面を見る" [ref=f24e36] [cursor=pointer]
+      - button "ログアウト" [ref=f24e37] [cursor=pointer]
+  - generic [ref=f24e38]:
+    - generic [ref=f24e39]:
+      - button "ダッシュボード" [ref=f24e40] [cursor=pointer]
+      - button "カテゴリー管理" [ref=f24e41] [cursor=pointer]
+      - button "ジャンル管理" [ref=f24e42] [cursor=pointer]
+      - button "ユニット管理" [ref=f24e43] [cursor=pointer]
+      - button "パーツ管理" [ref=f24e44] [cursor=pointer]
+      - button "棚卸し" [ref=f24e45] [cursor=pointer]
+      - button "運営者" [ref=f24e46] [cursor=pointer]
+      - button "アカウント設定" [ref=f24e47] [cursor=pointer]
+      - button "QRコード" [ref=f24e48] [cursor=pointer]
+    - generic [ref=f24e49]:
+      - paragraph [ref=f24e50]: ダッシュボード
+      - generic [ref=f24e51]:
+        - generic [ref=f24e54]:
+          - paragraph [ref=f24e55]: カテゴリー総数
+          - paragraph [ref=f24e56]: —
+          - paragraph [ref=f24e57]: 登録済みカテゴリー
+        - generic [ref=f24e60]:
+          - paragraph [ref=f24e61]: ジャンル総数
+          - paragraph [ref=f24e62]: —
+          - paragraph [ref=f24e63]: 全カテゴリー合計
+        - generic [ref=f24e66]:
+          - paragraph [ref=f24e67]: ユニット総数
+          - paragraph [ref=f24e68]: —
+          - paragraph [ref=f24e69]: 全ジャンル合計
+        - generic [ref=f24e72]:
+          - paragraph [ref=f24e73]: 在庫切れパーツ
+          - paragraph [ref=f24e74]: —
+          - paragraph [ref=f24e75]: 在庫5以下：要発注の目安
+      - generic [ref=f24e76]:
+        - paragraph [ref=f24e77]: クイックアクション
+        - generic [ref=f24e78]:
+          - button "+ 新規カテゴリー追加" [ref=f24e80] [cursor=pointer]
+          - button "+ 新規ジャンル追加" [ref=f24e82] [cursor=pointer]
+          - button "+ 新規ユニット追加" [ref=f24e84] [cursor=pointer]
+          - button "+ 新規パーツ追加" [ref=f24e86] [cursor=pointer]
+          - button "QRコード表示" [ref=f24e88] [cursor=pointer]
+      - generic [ref=f24e89]:
+        - paragraph [ref=f24e90]: 最近の棚卸し履歴
+        - paragraph [ref=f24e92]: 棚卸しの記録はまだありません。

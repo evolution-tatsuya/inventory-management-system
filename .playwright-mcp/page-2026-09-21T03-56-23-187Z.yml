@@ -1,0 +1,65 @@
+- generic [ref=f27e62]:
+  - generic [ref=f27e63]:
+    - heading "運営者総括ページ" [level=5] [ref=f27e129]
+    - button [ref=f27e130] [cursor=pointer]
+  - generic [ref=f27e69]:
+    - generic [ref=f27e70]:
+      - generic [ref=f27e71]:
+        - text: テナント総数
+        - heading "1" [level=5] [ref=f27e131]
+      - generic [ref=f27e73]:
+        - text: 稼働中
+        - heading "1" [level=5] [ref=f27e132]
+      - generic [ref=f27e75]:
+        - text: 未有効化
+        - heading "0" [level=5] [ref=f27e133]
+      - generic [ref=f27e77]:
+        - text: 停止中
+        - heading "0" [level=5] [ref=f27e134]
+      - generic [ref=f27e79]:
+        - text: 総パーツ数
+        - heading "10539" [level=5] [ref=f27e135]
+    - generic [ref=f27e81]:
+      - heading "テナント一覧" [level=6] [ref=f27e136]
+      - button "+ 新規テナント発行" [ref=f27e137] [cursor=pointer]
+    - table [ref=f27e7]:
+      - rowgroup [ref=f27e8]:
+        - row [ref=f27e138]:
+          - columnheader "テナント名" [ref=f27e139]
+          - columnheader "slug" [ref=f27e140]
+          - columnheader "状態" [ref=f27e141]
+          - columnheader "ライセンスキー" [ref=f27e142]
+          - columnheader "件数(cat/genre/unit/part/画像)" [ref=f27e143]
+          - columnheader "課金" [ref=f27e144]
+          - columnheader "管理者" [ref=f27e145]
+          - columnheader "操作" [ref=f27e146]
+      - rowgroup [ref=f27e18]:
+        - row [ref=f27e147]:
+          - cell "GAINER" [ref=f27e148]
+          - cell "default" [ref=f27e149]
+          - cell "稼働中" [ref=f27e150]
+          - cell "—" [ref=f27e151]
+          - cell "6/182/794/10539/711" [ref=f27e152]
+          - cell "未設定" [ref=f27e153]
+          - 'cell "運営管理者 admin@inventory-system.local（運営者） 登録: 2025/11/28 最終ログイン: 2026/09/21 08:40" [ref=f27e154]':
+            - generic [ref=f27e31]:
+              - generic [ref=f27e32]: 運営管理者
+              - generic [ref=f27e33]: admin@inventory-system.local（運営者）
+              - generic [ref=f27e34]: "登録: 2025/11/28"
+              - generic [ref=f27e35]: "最終ログイン: 2026/09/21 08:40"
+          - cell [ref=f27e155]:
+            - generic [ref=f27e37]:
+              - button "送付情報（ログイン/有効化URL・QR）" [ref=f27e156] [cursor=pointer]
+              - button "課金情報を編集" [ref=f27e157] [cursor=pointer]
+              - generic "閲覧専用ユーザーを追加" [ref=f27e158]:
+                - button [active] [ref=f27e45] [cursor=pointer]
+              - generic "管理画面を別タブで開く" [ref=f27e159]:
+                - button [ref=f27e49] [cursor=pointer]
+              - generic "ユーザー画面を別タブで開く" [ref=f27e160]:
+                - button [ref=f27e54] [cursor=pointer]
+              - button "停止" [ref=f27e161] [cursor=pointer]
+              - button "キー再発行" [ref=f27e162] [cursor=pointer]
+              - generic "既定テナントは削除不可" [ref=f27e163]:
+                - button [disabled]
+  - alert [ref=f27e164]:
+    - generic [ref=f27e165]: 閲覧専用ユーザーを追加しました

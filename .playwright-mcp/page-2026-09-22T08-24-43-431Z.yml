@@ -1,0 +1,132 @@
+- generic [ref=e1]:
+  - generic [ref=e93]:
+    - generic [ref=e94]:
+      - paragraph [ref=e97]: パーツリスト＆在庫＋管理 - 管理画面
+      - generic [ref=e98]:
+        - button [ref=e437] [cursor=pointer]: ユーザー画面を見る
+        - button [ref=e438] [cursor=pointer]: ログアウト
+    - generic [ref=e101]:
+      - generic [ref=e102]:
+        - button [ref=e439] [cursor=pointer]: ダッシュボード
+        - button [ref=e440] [cursor=pointer]: カテゴリー管理
+        - button [ref=e441] [cursor=pointer]: ジャンル管理
+        - button [ref=e442] [cursor=pointer]: ユニット管理
+        - button [ref=e443] [cursor=pointer]: パーツ管理
+        - button [ref=e444] [cursor=pointer]: 棚卸し
+        - button [ref=e445] [cursor=pointer]: 運営者
+        - button [ref=e446] [cursor=pointer]: アカウント設定
+        - button [ref=e447] [cursor=pointer]: QRコード
+      - generic [ref=e112]:
+        - generic [ref=e113]:
+          - paragraph [ref=e114]: カテゴリー管理
+          - button [ref=e448] [cursor=pointer]: 新規カテゴリー追加
+        - table [ref=e120]:
+          - rowgroup [ref=e121]:
+            - row [ref=e449]:
+              - columnheader [ref=e123]
+              - columnheader [ref=e450]: 画像
+              - columnheader [ref=e451]: カテゴリーID
+              - columnheader [ref=e452]: カテゴリー名
+              - columnheader [ref=e453]: サブタイトル
+              - columnheader [ref=e454]: ジャンル数
+              - columnheader [ref=e455]: 作成日
+              - columnheader [ref=e456]: 操作
+          - rowgroup [ref=e131]:
+            - row [ref=e457]:
+              - cell [ref=e133]:
+                - button [ref=e134]
+              - cell [ref=e458]
+              - cell [ref=e460]: GTA-GT
+              - cell [ref=e461]: RZ34
+              - cell [ref=e462]: Fairlady Z
+              - cell [ref=e463]: "27"
+              - cell [ref=e464]: 2025/11/28
+              - cell [ref=e465]:
+                - button [ref=e466] [cursor=pointer]: 編集
+                - button [ref=e467] [cursor=pointer]: 削除
+            - row [ref=e468]:
+              - cell [ref=e422]:
+                - button [ref=e423]
+              - cell [ref=e469]
+              - cell [ref=e471]: TEST-LOGO
+              - cell [ref=e472]: ロゴ保存テスト
+              - cell [ref=e473]: "-"
+              - cell [ref=e474]: "0"
+              - cell [ref=e475]: 2026/9/22
+              - cell [ref=e476]:
+                - button [ref=e477] [cursor=pointer]: 編集
+                - button [ref=e478] [cursor=pointer]: 削除
+            - row [ref=e479]:
+              - cell [ref=e148]:
+                - button [ref=e149]
+              - cell [ref=e480]:
+                - generic [ref=e153]: (R
+              - cell [ref=e481]: "G\bTA-GT"
+              - cell [ref=e482]: (RZ34)GT3-049(2025~)
+              - cell [ref=e483]: Fairlady Z
+              - cell [ref=e484]: "30"
+              - cell [ref=e485]: 2025/11/28
+              - cell [ref=e486]:
+                - button [ref=e487] [cursor=pointer]: 編集
+                - button [ref=e488] [cursor=pointer]: 削除
+            - row [ref=e489]:
+              - cell [ref=e163]:
+                - button [ref=e164]
+              - cell [ref=e490]:
+                - generic [ref=e168]: GT
+              - cell [ref=e491]: GTR-GT3(MY20)
+              - cell [ref=e492]: GTR-GT3 Rev.4.1
+              - cell [ref=e493]: R35 GTR
+              - cell [ref=e494]: "30"
+              - cell [ref=e495]: 2024/1/20
+              - cell [ref=e496]:
+                - button [ref=e497] [cursor=pointer]: 編集
+                - button [ref=e498] [cursor=pointer]: 削除
+            - row [ref=e499]:
+              - cell [ref=e178]:
+                - button [ref=e179]
+              - cell [ref=e500]:
+                - generic [ref=e183]: AB
+              - cell [ref=e501]: HONDA
+              - cell [ref=e502]: ABA-FK2
+              - cell [ref=e503]: CIVIC TYPE R (RH)
+              - cell [ref=e504]: "47"
+              - cell [ref=e505]: 2026/9/17
+              - cell [ref=e506]:
+                - button [ref=e507] [cursor=pointer]: 編集
+                - button [ref=e508] [cursor=pointer]: 削除
+            - row [ref=e509]:
+              - cell [ref=e193]:
+                - button [ref=e194]
+              - cell [ref=e510]:
+                - generic [ref=e198]: AB
+              - cell [ref=e511]: HONDA
+              - cell [ref=e512]: ABA-FK2
+              - cell [ref=e513]: CIVIC TYPE R (LH)
+              - cell [ref=e514]: "47"
+              - cell [ref=e515]: 2025/11/28
+              - cell [ref=e516]:
+                - button [ref=e517] [cursor=pointer]: 編集
+                - button [ref=e518] [cursor=pointer]: 削除
+            - row [ref=e519]:
+              - cell [ref=e208]:
+                - button [ref=e209]
+              - cell [ref=e520]:
+                - generic [ref=e213]: AB
+              - cell [ref=e521]: HONDA
+              - cell [ref=e522]: ABA-FD2
+              - cell [ref=e523]: CIVIC TYPE R
+              - cell [ref=e524]: "1"
+              - cell [ref=e525]: 2025/11/28
+              - cell [ref=e526]:
+                - button [ref=e527] [cursor=pointer]: 編集
+                - button [ref=e528] [cursor=pointer]: 削除
+        - status [ref=e222]
+  - dialog [ref=e531]:
+    - heading "カテゴリー削除確認" [level=2] [ref=e532]
+    - generic [ref=e533]:
+      - paragraph [ref=e534]: カテゴリー「ロゴ保存テスト」を削除してもよろしいですか?
+      - paragraph [ref=e535]: ※ このカテゴリーに紐づくジャンルとパーツもすべて削除されます。
+    - generic [ref=e536]:
+      - button "キャンセル" [ref=e537] [cursor=pointer]
+      - button "削除" [ref=e538] [cursor=pointer]

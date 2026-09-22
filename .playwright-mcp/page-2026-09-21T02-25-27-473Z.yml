@@ -1,0 +1,61 @@
+- generic [ref=f16e105]:
+  - generic [ref=f16e106]:
+    - generic [ref=f16e107]:
+      - img "Logo" [ref=f16e108]
+      - paragraph [ref=f16e109]: パーツリスト＆在庫＋管理 - 管理画面
+    - generic [ref=f16e110]:
+      - button "ユーザー画面を見る" [ref=f16e111] [cursor=pointer]
+      - button "ログアウト" [ref=f16e112] [cursor=pointer]
+  - generic [ref=f16e113]:
+    - generic [ref=f16e114]:
+      - button "ダッシュボード" [ref=f16e115] [cursor=pointer]
+      - button "カテゴリー管理" [ref=f16e116] [cursor=pointer]
+      - button "ジャンル管理" [ref=f16e117] [cursor=pointer]
+      - button "ユニット管理" [ref=f16e118] [cursor=pointer]
+      - button "パーツ管理" [ref=f16e119] [cursor=pointer]
+      - button "棚卸し" [ref=f16e120] [cursor=pointer]
+      - button "運営者" [ref=f16e121] [cursor=pointer]
+      - button "アカウント設定" [ref=f16e122] [cursor=pointer]
+      - button "QRコード" [ref=f16e123] [cursor=pointer]
+    - generic [ref=f16e124]:
+      - paragraph [ref=f16e125]: ダッシュボード
+      - generic [ref=f16e126]:
+        - generic [ref=f16e129]:
+          - paragraph [ref=f16e130]: カテゴリー総数
+          - paragraph [ref=f16e131]: "6"
+          - paragraph [ref=f16e132]: 登録済みカテゴリー
+        - generic [ref=f16e135]:
+          - paragraph [ref=f16e136]: ジャンル総数
+          - paragraph [ref=f16e137]: "182"
+          - paragraph [ref=f16e138]: 全カテゴリー合計
+        - generic [ref=f16e141]:
+          - paragraph [ref=f16e142]: ユニット総数
+          - paragraph [ref=f16e143]: "794"
+          - paragraph [ref=f16e144]: 全ジャンル合計
+        - generic [ref=f16e147]:
+          - paragraph [ref=f16e148]: 在庫切れパーツ
+          - paragraph [ref=f16e149]: "10529"
+          - paragraph [ref=f16e150]: 在庫5以下：要発注の目安
+      - generic [ref=f16e151]:
+        - paragraph [ref=f16e152]: クイックアクション
+        - generic [ref=f16e153]:
+          - button "+ 新規カテゴリー追加" [ref=f16e155] [cursor=pointer]
+          - button "+ 新規ジャンル追加" [ref=f16e157] [cursor=pointer]
+          - button "+ 新規ユニット追加" [ref=f16e159] [cursor=pointer]
+          - button "+ 新規パーツ追加" [ref=f16e161] [cursor=pointer]
+          - button "QRコード表示" [ref=f16e163] [cursor=pointer]
+      - generic [ref=f16e164]:
+        - paragraph [ref=f16e165]: 最近の棚卸し履歴
+        - generic [ref=f16e166]:
+          - generic [ref=f16e167]:
+            - paragraph [ref=f16e168]: ［ENG ASSY］ 10001 RT11C の在庫を 1 → 0（-1）
+            - paragraph [ref=f16e169]: 6日前
+          - generic [ref=f16e170]:
+            - paragraph [ref=f16e171]: ［ENG ASSY］ 10001 RT11C の在庫を 0 → 1（+1）
+            - paragraph [ref=f16e172]: 6日前
+          - generic [ref=f16e173]:
+            - paragraph [ref=f16e174]: ［ENG ASSY］ 10001 RT11C の在庫を 1 → 0（-1）
+            - paragraph [ref=f16e175]: 6日前
+          - generic [ref=f16e176]:
+            - paragraph [ref=f16e177]: ［ENG ASSY］ 10001 RT11C の在庫を 0 → 1（+1）
+            - paragraph [ref=f16e178]: 6日前
