@@ -75,4 +75,53 @@ export const integrationController = {
       res.status(400).json({ error: e.message });
     }
   },
+
+  // POST /api/integration/suspend - 解約/一時停止でテナントを停止（冪等）
+  async suspend(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { orderId, reason } = req.body;
+      if (!orderId || typeof orderId !== 'string') {
+        return res.status(400).json({ error: 'orderId は必須です' });
+      }
+      const result = await tenantService.suspendByOrder({ orderId, reason });
+      res.json(result);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  },
+
+  // POST /api/integration/unsuspend - 再契約でテナントを再開（冪等）
+  async unsuspend(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { orderId } = req.body;
+      if (!orderId || typeof orderId !== 'string') {
+        return res.status(400).json({ error: 'orderId は必須です' });
+      }
+      const result = await tenantService.unsuspendByOrder({ orderId });
+      res.json(result);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  },
+
+  // POST /api/integration/reactivate - 解約後の再購入で旧テナント（データ）を引き継ぐ（冪等）
+  async reactivate(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { prevOrderId, newOrderId, plan, billingType, productId, limits } = req.body;
+      if (!prevOrderId || !newOrderId) {
+        return res.status(400).json({ error: 'prevOrderId と newOrderId は必須です' });
+      }
+      const result = await tenantService.reactivateWithNewOrder({
+        prevOrderId,
+        newOrderId,
+        plan,
+        billingType,
+        productId,
+        limits,
+      });
+      res.json(result);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  },
 };

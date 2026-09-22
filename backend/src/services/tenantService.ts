@@ -594,4 +594,108 @@ export const tenantService = {
     });
     return { success: true, ...updated };
   },
+
+  // ============================================================
+  // EC連携：解約/一時停止でテナントを停止する（冪等）
+  // ============================================================
+  // orderId（発行時の注文ID）でテナントを特定し suspended にする。
+  // reason は記録用（cancelled=解約 / suspended=一時停止。挙動は同じ）。
+  // ログイン・データ閲覧は requireAuth/tenantContext が403で止める。データは消さない。
+  // ============================================================
+  async suspendByOrder(data: { orderId: string; reason?: string }) {
+    const orderId = (data.orderId || '').trim();
+    if (!orderId) throw new Error('orderId は必須です');
+    const tenant = await prisma.tenant.findUnique({ where: { provisionOrderId: orderId } });
+    if (!tenant) throw new Error('対象テナントが見つかりません');
+
+    // reason は cancelled / suspended のみ記録（それ以外は無視して 'suspended' 扱い）
+    const reason =
+      data.reason === 'cancelled' || data.reason === 'suspended' ? data.reason : null;
+
+    // 冪等：既に suspended でも reason だけ更新して 200 で返す
+    const updated = await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: { status: 'suspended', suspendReason: reason ?? tenant.suspendReason },
+      select: { slug: true, status: true, suspendReason: true },
+    });
+    return { success: true, alreadySuspended: tenant.status === 'suspended', ...updated };
+  },
+
+  // ============================================================
+  // EC連携：再契約でテナントを再開する（冪等）
+  // ============================================================
+  // 「同じ契約(orderId)を停止から再開」= status を active に戻すだけ。データはそのまま。
+  // pending（キー未有効化）は対象外。
+  // ============================================================
+  async unsuspendByOrder(data: { orderId: string }) {
+    const orderId = (data.orderId || '').trim();
+    if (!orderId) throw new Error('orderId は必須です');
+    const tenant = await prisma.tenant.findUnique({ where: { provisionOrderId: orderId } });
+    if (!tenant) throw new Error('対象テナントが見つかりません');
+    if (tenant.status === 'pending') {
+      throw new Error('未有効化テナントは再開できません（キー有効化待ち）');
+    }
+
+    const updated = await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: { status: 'active', suspendReason: null },
+      select: { slug: true, status: true },
+    });
+    return { success: true, alreadyActive: tenant.status === 'active', ...updated };
+  },
+
+  // ============================================================
+  // EC連携：解約後の再購入で「以前のテナント（データ）を引き継ぐ」（冪等）
+  // ============================================================
+  // 新しい注文(newOrderId)で、停止中の旧テナント(prevOrderId)を復活させる。
+  // 旧テナントの provisionOrderId を新注文IDに付け替え、active に戻す。
+  // 「新規発行(provision)」とは別物：本人が『引き継ぐ』を選んだ時だけ EC が呼ぶ。
+  // newOrderId で既にテナントがあれば冪等にそれを返す（二重処理防止）。
+  // ============================================================
+  async reactivateWithNewOrder(data: {
+    prevOrderId: string;
+    newOrderId: string;
+    plan?: string;
+    billingType?: string;
+    productId?: string;
+    limits?: { maxParts?: number | null; maxImageMB?: number | null; maxUsers?: number | null };
+  }) {
+    const prevOrderId = (data.prevOrderId || '').trim();
+    const newOrderId = (data.newOrderId || '').trim();
+    if (!prevOrderId || !newOrderId) {
+      throw new Error('prevOrderId と newOrderId は必須です');
+    }
+
+    // 冪等：新注文IDで既に処理済みならそれを返す
+    const already = await prisma.tenant.findUnique({
+      where: { provisionOrderId: newOrderId },
+      select: { slug: true, status: true, provisionOrderId: true },
+    });
+    if (already) {
+      return { success: true, alreadyReactivated: true, ...already };
+    }
+
+    const prev = await prisma.tenant.findUnique({ where: { provisionOrderId: prevOrderId } });
+    if (!prev) throw new Error('引き継ぎ元テナントが見つかりません');
+
+    const updated = await prisma.tenant.update({
+      where: { id: prev.id },
+      data: {
+        provisionOrderId: newOrderId, // 新契約の注文IDに付け替え
+        status: 'active',
+        suspendReason: null,
+        contractStartDate: new Date(),
+        plan: data.plan ?? prev.plan,
+        billingType: data.billingType ?? prev.billingType,
+        billingStatus: 'paid',
+        ecProductId: data.productId ?? prev.ecProductId,
+        maxParts: data.limits && 'maxParts' in data.limits ? data.limits.maxParts ?? null : prev.maxParts,
+        maxImageMB:
+          data.limits && 'maxImageMB' in data.limits ? data.limits.maxImageMB ?? null : prev.maxImageMB,
+        maxUsers: data.limits && 'maxUsers' in data.limits ? data.limits.maxUsers ?? null : prev.maxUsers,
+      },
+      select: { slug: true, status: true, provisionOrderId: true },
+    });
+    return { success: true, alreadyReactivated: false, ...updated };
+  },
 };
