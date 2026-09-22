@@ -454,6 +454,8 @@ Neon:
   ＋顧客向け3プラン確定(登録パーツ数/画像容量/閲覧人数で課金・ベーシック¥3980〜)。
   ＋プラン上限のブロック実装(Cloud Run rev00040): TenantにmaxParts/maxImageMB/maxUsers、
   limitServiceで作成/CSVインポート/ユーザー追加/画像アップロード時に上限超は403拒否。既存は全null(無制限)。
+  ＋EC連携の上限受け入れ(rev00041): provision APIにproductId/limits受取・Tenant.ecProductId追加、
+  プラン変更API POST /api/integration/plan-change(双方向アップ/ダウン)。「EC=マスター/在庫=適用」で本番連携。
   詳細は[[inventory-sales-roadmap]]
 - 2026-09-20: マルチテナント化(フェーズ3 S1-S4)を本番反映完了。全10モデルにtenantId、
   URLパス方式(/api/t/:slug)、master別導線(/api/master/*)、ライセンスキー方式でテナント発行→
