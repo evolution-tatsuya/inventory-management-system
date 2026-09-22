@@ -450,7 +450,11 @@ Neon:
   ＋EC連携P1: 発行API POST /api/integration/provision(x-integration-keyシークレット認証・冪等)。
   TenantにprovisionOrderId(unique)/billingType追加。注文からpendingテナント発行→キー/有効化URL返却。
   同一orderIdは二重発行しない。Secret Manager integration-api-key→Cloud Run(00038)マウント。本番検証済み。
-  EC設計書Artifact/連携ロードマップは[[inventory-sales-roadmap]]。次=EC側P2(呼出+Resendメール)
+  EC設計書Artifact/連携ロードマップは[[inventory-sales-roadmap]]。EC側P2連携も本番稼働成功。
+  ＋顧客向け3プラン確定(登録パーツ数/画像容量/閲覧人数で課金・ベーシック¥3980〜)。
+  ＋プラン上限のブロック実装(Cloud Run rev00040): TenantにmaxParts/maxImageMB/maxUsers、
+  limitServiceで作成/CSVインポート/ユーザー追加/画像アップロード時に上限超は403拒否。既存は全null(無制限)。
+  詳細は[[inventory-sales-roadmap]]
 - 2026-09-20: マルチテナント化(フェーズ3 S1-S4)を本番反映完了。全10モデルにtenantId、
   URLパス方式(/api/t/:slug)、master別導線(/api/master/*)、ライセンスキー方式でテナント発行→
   顧客が有効化時に自分でアカウント登録→総括ページで確認。多段階削除(suspended/pending・名前一致・
