@@ -376,7 +376,7 @@ export const DashboardPage = () => {
           {/* 統計カードグリッド */}
           <Box sx={{ display: 'flex', gap: 3, marginBottom: '40px', flexWrap: 'wrap' }}>
             {/* カテゴリー総数 */}
-            <Box sx={{ flex: '1 1 calc(25% - 18px)', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 calc(20% - 20px)', minWidth: '200px' }}>
               <Card
                 sx={{
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -404,7 +404,7 @@ export const DashboardPage = () => {
             </Box>
 
             {/* ジャンル総数 */}
-            <Box sx={{ flex: '1 1 calc(25% - 18px)', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 calc(20% - 20px)', minWidth: '200px' }}>
               <Card
                 sx={{
                   background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
@@ -432,7 +432,7 @@ export const DashboardPage = () => {
             </Box>
 
             {/* ユニット総数 */}
-            <Box sx={{ flex: '1 1 calc(25% - 18px)', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 calc(20% - 20px)', minWidth: '200px' }}>
               <Card
                 sx={{
                   background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
@@ -460,7 +460,7 @@ export const DashboardPage = () => {
             </Box>
 
             {/* 在庫切れパーツ */}
-            <Box sx={{ flex: '1 1 calc(25% - 18px)', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 calc(20% - 20px)', minWidth: '200px' }}>
               <Card
                 sx={{
                   background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -478,10 +478,38 @@ export const DashboardPage = () => {
                     在庫切れパーツ
                   </Typography>
                   <Typography sx={{ fontSize: '36px', fontWeight: 700 }}>
-                    {stats?.lowStockCount ?? '—'}
+                    {stats?.outOfStockCount ?? '—'}
                   </Typography>
                   <Typography sx={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>
-                    在庫5以下：要発注の目安
+                    在庫0：要発注の品番数
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+
+            {/* パーツ登録総数 */}
+            <Box sx={{ flex: '1 1 calc(20% - 20px)', minWidth: '200px' }}>
+              <Card
+                sx={{
+                  background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                  color: 'white',
+                  borderRadius: '12px',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-5px)',
+                    boxShadow: '0 8px 20px rgba(250, 112, 154, 0.4)',
+                  },
+                }}
+              >
+                <CardContent>
+                  <Typography sx={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>
+                    パーツ登録総数
+                  </Typography>
+                  <Typography sx={{ fontSize: '36px', fontWeight: 700 }}>
+                    {stats?.partCount ?? '—'}
+                  </Typography>
+                  <Typography sx={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>
+                    登録済みパーツ件数
                   </Typography>
                 </CardContent>
               </Card>

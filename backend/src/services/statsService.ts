@@ -22,7 +22,7 @@ export const statsService = {
       partCount,
       totalStock,
       lowStockParts,
-      lowStockCount,
+      outOfStockPartNumbers,
     ] = await Promise.all([
       // カテゴリー数
       prisma.category.count({ where: { tenantId } }),
@@ -33,7 +33,7 @@ export const statsService = {
       // ユニット数
       prisma.unit.count({ where: { tenantId } }),
 
-      // パーツ数
+      // パーツ数（登録総数）
       prisma.part.count({ where: { tenantId } }),
 
       // 総在庫数（PartMasterの合計）
@@ -44,16 +44,24 @@ export const statsService = {
         },
       }),
 
-      // 在庫数5以下の在庫レコード（PartMasterベース）
+      // 在庫ゼロの在庫レコード（リスト表示用、在庫の少ない順）
       prisma.partMaster.findMany({
-        where: { tenantId, stockQuantity: { lte: 5 } },
+        where: { tenantId, stockQuantity: { lte: 0 } },
         orderBy: { stockQuantity: 'asc' },
         take: 10,
       }),
 
-      // 在庫5以下の在庫レコード総数（カード表示用）
-      prisma.partMaster.count({ where: { tenantId, stockQuantity: { lte: 5 } } }),
+      // 在庫ゼロの「品番」ユニーク一覧（カード表示用）
+      // ※ shared/perCategory の二重計上を避けるため partNumber 単位で数える。
+      //   同一品番が複数カテゴリーに在庫レコードを持つ場合でも1件として扱う。
+      prisma.partMaster.groupBy({
+        by: ['partNumber'],
+        where: { tenantId, stockQuantity: { lte: 0 } },
+      }),
     ]);
+
+    // 在庫ゼロの品番ユニーク件数（カード表示用）
+    const outOfStockCount = outOfStockPartNumbers.length;
 
     // 低在庫の品番から、対応するパーツ名・ジャンル名を引く
     const lowPartNumbers = lowStockParts.map((pm) => pm.partNumber);
@@ -76,7 +84,10 @@ export const statsService = {
       partCount,
       totalStock: totalStock._sum.stockQuantity || 0,
       lowStockParts: formattedLowStockParts,
-      lowStockCount,
+      // 在庫ゼロの品番ユニーク件数。
+      // lowStockCount は後方互換のため同値を返す（旧UIが参照している場合に備える）。
+      outOfStockCount,
+      lowStockCount: outOfStockCount,
     };
   },
 };

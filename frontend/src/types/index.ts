@@ -166,6 +166,9 @@ export interface DashboardStats {
   unitCount: number;
   partCount: number;
   totalStock: number;
+  /** 在庫ゼロの品番ユニーク件数 */
+  outOfStockCount: number;
+  /** @deprecated outOfStockCount と同値。旧UI互換のため残置 */
   lowStockCount: number;
   lowStockParts?: {
     partNumber: string;
