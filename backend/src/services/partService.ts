@@ -17,8 +17,11 @@ import {
 
 import { prisma } from '../lib/prisma';
 import { limitService } from './limitService';
+import { featureService } from './featureService';
 
-// パーツ配列に partMaster.stockQuantity を付与する（APIレスポンス互換のため）
+// パーツ配列に partMaster.stockQuantity を付与する（APIレスポンス互換のため）。
+// part_detail 機能がOFFのテナントでは description/pdfUrl を返却から省く
+// （※DBのデータは消さない。プランをプロに戻せばそのまま再表示される＝表示制御のみ）。
 async function attachStock(tenantId: string, parts: any[]): Promise<any[]> {
   if (parts.length === 0) return parts;
   const mode = await getStockMode(prisma, tenantId);
@@ -28,10 +31,16 @@ async function attachStock(tenantId: string, parts: any[]): Promise<any[]> {
     partNumber: p.partNumber,
   }));
   const stockMap = await loadStockMap(prisma, tenantId, mode, keys);
+  const detailEnabled = await featureService.isEnabled(tenantId, 'part_detail');
   return parts.map((p) => {
     const catKey = stockCategoryKey(mode, g2c.get(p.genreId) ?? null);
     const qty = stockMap.get(`${catKey ?? 'null'}::${p.partNumber}`) ?? 0;
-    return { ...p, partMaster: { stockQuantity: qty } };
+    const withStock = { ...p, partMaster: { stockQuantity: qty } };
+    // part_detail OFF: 詳細フィールドをレスポンスから隠す（DBは不変）
+    if (!detailEnabled) {
+      return { ...withStock, description: null, pdfUrl: null };
+    }
+    return withStock;
   });
 }
 

@@ -124,6 +124,9 @@ export interface SystemSettings {
   logoUrl: string | null;
   logoSize?: string; // ロゴサイズ: small / medium / large
   headerColor: string;
+  stockMode?: 'shared' | 'perCategory';
+  // 有効機能キー一覧（プラン機能フラグ。省略/全キー含む=全機能ON）
+  features?: string[];
   createdAt: string;
   updatedAt: string;
 }

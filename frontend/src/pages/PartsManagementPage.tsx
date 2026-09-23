@@ -52,6 +52,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import DiagramGalleryManager from '@/components/DiagramGalleryManager';
 import BulkExportDialog from '@/components/BulkExportDialog';
+import { hasFeature } from '@/utils/features';
 
 // ============================================================
 // SortableRow - ドラッグ可能なテーブル行コンポーネント
@@ -1262,6 +1263,7 @@ export const PartsManagementPage = () => {
         >
           アカウント設定
         </Button>
+        {hasFeature(systemSettings?.features, 'qr_code') && (
         <Button
           onClick={() => navigate('/admin/qr')}
           sx={{
@@ -1282,6 +1284,7 @@ export const PartsManagementPage = () => {
         >
           QRコード
         </Button>
+        )}
       </Box>
 
       {/* Content Area */}
@@ -1312,7 +1315,8 @@ export const PartsManagementPage = () => {
             {pageTitle}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
-            {/* CSVエクスポート */}
+            {/* CSVエクスポート（機能フラグ: csv_export） */}
+            {hasFeature(systemSettings?.features, 'csv_export') && (
             <Button
               onClick={handleExportCSV}
               startIcon={<FileDownload />}
@@ -1337,8 +1341,10 @@ export const PartsManagementPage = () => {
             >
               CSV
             </Button>
+            )}
 
-            {/* PDFエクスポート */}
+            {/* PDFエクスポート（機能フラグ: pdf_export） */}
+            {hasFeature(systemSettings?.features, 'pdf_export') && (
             <Button
               onClick={handleExportPDF}
               startIcon={<FileDownload />}
@@ -1363,8 +1369,10 @@ export const PartsManagementPage = () => {
             >
               PDF
             </Button>
+            )}
 
-            {/* カテゴリー一括PDF出力 */}
+            {/* カテゴリー一括PDF出力（機能フラグ: pdf_export） */}
+            {hasFeature(systemSettings?.features, 'pdf_export') && (
             <Button
               onClick={() => setOpenBulkExport(true)}
               startIcon={<FileDownload />}
@@ -1389,8 +1397,10 @@ export const PartsManagementPage = () => {
             >
               カテゴリー一括PDF
             </Button>
+            )}
 
-            {/* インポート */}
+            {/* インポート（機能フラグ: csv_import） */}
+            {hasFeature(systemSettings?.features, 'csv_import') && (
             <Button
               component="label"
               startIcon={importing ? <CircularProgress size={16} color="inherit" /> : <FileUpload />}
@@ -1422,6 +1432,7 @@ export const PartsManagementPage = () => {
                 disabled={!filterUnitId || importing}
               />
             </Button>
+            )}
 
             {/* 新規パーツ追加 */}
             <Button
@@ -1991,6 +2002,9 @@ export const PartsManagementPage = () => {
             rows={3}
             sx={{ marginTop: '16px' }}
           />
+          {/* パーツ詳細（機能フラグ: part_detail。OFFなら入力欄を隠す。既存データはDBに保持） */}
+          {hasFeature(systemSettings?.features, 'part_detail') && (
+          <>
           <TextField
             fullWidth
             label="商品説明（詳細画面で表示）"
@@ -2028,6 +2042,8 @@ export const PartsManagementPage = () => {
               </Box>
             )}
           </Box>
+          </>
+          )}
           <Box sx={{ marginTop: '16px' }}>
             <Button variant="outlined" component="label" fullWidth sx={{ py: 1.5 }}>
               画像を選択
@@ -2301,6 +2317,9 @@ export const PartsManagementPage = () => {
             rows={3}
             sx={{ marginTop: '16px' }}
           />
+          {/* パーツ詳細（機能フラグ: part_detail。OFFなら入力欄を隠す。既存データはDBに保持） */}
+          {hasFeature(systemSettings?.features, 'part_detail') && (
+          <>
           <TextField
             fullWidth
             label="商品説明（詳細画面で表示）"
@@ -2338,6 +2357,8 @@ export const PartsManagementPage = () => {
               </Box>
             )}
           </Box>
+          </>
+          )}
           <Box sx={{ marginTop: '16px' }}>
             <Button variant="outlined" component="label" fullWidth sx={{ py: 1.5 }}>
               画像を選択

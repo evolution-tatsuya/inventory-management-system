@@ -8,6 +8,7 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { prisma } from '../lib/prisma';
+import { featureService } from './featureService';
 
 // 紛らわしい文字（I/O/0/1）を除いた Crockford Base32 相当
 const KEY_ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -482,6 +483,7 @@ export const tenantService = {
     billingType?: string; // monthly / yearly / onetime
     productId?: string; // EC の商品ID（記録用）
     limits?: { maxParts?: number | null; maxImageMB?: number | null; maxUsers?: number | null };
+    features?: unknown; // 有効機能（配列 or カンマ区切り。null/全機能相当=全機能ON）
     frontendUrl: string;
   }) {
     const orderId = (data.orderId || '').trim();
@@ -539,6 +541,7 @@ export const tenantService = {
           maxParts: data.limits?.maxParts ?? null,
           maxImageMB: data.limits?.maxImageMB ?? null,
           maxUsers: data.limits?.maxUsers ?? null,
+          features: featureService.normalize(data.features),
           contractStartDate: new Date(),
           systemSettings: { create: { stockMode: 'perCategory', systemName: name } },
         },
@@ -567,6 +570,7 @@ export const tenantService = {
     billingType?: string;
     productId?: string;
     limits?: { maxParts?: number | null; maxImageMB?: number | null; maxUsers?: number | null };
+    features?: unknown; // 渡されたときのみ更新（undefined=据え置き）
   }) {
     let tenant = null;
     if (data.orderId) {
@@ -586,10 +590,12 @@ export const tenantService = {
         maxParts: data.limits && 'maxParts' in data.limits ? data.limits.maxParts ?? null : tenant.maxParts,
         maxImageMB: data.limits && 'maxImageMB' in data.limits ? data.limits.maxImageMB ?? null : tenant.maxImageMB,
         maxUsers: data.limits && 'maxUsers' in data.limits ? data.limits.maxUsers ?? null : tenant.maxUsers,
+        // features は渡されたときのみ更新（undefined=据え置き）
+        features: data.features !== undefined ? featureService.normalize(data.features) : tenant.features,
       },
       select: {
         slug: true, plan: true, ecProductId: true,
-        maxParts: true, maxImageMB: true, maxUsers: true,
+        maxParts: true, maxImageMB: true, maxUsers: true, features: true,
       },
     });
     return { success: true, ...updated };
@@ -659,6 +665,7 @@ export const tenantService = {
     billingType?: string;
     productId?: string;
     limits?: { maxParts?: number | null; maxImageMB?: number | null; maxUsers?: number | null };
+    features?: unknown; // 渡されたときのみ更新（undefined=引き継ぎ元のまま）
   }) {
     const prevOrderId = (data.prevOrderId || '').trim();
     const newOrderId = (data.newOrderId || '').trim();
@@ -693,6 +700,7 @@ export const tenantService = {
         maxImageMB:
           data.limits && 'maxImageMB' in data.limits ? data.limits.maxImageMB ?? null : prev.maxImageMB,
         maxUsers: data.limits && 'maxUsers' in data.limits ? data.limits.maxUsers ?? null : prev.maxUsers,
+        features: data.features !== undefined ? featureService.normalize(data.features) : prev.features,
       },
       select: { slug: true, status: true, provisionOrderId: true },
     });

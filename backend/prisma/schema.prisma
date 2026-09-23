@@ -39,6 +39,9 @@ model Tenant {
   maxImageMB        Int?      // 画像容量の上限（MB）
   maxUsers          Int?      // 一般ユーザー数の上限（管理者は含めない）
   ecProductId       String?   // EC の商品ID（どのプランか。記録・参照用）
+  // 有効機能（プランで機能ON/OFF。カンマ区切りの機能キー。null=全機能ON＝後方互換）
+  // 機能キー: stocktake / csv_import / csv_export / pdf_export / qr_code / search
+  features          String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

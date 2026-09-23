@@ -15,7 +15,7 @@ export const integrationController = {
   // POST /api/integration/provision
   async provision(req: Request, res: Response, next: NextFunction) {
     try {
-      const { orderId, email, plan, billingType, productId, limits } = req.body;
+      const { orderId, email, plan, billingType, productId, limits, features } = req.body;
 
       if (!orderId || typeof orderId !== 'string') {
         return res.status(400).json({ error: 'orderId は必須です' });
@@ -37,6 +37,7 @@ export const integrationController = {
         billingType: billingType || undefined,
         productId: productId || undefined,
         limits: limits || undefined,
+        features: features !== undefined ? features : undefined,
         frontendUrl,
       });
 
@@ -53,7 +54,7 @@ export const integrationController = {
   // POST /api/integration/plan-change - 既存テナントのプラン変更（上/下）
   async planChange(req: Request, res: Response, next: NextFunction) {
     try {
-      const { orderId, slug, plan, billingType, productId, limits } = req.body;
+      const { orderId, slug, plan, billingType, productId, limits, features } = req.body;
       if (!orderId && !slug) {
         return res.status(400).json({ error: 'orderId または slug が必要です' });
       }
@@ -69,6 +70,7 @@ export const integrationController = {
         billingType,
         productId,
         limits,
+        features: features !== undefined ? features : undefined,
       });
       res.json(result);
     } catch (e: any) {
@@ -107,7 +109,7 @@ export const integrationController = {
   // POST /api/integration/reactivate - 解約後の再購入で旧テナント（データ）を引き継ぐ（冪等）
   async reactivate(req: Request, res: Response, next: NextFunction) {
     try {
-      const { prevOrderId, newOrderId, plan, billingType, productId, limits } = req.body;
+      const { prevOrderId, newOrderId, plan, billingType, productId, limits, features } = req.body;
       if (!prevOrderId || !newOrderId) {
         return res.status(400).json({ error: 'prevOrderId と newOrderId は必須です' });
       }
@@ -118,6 +120,7 @@ export const integrationController = {
         billingType,
         productId,
         limits,
+        features: features !== undefined ? features : undefined,
       });
       res.json(result);
     } catch (e: any) {

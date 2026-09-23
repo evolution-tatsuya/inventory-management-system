@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Button } from '@mui/material';
 import { systemSettingsApi } from '@/services/api';
 import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
+import { hasFeature, type FeatureKey } from '@/utils/features';
 import type { SystemSettings } from '@/types';
 
 interface AdminShellProps {
@@ -18,15 +19,16 @@ interface AdminShellProps {
   children: React.ReactNode;
 }
 
-const TABS = [
+// feature を持つタブは、その機能が有効なテナントでのみ表示する（プラン機能フラグ）。
+const TABS: { label: string; path: string; feature?: FeatureKey }[] = [
   { label: 'ダッシュボード', path: '/admin/dashboard' },
   { label: 'カテゴリー管理', path: '/admin/categories' },
   { label: 'ジャンル管理', path: '/admin/genres' },
   { label: 'ユニット管理', path: '/admin/units' },
   { label: 'パーツ管理', path: '/admin/parts' },
-  { label: '棚卸し', path: '/admin/inventory-count' },
+  { label: '棚卸し', path: '/admin/inventory-count', feature: 'stocktake' },
   { label: 'アカウント設定', path: '/admin/account-settings' },
-  { label: 'QRコード', path: '/admin/qr' },
+  { label: 'QRコード', path: '/admin/qr', feature: 'qr_code' },
   { label: '運営者', path: '/admin/owner' },
 ];
 
@@ -124,7 +126,8 @@ export const AdminShell = ({ active, children }: AdminShellProps) => {
 
       {/* タブナビゲーション */}
       <Box sx={{ display: 'flex', background: '#f7f7f7', borderBottom: '2px solid #e0e0e0', overflowX: 'auto' }}>
-        {TABS.map((tab) => {
+        {TABS.filter((tab) => !tab.feature || hasFeature(settings?.features, tab.feature)).map(
+          (tab) => {
           const isActive = tab.path === active;
           return (
             <Button
@@ -146,7 +149,8 @@ export const AdminShell = ({ active, children }: AdminShellProps) => {
               {tab.label}
             </Button>
           );
-        })}
+          },
+        )}
       </Box>
 
       {/* メインコンテンツ */}

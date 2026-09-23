@@ -28,8 +28,9 @@ import { useAuth } from '@/hooks/useAuth';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
-import { partsApi, diagramImagesApi, exchangeRatesApi } from '@/services/api';
+import { partsApi, diagramImagesApi, exchangeRatesApi, systemSettingsApi } from '@/services/api';
 import { formatPartPrice, hasForeignCurrencyParts } from '@/utils/priceDisplay';
+import { hasFeature } from '@/utils/features';
 
 // ============================================================
 // PartsListPage
@@ -101,6 +102,13 @@ export const PartsListPage = () => {
     staleTime: 24 * 60 * 60 * 1000,
   });
   const rates = rateInfo?.rates;
+
+  // プラン機能フラグ（features）。features未定義=全機能ON（後方互換）
+  const { data: systemSettings } = useQuery({
+    queryKey: ['system-settings'],
+    queryFn: () => systemSettingsApi.getSystemSettings(),
+  });
+  const features = systemSettings?.features;
 
   const handleExportPDF = async () => {
     // ユニット情報を取得（PDF用）
@@ -544,6 +552,7 @@ export const PartsListPage = () => {
             )}
           </Box>
           <Box sx={{ display: 'flex', gap: 2 }}>
+            {hasFeature(features, 'search') && (
             <Button
               color="inherit"
               onClick={() => navigate('/search')}
@@ -552,6 +561,7 @@ export const PartsListPage = () => {
             >
               検索
             </Button>
+            )}
             <Button
               color="inherit"
               onClick={handleLogout}
@@ -679,8 +689,9 @@ export const PartsListPage = () => {
           </Typography>
         </Box>
 
-        {/* 出力ボタン */}
+        {/* 出力ボタン（機能フラグ: PDF=pdf_export / CSV・Excel=csv_export） */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 2 }}>
+          {hasFeature(features, 'pdf_export') && (
           <Button
             variant="contained"
             color="error"
@@ -696,6 +707,8 @@ export const PartsListPage = () => {
           >
             PDF
           </Button>
+          )}
+          {hasFeature(features, 'csv_export') && (
           <Button
             variant="contained"
             color="info"
@@ -711,6 +724,8 @@ export const PartsListPage = () => {
           >
             CSV
           </Button>
+          )}
+          {hasFeature(features, 'csv_export') && (
           <Button
             variant="contained"
             color="success"
@@ -726,6 +741,7 @@ export const PartsListPage = () => {
           >
             Excel
           </Button>
+          )}
         </Box>
 
         {/* 円換算トグル（海外通貨パーツがある場合のみ表示） */}
@@ -801,11 +817,17 @@ export const PartsListPage = () => {
                 parts.map((part) => (
                   <TableRow
                     key={part.id}
-                    onClick={() => setSelectedPart(part as Part)}
+                    onClick={
+                      hasFeature(features, 'part_detail')
+                        ? () => setSelectedPart(part as Part)
+                        : undefined
+                    }
                     sx={{
-                      cursor: 'pointer',
+                      cursor: hasFeature(features, 'part_detail') ? 'pointer' : 'default',
                       '&:hover': {
-                        backgroundColor: '#f5f5f5',
+                        backgroundColor: hasFeature(features, 'part_detail')
+                          ? '#f5f5f5'
+                          : 'inherit',
                       },
                     }}
                   >

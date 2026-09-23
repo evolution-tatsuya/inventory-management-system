@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Card, CardContent, Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { statsApi, systemSettingsApi, inventoryCountApi } from '@/services/api';
+import { hasFeature } from '@/utils/features';
 import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
 import type { SystemSettings } from '@/types';
 
@@ -280,6 +281,7 @@ export const DashboardPage = () => {
           >
             パーツ管理
           </Button>
+          {hasFeature(systemSettings?.features, 'stocktake') && (
           <Button
             onClick={() => navigate('/admin/inventory-count')}
             sx={{
@@ -298,6 +300,7 @@ export const DashboardPage = () => {
           >
             棚卸し
           </Button>
+          )}
           <Button
             onClick={() => navigate('/admin/owner')}
             sx={{
@@ -334,6 +337,7 @@ export const DashboardPage = () => {
           >
             アカウント設定
           </Button>
+          {hasFeature(systemSettings?.features, 'qr_code') && (
           <Button
             onClick={() => navigate('/admin/qr')}
             sx={{
@@ -352,6 +356,7 @@ export const DashboardPage = () => {
           >
             QRコード
           </Button>
+          )}
         </Box>
 
         {/* ダッシュボードコンテンツ */}
@@ -596,6 +601,7 @@ export const DashboardPage = () => {
                   + 新規パーツ追加
                 </Button>
               </Box>
+              {hasFeature(systemSettings?.features, 'qr_code') && (
               <Box sx={{ flex: '1 1 calc(20% - 12.8px)', minWidth: '150px' }}>
                 <Button
                   fullWidth
@@ -621,6 +627,7 @@ export const DashboardPage = () => {
                   QRコード表示
                 </Button>
               </Box>
+              )}
             </Box>
           </Box>
 

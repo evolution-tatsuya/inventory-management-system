@@ -240,6 +240,9 @@ export interface SystemSettings {
   logoSize?: string; // ロゴサイズ: small / medium / large
   headerColor: string;
   stockMode?: 'shared' | 'perCategory'; // 在庫モード: 全カテゴリー共有 / カテゴリー独立
+  // 有効機能キー一覧（プラン機能フラグ。省略/全キー含む=全機能ON）。
+  // キー: stocktake / csv_import / csv_export / pdf_export / qr_code / search / part_detail
+  features?: string[];
   createdAt: string;
   updatedAt: string;
 }
