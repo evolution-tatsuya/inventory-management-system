@@ -101,6 +101,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     console.error('ログインエラー:', error);
     if (error instanceof ApiError) {
       if (error.status === 401) {
+        // アカウント停止中/未有効化は、原因が伝わるようバックエンドのメッセージをそのまま表示。
+        // 認証情報の誤り（Invalid credentials）は秘匿のため丸めた日本語に統一する。
+        if (error.message.includes('停止中') || error.message.includes('未有効化')) {
+          return new Error(error.message);
+        }
         return new Error('メールアドレスまたはパスワードが正しくありません');
       } else if (error.status === 400) {
         return new Error('入力内容に誤りがあります');
