@@ -62,9 +62,10 @@ interface SortableRowProps {
   onEdit: (part: Part) => void;
   onDelete: (part: Part) => void;
   sortable?: boolean;
+  highlight?: boolean;
 }
 
-const SortableRow = ({ part, onEdit, onDelete, sortable = true }: SortableRowProps) => {
+const SortableRow = ({ part, onEdit, onDelete, sortable = true, highlight = false }: SortableRowProps) => {
   const {
     attributes,
     listeners,
@@ -83,11 +84,20 @@ const SortableRow = ({ part, onEdit, onDelete, sortable = true }: SortableRowPro
   return (
     <TableRow
       ref={setNodeRef}
+      id={`part-row-${part.id}`}
       style={style}
       sx={{
         '&:hover': { background: '#f8f9fa' },
         cursor: isDragging ? 'grabbing' : 'default',
         transition: 'background 0.2s ease',
+        ...(highlight && {
+          background: 'rgba(255, 213, 79, 0.35)',
+          animation: 'hlpulse 1s ease-in-out 2',
+          '@keyframes hlpulse': {
+            '0%, 100%': { background: 'rgba(255, 213, 79, 0.35)' },
+            '50%': { background: 'rgba(255, 193, 7, 0.6)' },
+          },
+        }),
       }}
     >
       {sortable && (
@@ -234,22 +244,44 @@ export const PartsManagementPage = () => {
   const [filterCategoryId, setFilterCategoryId] = useState<string>(''); // カテゴリーフィルター用
   const [filterGenreId, setFilterGenreId] = useState<string>(''); // ジャンルフィルター用
   const [filterUnitId, setFilterUnitId] = useState<string>(''); // ユニットフィルター用
+  const [highlightPartId, setHighlightPartId] = useState<string>(''); // 遷移元から指定されたハイライト対象パーツ
 
   // 他ページ（棚卸しの内訳モーダル等）から遷移してきた場合、渡されたフィルターを初期適用する
   useEffect(() => {
     const st = location.state as
-      | { filterCategoryId?: string; filterGenreId?: string; filterUnitId?: string }
+      | {
+          filterCategoryId?: string;
+          filterGenreId?: string;
+          filterUnitId?: string;
+          highlightPartId?: string;
+        }
       | null;
-    if (st && (st.filterCategoryId || st.filterGenreId || st.filterUnitId)) {
+    if (
+      st &&
+      (st.filterCategoryId || st.filterGenreId || st.filterUnitId || st.highlightPartId)
+    ) {
       if (st.filterCategoryId) setFilterCategoryId(st.filterCategoryId);
       if (st.filterGenreId) setFilterGenreId(st.filterGenreId);
       if (st.filterUnitId) setFilterUnitId(st.filterUnitId);
+      if (st.highlightPartId) setHighlightPartId(st.highlightPartId);
       // 一度適用したら state を消して、リロードや再訪時に残らないようにする
       navigate('.', { replace: true, state: null });
     }
     // location.state の変化時のみ実行
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
+
+  // ハイライト対象パーツが表示されたらスクロールして目立たせ、数秒後に解除
+  useEffect(() => {
+    if (!highlightPartId) return;
+    const el = document.getElementById(`part-row-${highlightPartId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    const timer = setTimeout(() => setHighlightPartId(''), 4000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightPartId, filterUnitId, filterGenreId, filterCategoryId]);
 
   // システム設定取得
   useEffect(() => {
@@ -1819,6 +1851,7 @@ export const PartsManagementPage = () => {
                         onEdit={handleOpenEditDialog}
                         onDelete={handleOpenDeleteDialog}
                         sortable={!!filterUnitId}
+                        highlight={part.id === highlightPartId}
                       />
                     ))}
                     {filteredParts.length === 0 && (

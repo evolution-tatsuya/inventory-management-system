@@ -39,6 +39,20 @@ export const AccountSettingsPage = () => {
   const queryClient = useQueryClient();
   const { account, logout: authLogout } = useAuth();
 
+  // テナントID（slug）。ログイン時に保存済み。表示・コピー用（変更は不可）。
+  const tenantSlug =
+    (typeof window !== 'undefined' && localStorage.getItem('currentTenantSlug')) || '';
+  const [slugCopied, setSlugCopied] = useState(false);
+  const handleCopySlug = async () => {
+    try {
+      await navigator.clipboard.writeText(tenantSlug);
+      setSlugCopied(true);
+      setTimeout(() => setSlugCopied(false), 1500);
+    } catch {
+      /* クリップボード不可の環境では無視 */
+    }
+  };
+
   // 基本情報フォーム
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -857,6 +871,51 @@ export const AccountSettingsPage = () => {
             >
               基本情報（{selectedUserType === 'admin' ? '管理者' : '一般ユーザー'}）
             </Typography>
+
+            {selectedUserType === 'admin' && tenantSlug && (
+              <Box sx={{ marginBottom: '13px' }}>
+                <Typography
+                  sx={{
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    marginBottom: '5px',
+                    color: '#333',
+                  }}
+                >
+                  テナントID
+                </Typography>
+                <TextField
+                  fullWidth
+                  value={tenantSlug}
+                  InputProps={{
+                    readOnly: true,
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Button
+                          size="small"
+                          onClick={handleCopySlug}
+                          sx={{ fontSize: '12px', whiteSpace: 'nowrap' }}
+                        >
+                          {slugCopied ? 'コピー済' : 'コピー'}
+                        </Button>
+                      </InputAdornment>
+                    ),
+                  }}
+                  helperText="ログインURL・連携で使う識別子です（変更不可）"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      background: '#f7f7f9',
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      padding: '13px 11px',
+                    },
+                    '& .MuiFormHelperText-root': { fontSize: '11px', marginLeft: 0 },
+                  }}
+                />
+              </Box>
+            )}
 
             <Box sx={{ marginBottom: '13px' }}>
               <Typography

@@ -49,6 +49,7 @@ import {
 type Scope = 'case' | 'unit' | 'all';
 
 interface RowDetail {
+  partId: string;
   partName: string;
   genreName: string;
   unitName: string;
@@ -163,6 +164,7 @@ export default function InventoryCountPage() {
       const key = rowKeyOf(p);
       const edit = rows[key];
       const detail: RowDetail = {
+        partId: p.id,
         partName: p.partName,
         genreName: genreName.get(p.genreId) || '-',
         unitName: p.unit?.unitName || '-',
@@ -627,6 +629,7 @@ export default function InventoryCountPage() {
                               filterCategoryId: d.categoryId,
                               filterGenreId: d.genreId,
                               filterUnitId: d.unitId,
+                              highlightPartId: d.partId,
                             },
                           })
                         }
