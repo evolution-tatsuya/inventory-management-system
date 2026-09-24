@@ -55,6 +55,11 @@ export const inventoryCountService = {
     let updated = 0;
     let logged = 0;
 
+    // 在庫は「品番×カテゴリー」単位で共有される。万一フロントから同一品番の
+    // 複数行が送られても、在庫上書き・履歴記録は品番×カテゴリーごとに1回だけ行う
+    // （二重カウント・後勝ち上書き・履歴重複の防止）。
+    const processedStockKeys = new Set<string>();
+
     await prisma.$transaction(
       async (tx) => {
         for (const item of items) {
@@ -63,6 +68,9 @@ export const inventoryCountService = {
 
           const before = beforeOf(part);
           const after = item.countedQty;
+
+          const stockKey = `${stockCategoryKey(mode, part.genre?.categoryId ?? null) ?? 'null'}::${part.partNumber}`;
+          const alreadyProcessed = processedStockKeys.has(stockKey);
 
           // 収納ケースの更新（渡され、かつ変化がある場合）
           if (
@@ -76,8 +84,8 @@ export const inventoryCountService = {
             });
           }
 
-          // 在庫が変わる場合のみ上書き＋履歴
-          if (after !== before) {
+          // 在庫が変わる場合のみ上書き＋履歴（同一品番×カテゴリーは1回だけ）
+          if (after !== before && !alreadyProcessed) {
             await upsertStock(tx, tenantId, mode, part.genre?.categoryId ?? null, part.partNumber, after);
             await tx.stockCountLog.create({
               data: {
@@ -95,6 +103,8 @@ export const inventoryCountService = {
             updated++;
             logged++;
           }
+          // 在庫変化の有無にかかわらず、この品番は処理済みとして記録
+          processedStockKeys.add(stockKey);
         }
       },
       { maxWait: 30000, timeout: 60000 },

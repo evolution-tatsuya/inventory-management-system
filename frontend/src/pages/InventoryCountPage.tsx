@@ -48,13 +48,16 @@ import {
 type Scope = 'case' | 'unit' | 'all';
 
 interface Row {
-  partId: string;
+  // 集約キー（品番×カテゴリー）。同一品番が複数パーツ行にまたがっても1行に集約する。
+  key: string;
+  partId: string; // 代表Part.id（保存・入力状態の識別に使用）
   partNumber: string;
   partName: string;
   unitName: string;
   storageCase: string;
-  theoretical: number; // 理論在庫（PartMaster.stockQuantity）
+  theoretical: number; // 理論在庫（PartMaster.stockQuantity・品番共有）
   counted: string; // 実数（未入力は空文字）
+  partCount: number; // この品番に紐づくパーツ行数（表示用）
 }
 
 export default function InventoryCountPage() {
@@ -120,35 +123,71 @@ export default function InventoryCountPage() {
     return list;
   }, [parts, scope, filterCase, filterUnitId]);
 
-  // 表示用の行データ
-  const displayRows: Row[] = useMemo(
-    () =>
-      targetParts.map((p) => {
-        const edit = rows[p.id];
-        return {
-          partId: p.id,
+  // genreId -> categoryId の対応表（品番の在庫は「品番×カテゴリー」単位で共有されるため）
+  const genreToCategory = useMemo(() => {
+    const m = new Map<string, string>();
+    genres.forEach((g: any) => m.set(g.id, g.categoryId));
+    return m;
+  }, [genres]);
+
+  // 集約キー: 品番 × カテゴリー（在庫共有の単位）
+  const rowKeyOf = (p: any) => `${genreToCategory.get(p.genreId) ?? 'null'}::${p.partNumber}`;
+
+  // 表示用の行データ（品番×カテゴリーで集約。同一品番の複数パーツ行を1行にまとめる）
+  const displayRows: Row[] = useMemo(() => {
+    const map = new Map<string, Row & { _cases: Set<string>; _units: Set<string> }>();
+    targetParts.forEach((p) => {
+      const key = rowKeyOf(p);
+      const edit = rows[key];
+      const existing = map.get(key);
+      if (existing) {
+        existing.partCount += 1;
+        if (p.storageCase) existing._cases.add(p.storageCase);
+        if (p.unit?.unitName) existing._units.add(p.unit.unitName);
+      } else {
+        map.set(key, {
+          key,
+          partId: p.id, // 代表（収納ケース更新の対象。集約時は先頭を代表とする）
           partNumber: p.partNumber,
           partName: p.partName,
           unitName: p.unit?.unitName || '-',
           storageCase: edit?.storageCase ?? p.storageCase ?? '',
           theoretical: p.partMaster?.stockQuantity ?? 0,
           counted: edit?.counted ?? '',
-        };
-      }),
-    [targetParts, rows],
-  );
+          partCount: 1,
+          _cases: new Set(p.storageCase ? [p.storageCase] : []),
+          _units: new Set(p.unit?.unitName ? [p.unit.unitName] : []),
+        });
+      }
+    });
+    // 複数ユニット/ケースにまたがる場合の表示を整える
+    return Array.from(map.values()).map((r) => {
+      const units = Array.from(r._units);
+      return {
+        key: r.key,
+        partId: r.partId,
+        partNumber: r.partNumber,
+        partName: r.partName,
+        unitName: units.length > 1 ? `${units[0]} 他${units.length - 1}` : r.unitName,
+        storageCase: r.storageCase,
+        theoretical: r.theoretical,
+        counted: r.counted,
+        partCount: r.partCount,
+      };
+    });
+  }, [targetParts, rows, genreToCategory]);
 
-  const setCounted = (partId: string, value: string, fallbackCase: string) => {
+  const setCounted = (key: string, value: string, fallbackCase: string) => {
     const v = value.replace(/[^0-9]/g, '');
     setRows((prev) => ({
       ...prev,
-      [partId]: { counted: v, storageCase: prev[partId]?.storageCase ?? fallbackCase },
+      [key]: { counted: v, storageCase: prev[key]?.storageCase ?? fallbackCase },
     }));
   };
-  const setCase = (partId: string, value: string, fallbackCounted: string) => {
+  const setCase = (key: string, value: string, fallbackCounted: string) => {
     setRows((prev) => ({
       ...prev,
-      [partId]: { counted: prev[partId]?.counted ?? fallbackCounted, storageCase: value },
+      [key]: { counted: prev[key]?.counted ?? fallbackCounted, storageCase: value },
     }));
   };
 
@@ -445,7 +484,7 @@ export default function InventoryCountPage() {
                       : { label: '不足', color: 'warning' as const };
                   return (
                     <TableRow
-                      key={r.partId}
+                      key={r.key}
                       sx={{
                         background:
                           r.counted === ''
@@ -455,7 +494,17 @@ export default function InventoryCountPage() {
                             : 'rgba(183,121,31,0.08)',
                       }}
                     >
-                      <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{r.partNumber}</TableCell>
+                      <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {r.partNumber}
+                        {r.partCount > 1 && (
+                          <Chip
+                            label={`${r.partCount}箇所`}
+                            size="small"
+                            variant="outlined"
+                            sx={{ ml: 0.5, height: 18, fontSize: 10 }}
+                          />
+                        )}
+                      </TableCell>
                       <TableCell>{r.partName}</TableCell>
                       {scope === 'all' && <TableCell>{r.unitName}</TableCell>}
                       <TableCell>
@@ -464,7 +513,7 @@ export default function InventoryCountPage() {
                           variant="standard"
                           placeholder="—"
                           value={r.storageCase}
-                          onChange={(e) => setCase(r.partId, e.target.value, r.counted)}
+                          onChange={(e) => setCase(r.key, e.target.value, r.counted)}
                           sx={{ width: 90 }}
                         />
                       </TableCell>
@@ -477,7 +526,7 @@ export default function InventoryCountPage() {
                           type="text"
                           inputMode="numeric"
                           value={r.counted}
-                          onChange={(e) => setCounted(r.partId, e.target.value, r.storageCase)}
+                          onChange={(e) => setCounted(r.key, e.target.value, r.storageCase)}
                           placeholder="—"
                           sx={{ width: 70, '& input': { textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }}
                         />
@@ -508,7 +557,7 @@ export default function InventoryCountPage() {
             <br />
             <Box sx={{ mt: 1, maxHeight: 200, overflow: 'auto', fontSize: 13 }}>
               {diffRows.slice(0, 20).map((r) => (
-                <div key={r.partId}>
+                <div key={r.key}>
                   {r.partNumber}：{r.theoretical} → {r.counted}（
                   {(diffOf(r) ?? 0) > 0 ? '+' : ''}
                   {diffOf(r)}）
