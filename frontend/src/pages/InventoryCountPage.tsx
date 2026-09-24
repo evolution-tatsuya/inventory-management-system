@@ -47,6 +47,13 @@ import {
 
 type Scope = 'case' | 'unit' | 'all';
 
+interface RowDetail {
+  partName: string;
+  genreName: string;
+  unitName: string;
+  storageCase: string;
+}
+
 interface Row {
   // 集約キー（品番×カテゴリー）。同一品番が複数パーツ行にまたがっても1行に集約する。
   key: string;
@@ -58,6 +65,7 @@ interface Row {
   theoretical: number; // 理論在庫（PartMaster.stockQuantity・品番共有）
   counted: string; // 実数（未入力は空文字）
   partCount: number; // この品番に紐づくパーツ行数（表示用）
+  details: RowDetail[]; // この品番が使われている各箇所（ジャンル/ユニット/パーツ名/収納ケース）
 }
 
 export default function InventoryCountPage() {
@@ -71,6 +79,8 @@ export default function InventoryCountPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
+  // 「◯箇所」クリックで開く内訳モーダル
+  const [detailRow, setDetailRow] = useState<Row | null>(null);
 
   // データ取得
   const { data: parts = [], isLoading } = useQuery({
@@ -133,16 +143,29 @@ export default function InventoryCountPage() {
   // 集約キー: 品番 × カテゴリー（在庫共有の単位）
   const rowKeyOf = (p: any) => `${genreToCategory.get(p.genreId) ?? 'null'}::${p.partNumber}`;
 
+  // genreId -> ジャンル名（内訳表示用）
+  const genreName = useMemo(() => {
+    const m = new Map<string, string>();
+    genres.forEach((g: any) => m.set(g.id, g.name));
+    return m;
+  }, [genres]);
+
   // 表示用の行データ（品番×カテゴリーで集約。同一品番の複数パーツ行を1行にまとめる）
   const displayRows: Row[] = useMemo(() => {
-    const map = new Map<string, Row & { _cases: Set<string>; _units: Set<string> }>();
+    const map = new Map<string, Row & { _units: Set<string> }>();
     targetParts.forEach((p) => {
       const key = rowKeyOf(p);
       const edit = rows[key];
+      const detail: RowDetail = {
+        partName: p.partName,
+        genreName: genreName.get(p.genreId) || '-',
+        unitName: p.unit?.unitName || '-',
+        storageCase: p.storageCase || '',
+      };
       const existing = map.get(key);
       if (existing) {
         existing.partCount += 1;
-        if (p.storageCase) existing._cases.add(p.storageCase);
+        existing.details.push(detail);
         if (p.unit?.unitName) existing._units.add(p.unit.unitName);
       } else {
         map.set(key, {
@@ -155,7 +178,7 @@ export default function InventoryCountPage() {
           theoretical: p.partMaster?.stockQuantity ?? 0,
           counted: edit?.counted ?? '',
           partCount: 1,
-          _cases: new Set(p.storageCase ? [p.storageCase] : []),
+          details: [detail],
           _units: new Set(p.unit?.unitName ? [p.unit.unitName] : []),
         });
       }
@@ -173,6 +196,7 @@ export default function InventoryCountPage() {
         theoretical: r.theoretical,
         counted: r.counted,
         partCount: r.partCount,
+        details: r.details,
       };
     });
   }, [targetParts, rows, genreToCategory]);
@@ -501,7 +525,16 @@ export default function InventoryCountPage() {
                             label={`${r.partCount}箇所`}
                             size="small"
                             variant="outlined"
-                            sx={{ ml: 0.5, height: 18, fontSize: 10 }}
+                            clickable
+                            onClick={() => setDetailRow(r)}
+                            title="使用箇所の内訳を表示"
+                            sx={{
+                              ml: 0.5,
+                              height: 18,
+                              fontSize: 10,
+                              cursor: 'pointer',
+                              '&:hover': { bgcolor: 'primary.main', color: '#fff' },
+                            }}
                           />
                         )}
                       </TableCell>
@@ -545,6 +578,45 @@ export default function InventoryCountPage() {
           </TableContainer>
         )}
       </Box>
+
+      {/* 使用箇所の内訳モーダル（「◯箇所」クリックで開く） */}
+      <Dialog open={!!detailRow} onClose={() => setDetailRow(null)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          品番 {detailRow?.partNumber} の使用箇所（{detailRow?.partCount}箇所）
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            この品番は同じカテゴリー内で以下の箇所に登録されています。在庫はこれらで共有されます。
+          </Typography>
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small" stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell>№</TableCell>
+                  <TableCell>ジャンル</TableCell>
+                  <TableCell>ユニット</TableCell>
+                  <TableCell>品名</TableCell>
+                  <TableCell>収納ケース</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {detailRow?.details.map((d, i) => (
+                  <TableRow key={i}>
+                    <TableCell>{i + 1}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{d.genreName}</TableCell>
+                    <TableCell>{d.unitName}</TableCell>
+                    <TableCell>{d.partName}</TableCell>
+                    <TableCell>{d.storageCase || '—'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetailRow(null)}>閉じる</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* 保存確認ダイアログ */}
       <Dialog open={confirmOpen} onClose={() => !saving && setConfirmOpen(false)}>
