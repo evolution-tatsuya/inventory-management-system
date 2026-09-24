@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -206,6 +206,7 @@ const SortableRow = ({ part, onEdit, onDelete, sortable = true }: SortableRowPro
 
 export const PartsManagementPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -233,6 +234,22 @@ export const PartsManagementPage = () => {
   const [filterCategoryId, setFilterCategoryId] = useState<string>(''); // カテゴリーフィルター用
   const [filterGenreId, setFilterGenreId] = useState<string>(''); // ジャンルフィルター用
   const [filterUnitId, setFilterUnitId] = useState<string>(''); // ユニットフィルター用
+
+  // 他ページ（棚卸しの内訳モーダル等）から遷移してきた場合、渡されたフィルターを初期適用する
+  useEffect(() => {
+    const st = location.state as
+      | { filterCategoryId?: string; filterGenreId?: string; filterUnitId?: string }
+      | null;
+    if (st && (st.filterCategoryId || st.filterGenreId || st.filterUnitId)) {
+      if (st.filterCategoryId) setFilterCategoryId(st.filterCategoryId);
+      if (st.filterGenreId) setFilterGenreId(st.filterGenreId);
+      if (st.filterUnitId) setFilterUnitId(st.filterUnitId);
+      // 一度適用したら state を消して、リロードや再訪時に残らないようにする
+      navigate('.', { replace: true, state: null });
+    }
+    // location.state の変化時のみ実行
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   // システム設定取得
   useEffect(() => {

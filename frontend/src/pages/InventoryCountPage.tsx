@@ -7,6 +7,7 @@
 // ============================================================
 
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
@@ -52,6 +53,10 @@ interface RowDetail {
   genreName: string;
   unitName: string;
   storageCase: string;
+  // パーツ管理へジャンプするための識別子
+  categoryId: string;
+  genreId: string;
+  unitId: string;
 }
 
 interface Row {
@@ -70,6 +75,7 @@ interface Row {
 
 export default function InventoryCountPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [scope, setScope] = useState<Scope>('unit');
   const [filterCategoryId, setFilterCategoryId] = useState('');
   const [filterGenreId, setFilterGenreId] = useState('');
@@ -161,6 +167,9 @@ export default function InventoryCountPage() {
         genreName: genreName.get(p.genreId) || '-',
         unitName: p.unit?.unitName || '-',
         storageCase: p.storageCase || '',
+        categoryId: genreToCategory.get(p.genreId) ?? '',
+        genreId: p.genreId ?? '',
+        unitId: p.unitId ?? '',
       };
       const existing = map.get(key);
       if (existing) {
@@ -597,6 +606,7 @@ export default function InventoryCountPage() {
                   <TableCell>ユニット</TableCell>
                   <TableCell>品名</TableCell>
                   <TableCell>収納ケース</TableCell>
+                  <TableCell align="center">操作</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -607,6 +617,24 @@ export default function InventoryCountPage() {
                     <TableCell>{d.unitName}</TableCell>
                     <TableCell>{d.partName}</TableCell>
                     <TableCell>{d.storageCase || '—'}</TableCell>
+                    <TableCell align="center">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() =>
+                          navigate('/admin/parts', {
+                            state: {
+                              filterCategoryId: d.categoryId,
+                              filterGenreId: d.genreId,
+                              filterUnitId: d.unitId,
+                            },
+                          })
+                        }
+                        sx={{ whiteSpace: 'nowrap', fontSize: 11 }}
+                      >
+                        パーツ管理で開く
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
