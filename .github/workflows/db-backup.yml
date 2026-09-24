@@ -1,0 +1,41 @@
+name: Daily DB Backup
+
+# 本番DB(Neon)のフルダンプを毎日自動取得し、Artifactとして保存する。
+# 手動実行(workflow_dispatch)も可能。
+# 必要な Secret: DATABASE_URL（Neonの接続文字列。pgbouncer=true は付いていてもよい）
+
+on:
+  schedule:
+    # 毎日 JST 4:00（UTC 19:00）に実行。深夜帯でアクセスの少ない時間。
+    - cron: '0 19 * * *'
+  workflow_dispatch: {} # 手動実行ボタン
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Dump production database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          # pgbouncer=true は pg_dump が理解しないため除去
+          CLEAN_URL=$(echo "$DATABASE_URL" | sed -E 's/[?&]pgbouncer=true//')
+          TS=$(date -u +%Y%m%d_%H%M%S)
+          mkdir -p out
+          /usr/lib/postgresql/17/bin/pg_dump "$CLEAN_URL" > "out/backup_${TS}.sql"
+          echo "BACKUP_FILE=backup_${TS}.sql" >> "$GITHUB_ENV"
+          ls -lh out/
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: out/*.sql
+          retention-days: 30 # 30日間ダウンロード可能
