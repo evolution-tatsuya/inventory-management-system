@@ -2,7 +2,7 @@ name: Daily Usage Snapshot
 
 # 全テナントのパーツ数・画像枚数・容量の日次スナップショットを記録する。
 # 運営者総括の使用量推移（増加ペース）に使う。
-# 必要な Secret: INTEGRATION_API_KEY（Cloud Run にマウント済みの x-integration-key と同値）
+# 必要な Secret: SNAPSHOT_API_KEY（スナップショット専用キー。Cloud Run の SNAPSHOT_API_KEY と同値）
 
 on:
   schedule:
@@ -16,10 +16,10 @@ jobs:
     steps:
       - name: Call usage-snapshot API
         env:
-          KEY: ${{ secrets.INTEGRATION_API_KEY }}
+          KEY: ${{ secrets.SNAPSHOT_API_KEY }}
         run: |
           HTTP=$(curl -s -o /tmp/resp.json -w "%{http_code}" -X POST \
-            -H "x-integration-key: $KEY" \
+            -H "x-snapshot-key: $KEY" \
             https://inventory-backend-72579044624.asia-northeast1.run.app/api/integration/usage-snapshot)
           echo "HTTP $HTTP"
           cat /tmp/resp.json

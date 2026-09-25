@@ -8,11 +8,13 @@ import { Router } from 'express';
 import { integrationController } from '../controllers/integrationController';
 import { masterController } from '../controllers/masterController';
 import { requireIntegration } from '../middleware/requireIntegration';
+import { requireSnapshotKey } from '../middleware/requireSnapshotKey';
 
 const router = Router();
 
 // POST /api/integration/usage-snapshot - 全テナントの使用量日次スナップショット（cron用）
-router.post('/usage-snapshot', requireIntegration, masterController.snapshotUsage);
+// EC連携キーとは別の専用キー(SNAPSHOT_API_KEY / x-snapshot-key)で保護。
+router.post('/usage-snapshot', requireSnapshotKey, masterController.snapshotUsage);
 
 // POST /api/integration/provision - 注文からテナント発行（冪等）
 router.post('/provision', requireIntegration, integrationController.provision);
