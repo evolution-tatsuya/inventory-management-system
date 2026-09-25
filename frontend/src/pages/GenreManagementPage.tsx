@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { VisuallyHiddenInput } from '@/components/VisuallyHiddenInput';
+import { UploadButton } from '@/components/UploadButton';
 import {
   Box,
   Typography,
@@ -1046,10 +1046,9 @@ export const GenreManagementPage = () => {
             </Select>
           </FormControl>
           <Box sx={{ mt: 2 }}>
-            <Button variant="outlined" component="label" fullWidth sx={{ py: 1.5 }}>
+            <UploadButton variant="outlined" fullWidth sx={{ py: 1.5 }} accept="image/*" onChange={handleImageChange}>
               画像を選択
-              <VisuallyHiddenInput type="file" accept="image/*" onChange={handleImageChange} />
-            </Button>
+            </UploadButton>
             {imagePreview && imageDimensions && (() => {
               const targetAspect = 1;
               const imgAspect = imageDimensions.width / imageDimensions.height;
@@ -1190,10 +1189,9 @@ export const GenreManagementPage = () => {
             </Select>
           </FormControl>
           <Box sx={{ mt: 2 }}>
-            <Button variant="outlined" component="label" fullWidth sx={{ py: 1.5 }}>
+            <UploadButton variant="outlined" fullWidth sx={{ py: 1.5 }} accept="image/*" onChange={handleImageChange}>
               画像を選択
-              <VisuallyHiddenInput type="file" accept="image/*" onChange={handleImageChange} />
-            </Button>
+            </UploadButton>
             {imagePreview && imageDimensions && (() => {
               const targetAspect = 1;
               const imgAspect = imageDimensions.width / imageDimensions.height;

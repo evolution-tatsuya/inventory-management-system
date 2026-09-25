@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { VisuallyHiddenInput } from '@/components/VisuallyHiddenInput';
+import { UploadButton } from '@/components/UploadButton';
 import {
   Box,
   Typography,
@@ -1486,10 +1486,11 @@ export const PartsManagementPage = () => {
 
             {/* インポート（機能フラグ: csv_import） */}
             {hasFeature(systemSettings?.features, 'csv_import') && (
-            <Button
-              component="label"
+            <UploadButton
               startIcon={importing ? <CircularProgress size={16} color="inherit" /> : <FileUpload />}
               disabled={!filterUnitId || importing}
+              accept=".csv,.xls,.xlsx"
+              onChange={handleImport}
               sx={{
                 background: '#17a2b8',
                 color: 'white',
@@ -1509,13 +1510,7 @@ export const PartsManagementPage = () => {
               }}
             >
               {importing ? 'インポート中...' : 'インポート'}
-              <VisuallyHiddenInput
-                type="file"
-                accept=".csv,.xls,.xlsx"
-                onChange={handleImport}
-                disabled={!filterUnitId || importing}
-              />
-            </Button>
+            </UploadButton>
             )}
 
             {/* 新規パーツ追加 */}
@@ -2125,20 +2120,16 @@ export const PartsManagementPage = () => {
             sx={{ marginTop: '16px' }}
           />
           <Box sx={{ marginTop: '16px' }}>
-            <Button
+            <UploadButton
               variant="outlined"
-              component="label"
               fullWidth
               disabled={pdfUploading}
               sx={{ py: 1.5 }}
+              accept="application/pdf,image/*"
+              onChange={handlePdfChange}
             >
               {pdfUploading ? 'アップロード中…' : '資料（画像/PDF）を選択'}
-              <VisuallyHiddenInput
-                type="file"
-                accept="application/pdf,image/*"
-                onChange={handlePdfChange}
-              />
-            </Button>
+            </UploadButton>
             {pdfUrl && (
               <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1, wordBreak: 'break-all' }}>
@@ -2153,10 +2144,9 @@ export const PartsManagementPage = () => {
           </>
           )}
           <Box sx={{ marginTop: '16px' }}>
-            <Button variant="outlined" component="label" fullWidth sx={{ py: 1.5 }}>
+            <UploadButton variant="outlined" fullWidth sx={{ py: 1.5 }} accept="image/*" onChange={handleImageChange}>
               画像を選択
-              <VisuallyHiddenInput type="file" accept="image/*" onChange={handleImageChange} />
-            </Button>
+            </UploadButton>
             {imagePreview && imageDimensions && (() => {
               const imgAspect = imageDimensions.width / imageDimensions.height;
               const targetAspect = 1;
@@ -2439,20 +2429,16 @@ export const PartsManagementPage = () => {
             sx={{ marginTop: '16px' }}
           />
           <Box sx={{ marginTop: '16px' }}>
-            <Button
+            <UploadButton
               variant="outlined"
-              component="label"
               fullWidth
               disabled={pdfUploading}
               sx={{ py: 1.5 }}
+              accept="application/pdf,image/*"
+              onChange={handlePdfChange}
             >
               {pdfUploading ? 'アップロード中…' : '資料（画像/PDF）を選択'}
-              <VisuallyHiddenInput
-                type="file"
-                accept="application/pdf,image/*"
-                onChange={handlePdfChange}
-              />
-            </Button>
+            </UploadButton>
             {pdfUrl && (
               <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1, wordBreak: 'break-all' }}>
@@ -2467,10 +2453,9 @@ export const PartsManagementPage = () => {
           </>
           )}
           <Box sx={{ marginTop: '16px' }}>
-            <Button variant="outlined" component="label" fullWidth sx={{ py: 1.5 }}>
+            <UploadButton variant="outlined" fullWidth sx={{ py: 1.5 }} accept="image/*" onChange={handleImageChange}>
               画像を選択
-              <VisuallyHiddenInput type="file" accept="image/*" onChange={handleImageChange} />
-            </Button>
+            </UploadButton>
             {imagePreview && imageDimensions && (() => {
               const imgAspect = imageDimensions.width / imageDimensions.height;
               const targetAspect = 1;

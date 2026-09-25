@@ -25,7 +25,7 @@ import { Logout, Visibility, VisibilityOff, Upload } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { accountApi, systemSettingsApi, imagesApi } from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
-import { VisuallyHiddenInput } from '@/components/VisuallyHiddenInput';
+import { UploadButton } from '@/components/UploadButton';
 import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
 import type { SystemSettings } from '@/services/api/types';
 
@@ -1401,11 +1401,12 @@ export const AccountSettingsPage = () => {
               >
                 ロゴ画像（任意、2MB以下）
               </Typography>
-              <Button
-                component="label"
+              <UploadButton
                 variant="outlined"
                 startIcon={uploadingLogo ? <CircularProgress size={16} /> : <Upload />}
                 disabled={uploadingLogo}
+                accept="image/jpeg,image/png,image/svg+xml"
+                onChange={handleLogoUpload}
                 sx={{
                   padding: '8px 16px',
                   fontSize: '13px',
@@ -1415,12 +1416,7 @@ export const AccountSettingsPage = () => {
                 }}
               >
                 ロゴをアップロード
-                <VisuallyHiddenInput
-                  type="file"
-                  accept="image/jpeg,image/png,image/svg+xml"
-                  onChange={handleLogoUpload}
-                />
-              </Button>
+              </UploadButton>
               {logoPreview && (
                 <Box sx={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <img

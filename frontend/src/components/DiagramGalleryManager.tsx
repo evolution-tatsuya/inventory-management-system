@@ -32,7 +32,7 @@ import { diagramImagesApi } from '@/services/api';
 import { MAX_DIAGRAMS_PER_UNIT } from '@/services/api/diagramImages';
 import type { DiagramImage } from '@/types';
 import { ImageEditorDialog } from './ImageEditorDialog';
-import { VisuallyHiddenInput } from './VisuallyHiddenInput';
+import { UploadButton } from './UploadButton';
 
 interface DiagramGalleryManagerProps {
   unitId: string;
@@ -194,21 +194,17 @@ const DiagramGalleryManager = ({ unitId, unitName }: DiagramGalleryManagerProps)
               size="small"
               color={diagrams.length >= MAX_DIAGRAMS_PER_UNIT ? 'error' : 'default'}
             />
-            <Button
+            <UploadButton
               variant="contained"
-              component="label"
               startIcon={<Upload />}
               disabled={busy || !canAddMore}
+              accept="image/*"
+              multiple
+              onChange={handleAddFiles}
               sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
             >
               画像を追加
-              <VisuallyHiddenInput
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleAddFiles}
-              />
-            </Button>
+            </UploadButton>
           </Box>
         </Box>
 
