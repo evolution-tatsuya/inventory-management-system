@@ -15,6 +15,7 @@ router.get('/tenants', requireMaster, masterController.listTenants);
 router.post('/tenants', requireMaster, masterController.createTenant);
 router.get('/summary', requireMaster, masterController.getSummary);
 router.get('/cloudinary-usage', requireMaster, masterController.getCloudinaryUsage);
+router.get('/tenants/:id/usage-trend', requireMaster, masterController.getUsageTrend);
 router.get('/tenants/:id', requireMaster, masterController.getTenantDetail);
 router.get('/tenants/:id/backup', requireMaster, masterController.backup);
 router.put('/tenants/:id/status', requireMaster, masterController.setStatus);

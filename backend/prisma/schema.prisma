@@ -55,6 +55,7 @@ model Tenant {
   diagramImages  DiagramImage[]
   systemSettings SystemSettings[]
   stockCountLogs StockCountLog[]
+  usageLogs      TenantUsageLog[]
 
   @@index([status])
   @@map("tenants")
@@ -306,4 +307,23 @@ model StockCountLog {
   @@index([unitId])
   @@index([countedAt])
   @@map("stock_count_logs")
+}
+
+// テナントごとの日次使用量ログ（運営者総括の推移・アクセス数表示用）。
+// 1テナント×1日で1行。アクセスは当日中に加算、パーツ/画像はスナップショット時に上書き。
+model TenantUsageLog {
+  id           String   @id @default(cuid())
+  tenantId     String
+  date         String   // 記録日 YYYY-MM-DD（JST基準・文字列で日単位一意）
+  accessCount  Int      @default(0) // その日のページ閲覧数（加算）
+  partCount    Int      @default(0) // スナップショット時点のパーツ数
+  imageCount   Int      @default(0) // スナップショット時点の画像/PDF枚数
+  imageMB      Float    @default(0) // スナップショット時点の概算容量(MB)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, date])
+  @@index([tenantId])
+  @@map("tenant_usage_logs")
 }

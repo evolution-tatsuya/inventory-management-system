@@ -42,6 +42,7 @@ import {
   QrCode2,
   Refresh,
   Send,
+  ShowChart,
   Visibility,
 } from '@mui/icons-material';
 import { useAuth } from '@/hooks/useAuth';
@@ -188,6 +189,8 @@ export const MasterDashboardPage = () => {
   // 一般ユーザー代理作成ダイアログの対象テナントとフォーム
   const [userTarget, setUserTarget] = useState<TenantListItem | null>(null);
   const [userForm, setUserForm] = useState({ email: '', password: '', name: '' });
+  // 使用量推移ウィンドウの対象テナント
+  const [trendTarget, setTrendTarget] = useState<TenantListItem | null>(null);
 
   // 発行フォーム
   const [name, setName] = useState('');
@@ -208,6 +211,12 @@ export const MasterDashboardPage = () => {
     queryKey: ['master-cloudinary-usage'],
     queryFn: masterApi.getCloudinaryUsage,
     staleTime: 60 * 60 * 1000, // 1時間キャッシュ（Cloudinary側も日次更新のため頻繁に叩かない）
+  });
+  // 使用量推移（推移ウィンドウを開いたテナントの分だけ取得）
+  const trendQuery = useQuery({
+    queryKey: ['master-usage-trend', trendTarget?.id],
+    queryFn: () => masterApi.getUsageTrend(trendTarget!.id, 90),
+    enabled: !!trendTarget,
   });
 
   const invalidate = () => {
@@ -702,6 +711,11 @@ export const MasterDashboardPage = () => {
                     </TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Tooltip title="使用量の推移（前日/月/年・アクセス数）">
+                          <IconButton size="small" color="primary" onClick={() => setTrendTarget(t)}>
+                            <ShowChart fontSize="inherit" />
+                          </IconButton>
+                        </Tooltip>
                         <Tooltip title="送付情報（ログイン/有効化URL・QR）">
                           <IconButton
                             size="small"
@@ -839,6 +853,78 @@ export const MasterDashboardPage = () => {
           </TableContainer>
         )}
       </Box>
+
+      {/* 使用量推移ウィンドウ */}
+      <Dialog open={!!trendTarget} onClose={() => setTrendTarget(null)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          {trendTarget?.name} の使用量推移
+          <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+            記録開始日からのデータ。日次で蓄積されます（アクセス数は閲覧のたびに加算）。
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers>
+          {trendQuery.isLoading ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : trendQuery.data ? (
+            <Box>
+              {/* アクセス数サマリー */}
+              <Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: 'wrap' }}>
+                <SummaryCard label="前日アクセス" value={trendQuery.data.summary.yesterdayAccess} />
+                <SummaryCard label="本日アクセス" value={trendQuery.data.summary.todayAccess} />
+                <SummaryCard label="今月アクセス" value={trendQuery.data.summary.thisMonthAccess} />
+                <SummaryCard label="今年アクセス" value={trendQuery.data.summary.thisYearAccess} />
+              </Stack>
+
+              {trendQuery.data.daily.length === 0 ? (
+                <Alert severity="info">
+                  まだ記録がありません。今日以降、アクセスや日次スナップショットが記録されると
+                  ここに推移が表示されます。
+                </Alert>
+              ) : (
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>日付</TableCell>
+                        <TableCell align="right">アクセス</TableCell>
+                        <TableCell align="right">パーツ数</TableCell>
+                        <TableCell align="right">画像枚数</TableCell>
+                        <TableCell align="right">容量(MB)</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {[...trendQuery.data.daily].reverse().map((d) => (
+                        <TableRow key={d.date}>
+                          <TableCell>{d.date}</TableCell>
+                          <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                            {d.accessCount.toLocaleString()}
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                            {d.partCount.toLocaleString()}
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                            {d.imageCount.toLocaleString()}
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                            {d.imageMB.toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Box>
+          ) : (
+            <Alert severity="error">推移データの取得に失敗しました</Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTrendTarget(null)}>閉じる</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* 発行フォーム */}
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>

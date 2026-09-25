@@ -9,6 +9,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
+import { usageLogService } from '../services/usageLogService';
 
 export const publicTenant = async (
   req: Request,
@@ -30,5 +31,9 @@ export const publicTenant = async (
   }
 
   (req as any).tenantId = tenant.id;
+
+  // アクセス数を記録（非ブロッキング・失敗無視）。閲覧の応答は待たせない。
+  void usageLogService.recordAccess(tenant.id);
+
   next();
 };

@@ -5,6 +5,7 @@ import { Request, Response, NextFunction } from 'express';
 import { tenantService } from '../services/tenantService';
 import { accountService } from '../services/accountService';
 import { imageService } from '../services/imageService';
+import { usageLogService } from '../services/usageLogService';
 import { validateEmail, validatePassword } from '../utils/validators';
 
 export const masterController = {
@@ -30,6 +31,26 @@ export const masterController = {
   async getCloudinaryUsage(req: Request, res: Response, next: NextFunction) {
     try {
       res.json(await imageService.getUsage());
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  // 指定テナントの使用量推移（前日/今月/今年アクセス＋日別）
+  async getUsageTrend(req: Request, res: Response, next: NextFunction) {
+    try {
+      const days = req.query.days ? Number(req.query.days) : 90;
+      res.json(await usageLogService.getTrend(req.params.id, days));
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  // 日次スナップショット記録（全テナントのパーツ数・画像数を当日行に保存）。
+  // GitHub Actions等から毎日呼ぶ。
+  async snapshotUsage(req: Request, res: Response, next: NextFunction) {
+    try {
+      res.json(await usageLogService.snapshotAll());
     } catch (e) {
       next(e);
     }

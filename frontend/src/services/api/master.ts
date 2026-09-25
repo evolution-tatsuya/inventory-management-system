@@ -92,6 +92,27 @@ export async function getCloudinaryUsage(): Promise<CloudinaryUsage> {
   return get<CloudinaryUsage>('/api/master/cloudinary-usage');
 }
 
+// テナント使用量の推移
+export interface UsageTrend {
+  summary: {
+    yesterdayAccess: number;
+    todayAccess: number;
+    thisMonthAccess: number;
+    thisYearAccess: number;
+  };
+  daily: {
+    date: string;
+    accessCount: number;
+    partCount: number;
+    imageCount: number;
+    imageMB: number;
+  }[];
+}
+
+export async function getUsageTrend(id: string, days = 90): Promise<UsageTrend> {
+  return get<UsageTrend>(`/api/master/tenants/${id}/usage-trend?days=${days}`);
+}
+
 // テナント詳細
 export async function getTenantDetail(id: string): Promise<TenantListItem> {
   return get<TenantListItem>(`/api/master/tenants/${id}`);

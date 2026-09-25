@@ -6,9 +6,13 @@
 
 import { Router } from 'express';
 import { integrationController } from '../controllers/integrationController';
+import { masterController } from '../controllers/masterController';
 import { requireIntegration } from '../middleware/requireIntegration';
 
 const router = Router();
+
+// POST /api/integration/usage-snapshot - 全テナントの使用量日次スナップショット（cron用）
+router.post('/usage-snapshot', requireIntegration, masterController.snapshotUsage);
 
 // POST /api/integration/provision - 注文からテナント発行（冪等）
 router.post('/provision', requireIntegration, integrationController.provision);
