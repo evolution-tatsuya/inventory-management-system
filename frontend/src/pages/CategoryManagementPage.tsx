@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { VisuallyHiddenInput } from '@/components/VisuallyHiddenInput';
 import {
   Box,
   Typography,
@@ -1060,9 +1061,8 @@ export const CategoryManagementPage = () => {
               sx={{ py: 1.5 }}
             >
               画像を選択
-              <input
+              <VisuallyHiddenInput
                 type="file"
-                hidden
                 accept="image/*"
                 onChange={handleImageChange}
               />
@@ -1397,9 +1397,8 @@ export const CategoryManagementPage = () => {
               sx={{ py: 1.5 }}
             >
               画像を選択
-              <input
+              <VisuallyHiddenInput
                 type="file"
-                hidden
                 accept="image/*"
                 onChange={handleImageChange}
               />

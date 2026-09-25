@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { VisuallyHiddenInput } from '@/components/VisuallyHiddenInput';
 import {
   Box,
   Typography,
@@ -1181,7 +1182,7 @@ export const UnitManagementPage = () => {
           <Box sx={{ mt: 2 }}>
             <Button variant="outlined" component="label" fullWidth sx={{ py: 1.5 }}>
               画像を選択
-              <input type="file" hidden accept="image/*" onChange={handleImageChange} />
+              <VisuallyHiddenInput type="file" accept="image/*" onChange={handleImageChange} />
             </Button>
             {imagePreview && imageDimensions && (() => {
               const targetAspect = 1;
@@ -1301,7 +1302,7 @@ export const UnitManagementPage = () => {
           <Box sx={{ mt: 2 }}>
             <Button variant="outlined" component="label" fullWidth sx={{ py: 1.5 }}>
               画像を選択
-              <input type="file" hidden accept="image/*" onChange={handleImageChange} />
+              <VisuallyHiddenInput type="file" accept="image/*" onChange={handleImageChange} />
             </Button>
             {imagePreview && imageDimensions && (() => {
               const targetAspect = 1;

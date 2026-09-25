@@ -32,6 +32,7 @@ import { diagramImagesApi } from '@/services/api';
 import { MAX_DIAGRAMS_PER_UNIT } from '@/services/api/diagramImages';
 import type { DiagramImage } from '@/types';
 import { ImageEditorDialog } from './ImageEditorDialog';
+import { VisuallyHiddenInput } from './VisuallyHiddenInput';
 
 interface DiagramGalleryManagerProps {
   unitId: string;
@@ -201,9 +202,8 @@ const DiagramGalleryManager = ({ unitId, unitName }: DiagramGalleryManagerProps)
               sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
             >
               画像を追加
-              <input
+              <VisuallyHiddenInput
                 type="file"
-                hidden
                 accept="image/*"
                 multiple
                 onChange={handleAddFiles}

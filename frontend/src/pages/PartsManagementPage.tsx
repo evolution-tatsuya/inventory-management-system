@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { VisuallyHiddenInput } from '@/components/VisuallyHiddenInput';
 import {
   Box,
   Typography,
@@ -1508,10 +1509,9 @@ export const PartsManagementPage = () => {
               }}
             >
               {importing ? 'インポート中...' : 'インポート'}
-              <input
+              <VisuallyHiddenInput
                 type="file"
                 accept=".csv,.xls,.xlsx"
-                hidden
                 onChange={handleImport}
                 disabled={!filterUnitId || importing}
               />
@@ -2133,9 +2133,8 @@ export const PartsManagementPage = () => {
               sx={{ py: 1.5 }}
             >
               {pdfUploading ? 'アップロード中…' : '資料（画像/PDF）を選択'}
-              <input
+              <VisuallyHiddenInput
                 type="file"
-                hidden
                 accept="application/pdf,image/*"
                 onChange={handlePdfChange}
               />
@@ -2156,7 +2155,7 @@ export const PartsManagementPage = () => {
           <Box sx={{ marginTop: '16px' }}>
             <Button variant="outlined" component="label" fullWidth sx={{ py: 1.5 }}>
               画像を選択
-              <input type="file" hidden accept="image/*" onChange={handleImageChange} />
+              <VisuallyHiddenInput type="file" accept="image/*" onChange={handleImageChange} />
             </Button>
             {imagePreview && imageDimensions && (() => {
               const imgAspect = imageDimensions.width / imageDimensions.height;
@@ -2448,9 +2447,8 @@ export const PartsManagementPage = () => {
               sx={{ py: 1.5 }}
             >
               {pdfUploading ? 'アップロード中…' : '資料（画像/PDF）を選択'}
-              <input
+              <VisuallyHiddenInput
                 type="file"
-                hidden
                 accept="application/pdf,image/*"
                 onChange={handlePdfChange}
               />
@@ -2471,7 +2469,7 @@ export const PartsManagementPage = () => {
           <Box sx={{ marginTop: '16px' }}>
             <Button variant="outlined" component="label" fullWidth sx={{ py: 1.5 }}>
               画像を選択
-              <input type="file" hidden accept="image/*" onChange={handleImageChange} />
+              <VisuallyHiddenInput type="file" accept="image/*" onChange={handleImageChange} />
             </Button>
             {imagePreview && imageDimensions && (() => {
               const imgAspect = imageDimensions.width / imageDimensions.height;
