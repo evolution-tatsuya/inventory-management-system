@@ -186,6 +186,7 @@ export const GenreManagementPage = () => {
   const [subtitle, setSubtitle] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [filterCategoryId, setFilterCategoryId] = useState<string>(''); // カテゴリーフィルター用
+  const [showAll, setShowAll] = useState<boolean>(false); // 「全件表示」で絞り込み無視して全件表示するフラグ
 
   // システム設定取得
   useEffect(() => {
@@ -230,6 +231,29 @@ export const GenreManagementPage = () => {
   const filteredGenres = filterCategoryId
     ? genres.filter((genre) => genre.categoryId === filterCategoryId)
     : genres;
+
+  // 一覧を描画してよいか（カテゴリー選択、または「全件表示」ON時のみ）
+  // ※件数が増えた場合に一括描画でブラウザが固まるのを防ぐためのゲート
+  const shouldShowTable = showAll || !!filterCategoryId;
+
+  // カテゴリー選択変更（全件表示はリセット）
+  const handleFilterCategoryChange = (newCategoryId: string) => {
+    setFilterCategoryId(newCategoryId);
+    setShowAll(false);
+  };
+
+  // 「全件表示」：件数が多い場合は確認してから表示
+  const handleShowAll = () => {
+    const total = genres.length;
+    if (total > 300) {
+      const ok = window.confirm(
+        `全 ${total.toLocaleString()} 件を表示します。件数が多いと動作が重くなる場合があります。表示しますか？`,
+      );
+      if (!ok) return;
+    }
+    setFilterCategoryId('');
+    setShowAll(true);
+  };
 
   // ジャンル作成
   const createMutation = useMutation({
@@ -848,7 +872,7 @@ export const GenreManagementPage = () => {
               <FormControl size="small" sx={{ minWidth: 250 }}>
                 <Select
                   value={filterCategoryId}
-                  onChange={(e) => setFilterCategoryId(e.target.value)}
+                  onChange={(e) => handleFilterCategoryChange(e.target.value)}
                   displayEmpty
                   sx={{
                     background: 'white',
@@ -872,6 +896,22 @@ export const GenreManagementPage = () => {
                   ))}
                 </Select>
               </FormControl>
+              <Button
+                variant={showAll ? 'contained' : 'outlined'}
+                size="small"
+                onClick={handleShowAll}
+                sx={{
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  borderWidth: '2px',
+                  whiteSpace: 'nowrap',
+                  ...(showAll
+                    ? { background: '#667eea', '&:hover': { background: '#5568d3' } }
+                    : { borderColor: '#667eea', color: '#667eea', '&:hover': { borderColor: '#5568d3', background: 'rgba(102,126,234,0.04)' } }),
+                }}
+              >
+                全件表示
+              </Button>
             </Box>
           </Box>
 
@@ -888,8 +928,15 @@ export const GenreManagementPage = () => {
             </Alert>
           )}
 
+          {/* 範囲未選択時の案内（カテゴリーを選ぶか「全件表示」を押すまでリストは描画しない） */}
+          {!isLoading && !isError && !shouldShowTable && (
+            <Alert severity="info">
+              カテゴリーを選択するか、「全件表示」を押してください。
+            </Alert>
+          )}
+
           {/* テーブル */}
-          {!isLoading && !isError && (
+          {!isLoading && !isError && shouldShowTable && (
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}

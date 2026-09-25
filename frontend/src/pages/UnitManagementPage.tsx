@@ -201,6 +201,7 @@ export const UnitManagementPage = () => {
   const [genreId, setGenreId] = useState('');
   const [filterCategoryId, setFilterCategoryId] = useState<string>(''); // カテゴリーフィルター用
   const [filterGenreId, setFilterGenreId] = useState<string>(''); // ジャンルフィルター用
+  const [showAll, setShowAll] = useState<boolean>(false); // 「全件表示」で絞り込み無視して全件表示するフラグ
 
   // システム設定取得
   useEffect(() => {
@@ -267,10 +268,31 @@ export const UnitManagementPage = () => {
     return true;
   });
 
-  // カテゴリー変更時にジャンルフィルターをリセット
+  // カテゴリー＋ジャンルが両方選択されているか
+  const isFullySelected = !!filterCategoryId && !!filterGenreId;
+  // 一覧を描画してよいか（カテゴリー・ジャンルを両方選択、または「全件表示」ON時のみ）
+  // ※件数が増えた場合に一括描画でブラウザが固まるのを防ぐためのゲート
+  const shouldShowTable = showAll || isFullySelected;
+
+  // カテゴリー変更時にジャンルフィルター・全件表示をリセット
   const handleFilterCategoryChange = (newCategoryId: string) => {
     setFilterCategoryId(newCategoryId);
     setFilterGenreId(''); // ジャンルフィルターをリセット
+    setShowAll(false);
+  };
+
+  // 「全件表示」：件数が多い場合は確認してから表示
+  const handleShowAll = () => {
+    const total = units.length;
+    if (total > 300) {
+      const ok = window.confirm(
+        `全 ${total.toLocaleString()} 件を表示します。件数が多いと動作が重くなる場合があります。表示しますか？`,
+      );
+      if (!ok) return;
+    }
+    setFilterCategoryId('');
+    setFilterGenreId('');
+    setShowAll(true);
   };
 
   // ユニット作成
@@ -958,6 +980,23 @@ export const UnitManagementPage = () => {
               </Select>
             </FormControl>
           </Box>
+
+          <Button
+            variant={showAll ? 'contained' : 'outlined'}
+            size="small"
+            onClick={handleShowAll}
+            sx={{
+              fontWeight: 600,
+              textTransform: 'none',
+              borderWidth: '2px',
+              whiteSpace: 'nowrap',
+              ...(showAll
+                ? { background: '#667eea', '&:hover': { background: '#5568d3' } }
+                : { borderColor: '#667eea', color: '#667eea', '&:hover': { borderColor: '#5568d3', background: 'rgba(102,126,234,0.04)' } }),
+            }}
+          >
+            全件表示
+          </Button>
         </Box>
 
         {/* Error Alert */}
@@ -974,8 +1013,15 @@ export const UnitManagementPage = () => {
           </Box>
         )}
 
+        {/* 範囲未選択時の案内（カテゴリー・ジャンルを選ぶか「全件表示」を押すまでリストは描画しない） */}
+        {!isLoading && !isError && !shouldShowTable && (
+          <Alert severity="info">
+            カテゴリー・ジャンルを選択するか、「全件表示」を押してください。
+          </Alert>
+        )}
+
         {/* Table */}
-        {!isLoading && !isError && (
+        {!isLoading && !isError && shouldShowTable && (
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
