@@ -78,6 +78,8 @@ export const tenantService = {
 
     // 画像枚数を集計（imageUrl が入っている genre/unit/part ＋ 全 diagramImage）。
     // Cloudinary容量の目安。テナント数は少ないので個別集計で十分。
+    // imageMB は 1枚あたり 0.3MB 概算（limitService の上限判定と同じ基準で揃える）。
+    const AVG_IMAGE_MB = 0.3;
     const withImages = await Promise.all(
       tenants.map(async (t) => {
         const [genreImg, unitImg, partImg, diagramImg] = await Promise.all([
@@ -86,7 +88,12 @@ export const tenantService = {
           prisma.part.count({ where: { tenantId: t.id, imageUrl: { not: null } } }),
           prisma.diagramImage.count({ where: { tenantId: t.id } }),
         ]);
-        return { ...t, imageCount: genreImg + unitImg + partImg + diagramImg };
+        const imageCount = genreImg + unitImg + partImg + diagramImg;
+        return {
+          ...t,
+          imageCount,
+          imageMB: Math.round(imageCount * AVG_IMAGE_MB * 10) / 10, // 概算容量（MB, 小数1桁）
+        };
       }),
     );
     return withImages;

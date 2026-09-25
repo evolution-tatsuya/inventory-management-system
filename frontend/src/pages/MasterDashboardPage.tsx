@@ -457,7 +457,7 @@ export const MasterDashboardPage = () => {
                   <TableCell>slug</TableCell>
                   <TableCell>状態</TableCell>
                   <TableCell>ライセンスキー</TableCell>
-                  <TableCell>件数(cat/genre/unit/part/画像)</TableCell>
+                  <TableCell>件数(cat/genre/unit/part/画像 ≈容量)</TableCell>
                   <TableCell>課金</TableCell>
                   <TableCell>管理者</TableCell>
                   <TableCell align="right">操作</TableCell>
@@ -494,6 +494,15 @@ export const MasterDashboardPage = () => {
                     <TableCell>
                       {t._count.categories}/{t._count.genres}/{t._count.units}/{t._count.parts}/
                       {t.imageCount}
+                      {typeof t.imageMB === 'number' && (
+                        <span style={{ color: '#8a86a3', fontSize: '0.85em', marginLeft: 4 }}>
+                          (≈
+                          {t.imageMB >= 1024
+                            ? (t.imageMB / 1024).toFixed(2) + 'GB'
+                            : t.imageMB.toFixed(1) + 'MB'}
+                          )
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Chip

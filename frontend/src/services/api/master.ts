@@ -31,6 +31,7 @@ export interface TenantListItem extends Tenant {
   _count: TenantCount;
   admins: TenantAdmin[];
   imageCount: number; // 画像枚数（Cloudinary容量の目安）
+  imageMB?: number; // 概算容量（枚数×0.3MB。limitService の上限判定と同じ基準）
 }
 
 // 課金情報の更新リクエスト（すべて任意・渡した項目のみ更新）
