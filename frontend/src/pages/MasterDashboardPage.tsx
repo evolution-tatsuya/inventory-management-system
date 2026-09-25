@@ -124,6 +124,16 @@ function formatLastLogin(iso: string | null | undefined): string {
   });
 }
 
+// 作成日からの経過日数（新規テナントは初期登録でクレジットが増えやすいため、
+// 使用率の解釈に使う。例: 新規なのに高使用率=初期登録中、古いのに高使用率=要提案）。
+function daysSince(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const ms = Date.now() - d.getTime();
+  return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
+}
+
 // BOM付きCSV文字列を生成（Excel互換）
 function toCsv(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return '﻿';
@@ -485,7 +495,26 @@ export const MasterDashboardPage = () => {
               <TableBody>
                 {tenantsQuery.data?.map((t) => (
                   <TableRow key={t.id}>
-                    <TableCell>{t.name}</TableCell>
+                    <TableCell>
+                      {t.name}
+                      {(() => {
+                        const d = daysSince(t.createdAt);
+                        if (d === null) return null;
+                        const isNew = d <= 30;
+                        return (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: 'block',
+                              color: isNew ? '#1565c0' : 'text.secondary',
+                              fontWeight: isNew ? 600 : 400,
+                            }}
+                          >
+                            作成{d}日目{isNew ? '（新規・初期登録中の可能性）' : ''}
+                          </Typography>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell>{t.slug}</TableCell>
                     <TableCell>
                       <Chip
