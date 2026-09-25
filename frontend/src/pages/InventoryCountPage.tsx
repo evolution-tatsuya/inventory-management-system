@@ -360,7 +360,20 @@ export default function InventoryCountPage() {
               value={scope}
               exclusive
               size="small"
-              onChange={(_, v) => v && setScope(v)}
+              onChange={(_, v) => {
+                if (!v) return;
+                // 「全件」は件数が多いと重くなるため確認してから切り替える
+                if (v === 'all') {
+                  const total = parts.length;
+                  if (total > 300) {
+                    const ok = window.confirm(
+                      `全 ${total.toLocaleString()} 件を表示します。件数が多いと動作が重くなる場合があります。表示しますか？`,
+                    );
+                    if (!ok) return;
+                  }
+                }
+                setScope(v);
+              }}
             >
               <ToggleButton value="case">収納ケース別</ToggleButton>
               <ToggleButton value="unit">ユニット別</ToggleButton>

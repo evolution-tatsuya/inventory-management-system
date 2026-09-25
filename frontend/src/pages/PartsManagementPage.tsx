@@ -244,6 +244,7 @@ export const PartsManagementPage = () => {
   const [filterCategoryId, setFilterCategoryId] = useState<string>(''); // カテゴリーフィルター用
   const [filterGenreId, setFilterGenreId] = useState<string>(''); // ジャンルフィルター用
   const [filterUnitId, setFilterUnitId] = useState<string>(''); // ユニットフィルター用
+  const [showAll, setShowAll] = useState<boolean>(false); // 「全件」タグで絞り込み無視して全件表示するフラグ
   const [highlightPartId, setHighlightPartId] = useState<string>(''); // 遷移元から指定されたハイライト対象パーツ
 
   // 他ページ（棚卸しの内訳モーダル等）から遷移してきた場合、渡されたフィルターを初期適用する
@@ -379,17 +380,42 @@ export const PartsManagementPage = () => {
     return true;
   });
 
-  // カテゴリー変更時にジャンル・ユニットフィルターをリセット
+  // カテゴリー＋ジャンル＋ユニットが全て選択されているか
+  const isFullySelected = !!filterCategoryId && !!filterGenreId && !!filterUnitId;
+  // パーツ一覧テーブルを描画してよいか
+  // （全件表示ON、または カテゴリー・ジャンル・ユニットを全て選択したときのみ）
+  // ※未選択のまま全件描画するとブラウザがフリーズするため、意図的にゲートを設ける
+  const shouldShowTable = showAll || isFullySelected;
+
+  // カテゴリー変更時にジャンル・ユニットフィルター・全件表示をリセット
   const handleFilterCategoryChange = (newCategoryId: string) => {
     setFilterCategoryId(newCategoryId);
     setFilterGenreId('');
     setFilterUnitId('');
+    setShowAll(false);
   };
 
-  // ジャンル変更時にユニットフィルターをリセット
+  // ジャンル変更時にユニットフィルター・全件表示をリセット
   const handleFilterGenreChange = (newGenreId: string) => {
     setFilterGenreId(newGenreId);
     setFilterUnitId('');
+    setShowAll(false);
+  };
+
+  // 「全件表示」タグ押下：件数が多い場合は確認してから表示
+  const handleShowAll = () => {
+    const total = parts.length;
+    if (total > 300) {
+      const ok = window.confirm(
+        `全 ${total.toLocaleString()} 件を表示します。件数が多いと動作が重くなる場合があります。表示しますか？`,
+      );
+      if (!ok) return;
+    }
+    // 全件表示はフィルターをクリアして全パーツを対象にする
+    setFilterCategoryId('');
+    setFilterGenreId('');
+    setFilterUnitId('');
+    setShowAll(true);
   };
 
   // 選択されたユニットの名前を取得
@@ -1646,6 +1672,23 @@ export const PartsManagementPage = () => {
               </Select>
             </FormControl>
           </Box>
+
+          <Button
+            variant={showAll ? 'contained' : 'outlined'}
+            size="small"
+            onClick={handleShowAll}
+            sx={{
+              fontWeight: 600,
+              textTransform: 'none',
+              borderWidth: '2px',
+              whiteSpace: 'nowrap',
+              ...(showAll
+                ? { background: '#667eea', '&:hover': { background: '#5568d3' } }
+                : { borderColor: '#667eea', color: '#667eea', '&:hover': { borderColor: '#5568d3', background: 'rgba(102,126,234,0.04)' } }),
+            }}
+          >
+            全件表示
+          </Button>
         </Box>
 
         {/* 展開図管理セクション（カテゴリー・ジャンル・ユニット全て選択時のみ表示） */}
@@ -1680,8 +1723,15 @@ export const PartsManagementPage = () => {
           </Box>
         )}
 
+        {/* 範囲未選択時の案内（カテゴリー・ジャンル・ユニットを選ぶか「全件表示」を押すまでリストは描画しない） */}
+        {!isLoading && !isError && !shouldShowTable && (
+          <Alert severity="info" sx={{ marginTop: '8px' }}>
+            カテゴリー・ジャンル・ユニットを選択するか、「全件表示」を押してください。
+          </Alert>
+        )}
+
         {/* Table */}
-        {!isLoading && !isError && (
+        {!isLoading && !isError && shouldShowTable && (
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
