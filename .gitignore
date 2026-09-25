@@ -55,3 +55,8 @@ ACCOUNT_INFO.md
 # 本番DBパスワードがハードコードされているためコミット禁止
 backend/scripts/backup-production.sh
 .vercel
+gunpla-import/
+backups/
+frontend/.vercel.bak-*/
+*.bak-frontend-*
+g-witch-list.png
