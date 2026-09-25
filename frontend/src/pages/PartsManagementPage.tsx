@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Box,
   Typography,
@@ -217,6 +218,7 @@ const SortableRow = ({ part, onEdit, onDelete, sortable = true, highlight = fals
 export const PartsManagementPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout: authLogout } = useAuth();
   const queryClient = useQueryClient();
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -540,8 +542,15 @@ export const PartsManagementPage = () => {
     setCropPosition({ x: 0.5, y: 0.5 });
   };
 
-  const handleLogout = () => {
-    navigate('/admin/login');
+  const handleLogout = async () => {
+    try {
+      await authLogout();
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+    } finally {
+      // 成否に関わらずログイン画面へ（authLogoutが失敗してもキーはクリア済み）
+      navigate('/admin/login');
+    }
   };
 
   // CSVエクスポート

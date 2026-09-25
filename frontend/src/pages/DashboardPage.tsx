@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { Box, Typography, Card, CardContent, Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { statsApi, systemSettingsApi, inventoryCountApi } from '@/services/api';
@@ -27,6 +28,7 @@ const relativeTime = (iso: string): string => {
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
+  const { logout: authLogout } = useAuth();
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
 
   // 統計データ取得（5分間隔で自動更新）
@@ -64,9 +66,14 @@ export const DashboardPage = () => {
     fetchSystemSettings();
   }, []);
 
-  const handleLogout = () => {
-    // ログアウト処理
-    navigate('/admin/login');
+  const handleLogout = async () => {
+    try {
+      await authLogout();
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+    } finally {
+      navigate('/admin/login');
+    }
   };
 
   return (

@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Button } from '@mui/material';
+import { useAuth } from '@/hooks/useAuth';
 import { systemSettingsApi } from '@/services/api';
 import { getLogoMaxHeight, getLogoMaxWidth } from '@/utils/logoSize';
 import { hasFeature, type FeatureKey } from '@/utils/features';
@@ -34,7 +35,18 @@ const TABS: { label: string; path: string; feature?: FeatureKey }[] = [
 
 export const AdminShell = ({ active, children }: AdminShellProps) => {
   const navigate = useNavigate();
+  const { logout: authLogout } = useAuth();
   const [settings, setSettings] = useState<SystemSettings | null>(null);
+
+  const handleLogout = async () => {
+    try {
+      await authLogout();
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+    } finally {
+      navigate('/admin/login');
+    }
+  };
 
   useEffect(() => {
     systemSettingsApi
@@ -106,7 +118,7 @@ export const AdminShell = ({ active, children }: AdminShellProps) => {
             ユーザー画面を見る
           </Button>
           <Button
-            onClick={() => navigate('/login')}
+            onClick={handleLogout}
             sx={{
               background: 'rgba(255, 255, 255, 0.2)',
               border: '2px solid white',

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Box,
   Typography,
@@ -181,6 +182,7 @@ const SortableRow = ({ category, onEdit, onDelete }: SortableRowProps) => {
 
 export const CategoryManagementPage = () => {
   const navigate = useNavigate();
+  const { logout: authLogout } = useAuth();
   const queryClient = useQueryClient();
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -307,8 +309,14 @@ export const CategoryManagementPage = () => {
     }
   };
 
-  const handleLogout = () => {
-    navigate('/admin/login');
+  const handleLogout = async () => {
+    try {
+      await authLogout();
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+    } finally {
+      navigate('/admin/login');
+    }
   };
 
   const handleOpenAddDialog = () => {

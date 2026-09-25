@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Box, Typography, Button } from '@mui/material';
 import { Logout, Print, Download, ContentCopy } from '@mui/icons-material';
@@ -15,6 +16,7 @@ import type { SystemSettings } from '@/types';
 
 export const QRCodePage = () => {
   const navigate = useNavigate();
+  const { logout: authLogout } = useAuth();
   const qrCodeRef = useRef<HTMLCanvasElement>(null);
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
 
@@ -44,9 +46,11 @@ export const QRCodePage = () => {
 
   const handleLogout = async () => {
     try {
-      navigate('/login');
+      await authLogout();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('ログアウトエラー:', error);
+    } finally {
+      navigate('/admin/login');
     }
   };
 

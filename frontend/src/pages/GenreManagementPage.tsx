@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Box,
   Typography,
@@ -175,6 +176,7 @@ const SortableRow = ({ genre, categoryName, onEdit, onDelete, sortable = true }:
 
 export const GenreManagementPage = () => {
   const navigate = useNavigate();
+  const { logout: authLogout } = useAuth();
   const queryClient = useQueryClient();
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -334,8 +336,14 @@ export const GenreManagementPage = () => {
     }
   };
 
-  const handleLogout = () => {
-    navigate('/admin/login');
+  const handleLogout = async () => {
+    try {
+      await authLogout();
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+    } finally {
+      navigate('/admin/login');
+    }
   };
 
   const handleOpenAddDialog = () => {
