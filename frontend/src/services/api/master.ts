@@ -73,6 +73,24 @@ export async function getSummary(): Promise<TenantSummary> {
   return get<TenantSummary>('/api/master/summary');
 }
 
+// Cloudinary使用量
+export interface CloudinaryUsage {
+  plan: string;
+  lastUpdated: string;
+  storageGB: number;
+  bandwidthGB: number;
+  creditsUsed: number;
+  creditsLimit: number;
+  creditsPercent: number;
+  resources: number;
+  storageLimitGB: number;
+  bandwidthLimitGB: number;
+}
+
+export async function getCloudinaryUsage(): Promise<CloudinaryUsage> {
+  return get<CloudinaryUsage>('/api/master/cloudinary-usage');
+}
+
 // テナント詳細
 export async function getTenantDetail(id: string): Promise<TenantListItem> {
   return get<TenantListItem>(`/api/master/tenants/${id}`);

@@ -176,6 +176,11 @@ export const MasterDashboardPage = () => {
     queryKey: ['master-summary'],
     queryFn: masterApi.getSummary,
   });
+  const cloudinaryQuery = useQuery({
+    queryKey: ['master-cloudinary-usage'],
+    queryFn: masterApi.getCloudinaryUsage,
+    staleTime: 60 * 60 * 1000, // 1時間キャッシュ（Cloudinary側も日次更新のため頻繁に叩かない）
+  });
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['master-tenants'] });
@@ -392,6 +397,42 @@ export const MasterDashboardPage = () => {
             <SummaryCard label="停止中" value={s.suspended} />
             <SummaryCard label="総パーツ数" value={s.partTotal} />
           </Stack>
+        )}
+
+        {/* Cloudinary(画像ストレージ)使用量 */}
+        {cloudinaryQuery.data && (
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+              画像ストレージ使用量（Cloudinary / {cloudinaryQuery.data.plan}プラン）
+              <Typography component="span" variant="caption" sx={{ color: 'text.secondary', ml: 1 }}>
+                更新日: {cloudinaryQuery.data.lastUpdated}
+              </Typography>
+            </Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
+              <UsageBar
+                label="ストレージ"
+                used={cloudinaryQuery.data.storageGB}
+                limit={cloudinaryQuery.data.storageLimitGB}
+                unit="GB"
+              />
+              <UsageBar
+                label="帯域(今月)"
+                used={cloudinaryQuery.data.bandwidthGB}
+                limit={cloudinaryQuery.data.bandwidthLimitGB}
+                unit="GB"
+              />
+              <UsageBar
+                label="クレジット(今月)"
+                used={Math.round(cloudinaryQuery.data.creditsUsed * 100) / 100}
+                limit={cloudinaryQuery.data.creditsLimit}
+                unit=""
+              />
+            </Stack>
+            <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>
+              保存画像・PDF: {cloudinaryQuery.data.resources.toLocaleString()} 個 ／
+              クレジットは変換・帯域・ストレージの合算。無料枠は各25です。
+            </Typography>
+          </Paper>
         )}
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
@@ -1173,5 +1214,38 @@ const SummaryCard = ({ label, value }: { label: string; value: number }) => (
     </Typography>
   </Paper>
 );
+
+// 使用量バー（Cloudinary使用量の表示用）。使用率に応じて色が変わる。
+const UsageBar = ({
+  label,
+  used,
+  limit,
+  unit,
+}: {
+  label: string;
+  used: number;
+  limit: number;
+  unit: string;
+}) => {
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const color = pct >= 90 ? '#d32f2f' : pct >= 70 ? '#ed6c02' : '#2e7d32';
+  return (
+    <Box sx={{ flex: 1, minWidth: 160 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          {label}
+        </Typography>
+        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+          {used}
+          {unit} / {limit}
+          {unit}（{pct}%）
+        </Typography>
+      </Box>
+      <Box sx={{ height: 8, borderRadius: 4, background: '#eee', overflow: 'hidden' }}>
+        <Box sx={{ width: `${pct}%`, height: '100%', background: color, transition: 'width .3s' }} />
+      </Box>
+    </Box>
+  );
+};
 
 export default MasterDashboardPage;

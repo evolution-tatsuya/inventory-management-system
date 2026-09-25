@@ -4,6 +4,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { tenantService } from '../services/tenantService';
 import { accountService } from '../services/accountService';
+import { imageService } from '../services/imageService';
 import { validateEmail, validatePassword } from '../utils/validators';
 
 export const masterController = {
@@ -20,6 +21,15 @@ export const masterController = {
   async getSummary(req: Request, res: Response, next: NextFunction) {
     try {
       res.json(await tenantService.getSummary());
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  // Cloudinary全体の使用量（ストレージ・帯域・クレジット）
+  async getCloudinaryUsage(req: Request, res: Response, next: NextFunction) {
+    try {
+      res.json(await imageService.getUsage());
     } catch (e) {
       next(e);
     }

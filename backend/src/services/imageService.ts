@@ -41,6 +41,28 @@ export const imageService = {
   },
 
   /**
+   * Cloudinary全体の使用量を取得（運営者総括用）。
+   * ストレージ・帯域・クレジット・保存リソース数などを返す。
+   */
+  async getUsage() {
+    const u: any = await cloudinary.api.usage();
+    const toGB = (bytes: number) => Math.round((bytes / 1e9) * 100) / 100;
+    return {
+      plan: u.plan,
+      lastUpdated: u.last_updated,
+      storageGB: toGB(u.storage?.usage ?? 0),
+      bandwidthGB: toGB(u.bandwidth?.usage ?? 0),
+      creditsUsed: u.credits?.usage ?? 0,
+      creditsLimit: u.credits?.limit ?? 25,
+      creditsPercent: u.credits?.used_percent ?? 0,
+      resources: u.resources ?? 0, // 保存リソース数（画像・PDF等）
+      // 無料枠の目安（Free: ストレージ25GB/帯域25GB/クレジット25）
+      storageLimitGB: 25,
+      bandwidthLimitGB: 25,
+    };
+  },
+
+  /**
    * URLから public_id を抽出
    * @param url Cloudinaryの画像URL
    * @returns public_id または null
