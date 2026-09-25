@@ -229,6 +229,10 @@ export interface Tenant {
   contractStartDate: string | null;
   nextBillingDate: string | null;
   billingNote: string | null;
+  // プラン上限（null=無制限）。使用率・警告表示に使用。
+  maxParts?: number | null;
+  maxImageMB?: number | null;
+  maxUsers?: number | null;
   createdAt: string;
   updatedAt: string;
 }

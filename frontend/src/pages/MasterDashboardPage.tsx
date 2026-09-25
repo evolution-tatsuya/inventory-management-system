@@ -84,6 +84,24 @@ const billingColor = (s: string | null): 'info' | 'success' | 'error' | 'default
   }
 };
 
+// ── 使用率・警告表示 ────────────────────────────────
+// 上限が未設定(無制限)の自社テナントに使う「参考上限」。ここを変えれば基準が変わる。
+const REF_MAX_PARTS = 15000;
+const REF_MAX_IMAGE_MB = 5000;
+// 警告しきい値（%）
+const WARN_PCT = 70;
+const CRIT_PCT = 90;
+
+// 使用率(%)と色・ラベルを計算。limit が null のときは参考上限を使い、参考であることを示す。
+function usageInfo(used: number, limit: number | null | undefined, refLimit: number) {
+  const effectiveLimit = limit && limit > 0 ? limit : refLimit;
+  const isRef = !(limit && limit > 0); // 参考上限を使ったか
+  const pct = effectiveLimit > 0 ? Math.round((used / effectiveLimit) * 100) : 0;
+  const level = pct >= CRIT_PCT ? 'crit' : pct >= WARN_PCT ? 'warn' : 'ok';
+  const color = level === 'crit' ? '#d32f2f' : level === 'warn' ? '#ed6c02' : '#2e7d32';
+  return { pct, level, color, effectiveLimit, isRef };
+}
+
 // ISO日時 → YYYY/MM/DD 表示（不正値は '—'）
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -458,6 +476,7 @@ export const MasterDashboardPage = () => {
                   <TableCell>状態</TableCell>
                   <TableCell>ライセンスキー</TableCell>
                   <TableCell>件数(cat/genre/unit/part/画像 ≈容量)</TableCell>
+                  <TableCell sx={{ minWidth: 200 }}>使用率</TableCell>
                   <TableCell>課金</TableCell>
                   <TableCell>管理者</TableCell>
                   <TableCell align="right">操作</TableCell>
@@ -503,6 +522,85 @@ export const MasterDashboardPage = () => {
                           )
                         </span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const pu = usageInfo(t._count.parts, t.maxParts, REF_MAX_PARTS);
+                        const iu = usageInfo(
+                          typeof t.imageMB === 'number' ? t.imageMB : 0,
+                          t.maxImageMB,
+                          REF_MAX_IMAGE_MB,
+                        );
+                        const worst = Math.max(pu.pct, iu.pct);
+                        const flag =
+                          worst >= CRIT_PCT
+                            ? { label: '至急提案', color: '#d32f2f', bg: '#fdecea' }
+                            : worst >= WARN_PCT
+                            ? { label: '要提案', color: '#ed6c02', bg: '#fff4e5' }
+                            : null;
+                        const row = (
+                          label: string,
+                          u: ReturnType<typeof usageInfo>,
+                          used: number,
+                          unit: string,
+                        ) => (
+                          <Box sx={{ mb: 0.5 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {label}
+                                {u.isRef && (
+                                  <span style={{ fontSize: '0.85em', opacity: 0.7 }}>(参考)</span>
+                                )}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 600, color: u.color, fontVariantNumeric: 'tabular-nums' }}
+                              >
+                                {u.pct}%
+                              </Typography>
+                            </Box>
+                            <Box sx={{ height: 6, borderRadius: 3, bgcolor: '#eee', overflow: 'hidden' }}>
+                              <Box
+                                sx={{
+                                  width: `${Math.min(100, u.pct)}%`,
+                                  height: '100%',
+                                  bgcolor: u.color,
+                                }}
+                              />
+                            </Box>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: 'text.secondary', fontSize: '0.7rem', fontVariantNumeric: 'tabular-nums' }}
+                            >
+                              {used.toLocaleString()} / {u.effectiveLimit.toLocaleString()}
+                              {unit}
+                            </Typography>
+                          </Box>
+                        );
+                        return (
+                          <Box>
+                            {row('パーツ', pu, t._count.parts, '')}
+                            {row('画像', iu, typeof t.imageMB === 'number' ? t.imageMB : 0, 'MB')}
+                            {flag && (
+                              <Box
+                                sx={{
+                                  mt: 0.5,
+                                  display: 'inline-block',
+                                  px: 1,
+                                  py: 0.25,
+                                  borderRadius: 1,
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  color: flag.color,
+                                  bgcolor: flag.bg,
+                                }}
+                              >
+                                {flag.label}
+                              </Box>
+                            )}
+                          </Box>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Chip
