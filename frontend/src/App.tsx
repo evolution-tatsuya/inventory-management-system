@@ -4,6 +4,8 @@ import { AdminRoute } from '@/components/AdminRoute';
 import { MasterRoute } from '@/components/MasterRoute';
 import { LoginPage } from '@/pages/LoginPage';
 import { AdminLoginPage } from '@/pages/AdminLoginPage';
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { MasterLoginPage } from '@/pages/MasterLoginPage';
 import { MasterDashboardPage } from '@/pages/MasterDashboardPage';
 import { ActivatePage } from '@/pages/ActivatePage';
@@ -40,6 +42,8 @@ function App() {
       {/* 公開ページ */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route path="/admin/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/admin/reset-password" element={<ResetPasswordPage />} />
       <Route path="/master/login" element={<MasterLoginPage />} />
       <Route path="/activate" element={<ActivatePage />} />
 

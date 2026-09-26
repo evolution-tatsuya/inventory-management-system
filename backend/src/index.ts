@@ -96,6 +96,11 @@ app.use(session({
 // 運営者(master)ログイン — テナント非依存の別導線
 app.post('/api/master/login', authController.loginMaster);
 
+// パスワード再発行（ログイン不要・テナント非依存の別導線）
+// リクエスト: slug + email を body で受ける / 実行: token + newPassword
+app.post('/api/auth/forgot-password', authController.requestPasswordReset);
+app.post('/api/auth/reset-password', authController.resetPassword);
+
 // 運営者(master)のテナント管理 — requireMaster保護（全テナント横断）
 app.use('/api/master', masterRoutes);
 app.use('/api/integration', integrationRoutes);

@@ -152,6 +152,18 @@ export const AdminLoginPage = () => {
           {loading ? 'ログイン中...' : '管理者ログイン'}
         </Button>
 
+        <Box sx={{ textAlign: 'center', mb: 1 }}>
+          <Button
+            variant="text"
+            size="small"
+            onClick={() =>
+              navigate(`/admin/forgot-password?tenant=${encodeURIComponent(tenantSlug)}`)
+            }
+          >
+            パスワードを忘れた方はこちら
+          </Button>
+        </Box>
+
         <Box sx={{ textAlign: 'center', mb: 3 }}>
           <Button variant="text" size="small" onClick={() => navigate('/login')}>
             一般利用者の方はこちら

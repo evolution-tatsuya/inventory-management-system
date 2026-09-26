@@ -5,8 +5,17 @@
 // ============================================================
 
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 import { prisma } from '../lib/prisma';
+import { sendMail, buildPasswordResetEmail } from '../lib/mailer';
+
+// パスワード再発行トークンの有効期限（分）
+const RESET_TOKEN_EXPIRES_MINUTES = 30;
+
+// 平文トークンをSHA-256でハッシュ化（DB保存用）
+const hashToken = (token: string) =>
+  crypto.createHash('sha256').update(token).digest('hex');
 
 // ============================================================
 // ログイン処理
@@ -104,5 +113,72 @@ export const authService = {
       createdAt: account.createdAt,
       updatedAt: account.updatedAt,
     };
+  },
+
+  // ============================================================
+  // パスワード再発行: リクエスト
+  // ============================================================
+  // slug + email から管理者を特定し、リセットトークンを発行してメール送信。
+  // ※ メールアドレスの存在有無を漏らさないため、該当が無くても例外を投げず
+  //   正常終了する（呼び出し側は常に同じ応答を返す）。
+  async requestPasswordReset(slug: string, email: string, frontendUrl: string) {
+    const tenant = await prisma.tenant.findUnique({ where: { slug } });
+    if (!tenant || tenant.status === 'suspended') return; // 秘匿
+
+    const admin = await prisma.admin.findFirst({
+      where: { tenantId: tenant.id, email, role: 'admin' },
+    });
+    if (!admin) return; // 秘匿（該当なしでも正常終了）
+
+    // 平文トークン生成（URL安全）。DBにはハッシュのみ保存。
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRES_MINUTES * 60 * 1000);
+
+    // 同一管理者の未使用トークンは無効化（使い回し防止）
+    await prisma.passwordResetToken.deleteMany({
+      where: { adminId: admin.id, usedAt: null },
+    });
+    await prisma.passwordResetToken.create({
+      data: { adminId: admin.id, tenantId: tenant.id, tokenHash, expiresAt },
+    });
+
+    // トークンとslugをURLに載せる（フロントの再設定画面）
+    const resetUrl =
+      `${frontendUrl.replace(/\/$/, '')}/admin/reset-password` +
+      `?token=${token}&tenant=${encodeURIComponent(slug)}`;
+
+    await sendMail({
+      to: admin.email,
+      subject: `【${tenant.name}】パスワード再設定のご案内`,
+      html: buildPasswordResetEmail({
+        tenantName: tenant.name,
+        resetUrl,
+        expiresMinutes: RESET_TOKEN_EXPIRES_MINUTES,
+      }),
+    });
+  },
+
+  // ============================================================
+  // パスワード再発行: 実行
+  // ============================================================
+  // トークンを検証し、有効なら新パスワードに更新してトークンを使用済みにする。
+  async resetPassword(token: string, newPassword: string) {
+    const tokenHash = hashToken(token);
+    const record = await prisma.passwordResetToken.findUnique({ where: { tokenHash } });
+
+    if (!record || record.usedAt || record.expiresAt < new Date()) {
+      throw new Error('リンクが無効か、有効期限が切れています。お手数ですが再度お試しください。');
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    // パスワード更新とトークン使用済み化を同時に
+    await prisma.$transaction([
+      prisma.admin.update({ where: { id: record.adminId }, data: { password: hashed } }),
+      prisma.passwordResetToken.update({
+        where: { id: record.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
   },
 };

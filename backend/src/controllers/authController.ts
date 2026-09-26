@@ -138,4 +138,43 @@ export const authController = {
       return res.status(401).json({ authenticated: false });
     }
   },
+
+  // ============================================================
+  // パスワード再発行リクエスト（ログイン不要）
+  // slug は パス(/api/t/:slug/...) または body から受け取る
+  // ============================================================
+  async requestPasswordReset(req: Request, res: Response, next: NextFunction) {
+    try {
+      const slug = req.params.slug || req.body.slug;
+      const { email } = req.body;
+      if (!slug || !validateEmail(email)) {
+        return res.status(400).json({ error: 'テナントIDと有効なメールアドレスを入力してください' });
+      }
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3589';
+      await authService.requestPasswordReset(slug, email, frontendUrl);
+      // 秘匿のため、該当有無に関わらず常に同じ成功応答
+      res.json({ success: true });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  // ============================================================
+  // パスワード再発行実行（ログイン不要・トークン検証）
+  // ============================================================
+  async resetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, newPassword } = req.body;
+      if (!token) {
+        return res.status(400).json({ error: 'トークンがありません' });
+      }
+      if (!validatePassword(newPassword)) {
+        return res.status(400).json({ error: 'パスワードは8文字以上で入力してください' });
+      }
+      await authService.resetPassword(token, newPassword);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  },
 };

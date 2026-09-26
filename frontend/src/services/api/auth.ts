@@ -35,6 +35,27 @@ export async function loginMaster(
 }
 
 /**
+ * パスワード再発行リクエスト（テナントID + メール）。
+ * セキュリティ上、該当有無に関わらず成功が返る。
+ */
+export async function forgotPassword(
+  slug: string,
+  email: string,
+): Promise<{ success: boolean }> {
+  return post('/api/auth/forgot-password', { slug, email });
+}
+
+/**
+ * パスワード再設定の実行（トークン + 新パスワード）。
+ */
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<{ success: boolean }> {
+  return post('/api/auth/reset-password', { token, newPassword });
+}
+
+/**
  * ログアウト
  *
  * @returns ログアウト成功レスポンス

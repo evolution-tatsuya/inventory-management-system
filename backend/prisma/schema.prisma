@@ -84,6 +84,24 @@ model Admin {
 }
 
 // ============================================================
+// PasswordResetToken - パスワード再発行トークン
+// ============================================================
+// 「パスワードを忘れた」フローで発行。tokenHash(平文トークンのSHA-256)を
+// 保存し、メールには平文を載せる。有効期限切れ/使用済みは無効。
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  adminId   String   // 対象の管理者
+  tenantId  String   // 所属テナント（検証時の絞り込み用）
+  tokenHash String   @unique // 平文トークンのSHA-256ハッシュ
+  expiresAt DateTime // 有効期限（発行から30分）
+  usedAt    DateTime? // 使用済み日時（null=未使用）
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@map("password_reset_tokens")
+}
+
+// ============================================================
 // User: 一般ユーザー
 // ============================================================
 model User {
