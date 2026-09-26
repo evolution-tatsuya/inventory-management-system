@@ -34,6 +34,7 @@ import {
 import {
   ContentCopy,
   Delete,
+  LockReset,
   Logout,
   ManageAccounts,
   OpenInNew,
@@ -189,6 +190,10 @@ export const MasterDashboardPage = () => {
   // 一般ユーザー代理作成ダイアログの対象テナントとフォーム
   const [userTarget, setUserTarget] = useState<TenantListItem | null>(null);
   const [userForm, setUserForm] = useState({ email: '', password: '', name: '' });
+  // パスワードリセット: 対象テナント、その管理者一覧、発行された一時パスワード
+  const [resetTarget, setResetTarget] = useState<TenantListItem | null>(null);
+  const [resetAdmins, setResetAdmins] = useState<{ id: string; email: string; name: string | null }[]>([]);
+  const [resetResult, setResetResult] = useState<{ email: string; tempPassword: string } | null>(null);
   // 使用量推移ウィンドウの対象テナント
   const [trendTarget, setTrendTarget] = useState<TenantListItem | null>(null);
 
@@ -294,6 +299,34 @@ export const MasterDashboardPage = () => {
     onError: (e: Error) => setSnack(e.message),
   });
 
+  // パスワードリセット: 対象テナントの管理者一覧を取得してダイアログを開く
+  const openResetDialog = async (t: TenantListItem) => {
+    setResetResult(null);
+    setResetAdmins([]);
+    setResetTarget(t);
+    try {
+      const detail = await masterApi.getTenantDetail(t.id);
+      // 管理者(role=admin)のみ対象。masterは除外
+      const admins = ((detail as unknown as { admins?: { id: string; email: string; name: string | null; role: string }[] }).admins || [])
+        .filter((a) => a.role === 'admin')
+        .map((a) => ({ id: a.id, email: a.email, name: a.name }));
+      setResetAdmins(admins);
+    } catch (e) {
+      setSnack(e instanceof Error ? e.message : '管理者情報の取得に失敗しました');
+      setResetTarget(null);
+    }
+  };
+
+  // 一時パスワードを発行
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({ tenantId, adminId }: { tenantId: string; adminId: string }) =>
+      masterApi.resetAdminPassword(tenantId, adminId),
+    onSuccess: (res) => {
+      setResetResult({ email: res.email, tempPassword: res.tempPassword });
+    },
+    onError: (e: Error) => setSnack(e.message),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: ({ id, confirm }: { id: string; confirm: string }) =>
       masterApi.deleteTenant(id, confirm),
@@ -369,6 +402,14 @@ export const MasterDashboardPage = () => {
     if (t.status !== 'active') {
       setSnack('稼働中のテナントのみ閲覧できます（未有効化/停止中は不可）');
       return;
+    }
+    // 管理画面は編集・削除まで可能な代理アクセスのため、入る前に確認を挟む
+    if (view === 'admin') {
+      const ok = window.confirm(
+        `「${t.name}」の管理画面に運営者として代理アクセスします。\n` +
+        `この画面ではデータの編集・削除ができます。テナント管理者の許可を得ていますか？`,
+      );
+      if (!ok) return;
     }
     // master の閲覧は常に admin トークンで通す（user画面もmaster権限で閲覧可）
     localStorage.setItem('currentTenantSlug', t.slug);
@@ -755,6 +796,24 @@ export const MasterDashboardPage = () => {
                               }}
                             >
                               <PersonAddAlt fontSize="inherit" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip
+                          title={
+                            t.status === 'active'
+                              ? '管理者パスワードを一時リセット'
+                              : '稼働中のみ可'
+                          }
+                        >
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="warning"
+                              disabled={t.status !== 'active'}
+                              onClick={() => openResetDialog(t)}
+                            >
+                              <LockReset fontSize="inherit" />
                             </IconButton>
                           </span>
                         </Tooltip>
@@ -1347,6 +1406,105 @@ export const MasterDashboardPage = () => {
             }
           >
             {createUserMutation.isPending ? '追加中...' : '追加'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 管理者パスワード一時リセットダイアログ */}
+      <Dialog
+        open={!!resetTarget}
+        onClose={() => { setResetTarget(null); setResetResult(null); }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>管理者パスワードのリセット</DialogTitle>
+        <DialogContent>
+          {!resetResult ? (
+            <>
+              <DialogContentText sx={{ mb: 2 }}>
+                「{resetTarget?.name}」の管理者パスワードを一時パスワードにリセットします。
+                リセット後、表示された一時パスワードを本人に伝えてください（本人はログイン後に変更できます）。
+                <br />
+                ※パスワードは暗号化保存のため、現在のパスワードを表示することはできません。
+              </DialogContentText>
+              {resetAdmins.length === 0 ? (
+                <Alert severity="info">管理者情報を取得中、または管理者が存在しません。</Alert>
+              ) : (
+                <Stack spacing={1}>
+                  {resetAdmins.map((a) => (
+                    <Box
+                      key={a.id}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: 1,
+                        p: 1.5,
+                      }}
+                    >
+                      <Box>
+                        <Box sx={{ fontWeight: 600 }}>{a.name || '(名前未設定)'}</Box>
+                        <Box sx={{ fontSize: 13, color: '#666' }}>{a.email}</Box>
+                      </Box>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="warning"
+                        disabled={resetPasswordMutation.isPending}
+                        onClick={() => {
+                          if (!resetTarget) return;
+                          const ok = window.confirm(
+                            `${a.email} のパスワードを一時パスワードにリセットします。\n現在のパスワードは無効になります。よろしいですか？`,
+                          );
+                          if (!ok) return;
+                          resetPasswordMutation.mutate({ tenantId: resetTarget.id, adminId: a.id });
+                        }}
+                      >
+                        リセット
+                      </Button>
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+            </>
+          ) : (
+            <>
+              <Alert severity="success" sx={{ mb: 2 }}>
+                一時パスワードを発行しました。この画面を閉じると二度と表示できません。
+              </Alert>
+              <Box sx={{ mb: 1, fontSize: 14 }}>対象: {resetResult.email}</Box>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  border: '2px solid #ed6c02',
+                  borderRadius: 1,
+                  p: 1.5,
+                  background: '#fff7ed',
+                }}
+              >
+                <Box sx={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 700, flex: 1 }}>
+                  {resetResult.tempPassword}
+                </Box>
+                <Tooltip title="コピー">
+                  <IconButton
+                    onClick={() => {
+                      navigator.clipboard.writeText(resetResult.tempPassword);
+                      setSnack('一時パスワードをコピーしました');
+                    }}
+                  >
+                    <ContentCopy fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setResetTarget(null); setResetResult(null); }}>
+            閉じる
           </Button>
         </DialogActions>
       </Dialog>

@@ -22,6 +22,7 @@ router.put('/tenants/:id/status', requireMaster, masterController.setStatus);
 router.put('/tenants/:id/billing', requireMaster, masterController.updateBilling);
 router.post('/tenants/:id/users', requireMaster, masterController.createTenantUser);
 router.post('/tenants/:id/regenerate-key', requireMaster, masterController.regenerateKey);
+router.post('/tenants/:id/reset-admin-password', requireMaster, masterController.resetAdminPassword);
 router.delete('/tenants/:id', requireMaster, masterController.deleteTenant);
 
 export default router;

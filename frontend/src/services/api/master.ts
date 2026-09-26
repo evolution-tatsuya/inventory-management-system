@@ -154,6 +154,14 @@ export async function regenerateKey(id: string): Promise<{ licenseKey: string }>
   return post<{ licenseKey: string }>(`/api/master/tenants/${id}/regenerate-key`);
 }
 
+// 管理者パスワードの一時リセット（運営者代行）。一時パスワードを返す
+export async function resetAdminPassword(
+  id: string,
+  adminId: string,
+): Promise<{ email: string; name: string | null; tempPassword: string }> {
+  return post(`/api/master/tenants/${id}/reset-admin-password`, { adminId });
+}
+
 // 削除前バックアップ（全モデルJSON dump）
 export async function getBackup(id: string): Promise<Record<string, unknown>> {
   return get<Record<string, unknown>>(`/api/master/tenants/${id}/backup`);

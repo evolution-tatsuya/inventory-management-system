@@ -378,6 +378,27 @@ export const tenantService = {
     );
   },
 
+  // 運営者による管理者パスワードの一時リセット。
+  // 一時パスワードを生成してbcryptで保存し、平文の一時パスワードを返す（画面表示用）。
+  // 平文はこの応答の一度きり。DBには保存しない（ハッシュのみ）。
+  async resetAdminPassword(tenantId: string, adminId: string) {
+    const admin = await prisma.admin.findFirst({
+      where: { id: adminId, tenantId, role: 'admin' },
+    });
+    if (!admin) throw new Error('対象の管理者が見つかりません');
+
+    // 読み間違えにくい一時パスワードを生成（英大文字小文字+数字、12桁）
+    const CHARS = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const bytes = crypto.randomBytes(12);
+    let temp = '';
+    for (let i = 0; i < 12; i++) temp += CHARS[bytes[i] % CHARS.length];
+
+    const hashed = await bcrypt.hash(temp, 10);
+    await prisma.admin.update({ where: { id: adminId }, data: { password: hashed } });
+
+    return { email: admin.email, name: admin.name, tempPassword: temp };
+  },
+
   // テナント削除（多段階関門）
   async deleteTenant(id: string, confirmName: string) {
     const tenant = await prisma.tenant.findUnique({ where: { id } });

@@ -142,6 +142,18 @@ export const masterController = {
     }
   },
 
+  // 運営者による管理者パスワードの一時リセット。一時パスワードを返す（表示用）。
+  async resetAdminPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { adminId } = req.body;
+      if (!adminId) return res.status(400).json({ error: 'adminId is required' });
+      const result = await tenantService.resetAdminPassword(req.params.id, adminId);
+      res.json(result);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  },
+
   // 削除前バックアップ（JSON全モデル）
   async backup(req: Request, res: Response, next: NextFunction) {
     try {
