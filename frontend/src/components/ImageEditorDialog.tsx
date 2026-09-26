@@ -230,11 +230,25 @@ export const ImageEditorDialog = ({
       }
 
       // PNGで書き出し（線画＋数字はJPEG圧縮でにじむためロスレスに）
-      const base64 = canvas.toDataURL('image/png');
-      onSave(base64, { scale, position, backgroundColor });
-      onClose();
+      try {
+        const base64 = canvas.toDataURL('image/png');
+        onSave(base64, { scale, position, backgroundColor });
+        onClose();
+      } catch (e) {
+        // Canvasが汚染(tainted)されている場合など。まれなケース。
+        console.error('画像の書き出しに失敗しました:', e);
+        alert('画像の書き出しに失敗しました。もう一度画像を選び直してお試しください。');
+      }
     };
-    image.src = imageUrl;
+    image.onerror = () => {
+      alert('画像の読み込みに失敗しました。もう一度お試しください。');
+    };
+    // 既存URL(http)の再編集ではCORS付きで取り直す必要があるため、
+    // crossOrigin無しキャッシュとの衝突を避けるキャッシュバスターを付与する。
+    // base64データURLはそのまま。
+    image.src = imageUrl.startsWith('http')
+      ? `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}_cb=${imageSize.width || 1}`
+      : imageUrl;
   };
 
   // キャンセル処理

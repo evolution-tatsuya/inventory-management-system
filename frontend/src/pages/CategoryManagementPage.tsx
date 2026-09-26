@@ -391,6 +391,13 @@ export const CategoryManagementPage = () => {
     setEditorOpen(false);
   };
 
+  // 登録済み(または選択済み)画像を、選び直さずに再調整する
+  const handleAdjustCurrent = () => {
+    if (!imagePreview) return;
+    setRawImageUrl(imagePreview);
+    setEditorOpen(true);
+  };
+
   const handleEdit = async () => {
     if (!selectedCategory) return;
 
@@ -884,6 +891,11 @@ export const CategoryManagementPage = () => {
                     border: '2px solid #e0e0e0',
                   }}
                 />
+                <Box>
+                  <Button size="small" variant="outlined" onClick={handleAdjustCurrent} sx={{ mt: 1 }}>
+                    画像を調整
+                  </Button>
+                </Box>
               </Box>
             )}
           </Box>
@@ -970,6 +982,11 @@ export const CategoryManagementPage = () => {
                     border: '2px solid #e0e0e0',
                   }}
                 />
+                <Box>
+                  <Button size="small" variant="outlined" onClick={handleAdjustCurrent} sx={{ mt: 1 }}>
+                    画像を調整
+                  </Button>
+                </Box>
               </Box>
             )}
           </Box>

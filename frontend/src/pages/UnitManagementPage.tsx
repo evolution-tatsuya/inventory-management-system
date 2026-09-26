@@ -427,6 +427,13 @@ export const UnitManagementPage = () => {
     setEditorOpen(false);
   };
 
+  // 登録済み(または選択済み)画像を、選び直さずに再調整する
+  const handleAdjustCurrent = () => {
+    if (!imagePreview) return;
+    setRawImageUrl(imagePreview);
+    setEditorOpen(true);
+  };
+
   const handleAdd = async () => {
     let uploadedImageUrl = '';
     // エディターで加工した画像がある場合、そのままCloudinaryにアップロード
@@ -1111,6 +1118,11 @@ export const UnitManagementPage = () => {
               <Box sx={{ mt: 2, textAlign: 'center' }}>
                 <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>プレビュー</Typography>
                 <Box component="img" src={imagePreview} alt="プレビュー" sx={{ width: '120px', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '2px solid #e0e0e0' }} />
+                <Box>
+                  <Button size="small" variant="outlined" onClick={handleAdjustCurrent} sx={{ mt: 1 }}>
+                    画像を調整
+                  </Button>
+                </Box>
               </Box>
             )}
           </Box>
@@ -1159,6 +1171,11 @@ export const UnitManagementPage = () => {
               <Box sx={{ mt: 2, textAlign: 'center' }}>
                 <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>プレビュー</Typography>
                 <Box component="img" src={imagePreview} alt="プレビュー" sx={{ width: '120px', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '2px solid #e0e0e0' }} />
+                <Box>
+                  <Button size="small" variant="outlined" onClick={handleAdjustCurrent} sx={{ mt: 1 }}>
+                    画像を調整
+                  </Button>
+                </Box>
               </Box>
             )}
           </Box>
