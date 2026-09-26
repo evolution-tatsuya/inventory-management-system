@@ -21,6 +21,10 @@ interface ImageEditorDialogProps {
   initialScale?: number;
   initialPosition?: { x: number; y: number };
   initialBackgroundColor?: string;
+  // simple: 拡大縮小と移動だけの簡易モード（ラインカット・背景色を非表示）
+  simple?: boolean;
+  // 編集枠のアスペクト比（縦÷横のパーセント）。省略時は16:9。正方形は '100%'
+  aspectRatio?: string;
 }
 
 const BACKGROUND_COLORS = [
@@ -40,6 +44,8 @@ export const ImageEditorDialog = ({
   initialScale = 1,
   initialPosition = { x: 0, y: 0 },
   initialBackgroundColor = '#FFFFFF',
+  simple = false,
+  aspectRatio = '56.25%',
 }: ImageEditorDialogProps) => {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -246,30 +252,32 @@ export const ImageEditorDialog = ({
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 2 }}>
-          {/* モード切替: 移動/拡大 か ラインでカット */}
-          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <ToggleButtonGroup
-              value={mode}
-              exclusive
-              onChange={(_, value) => {
-                if (value !== null) setMode(value);
-              }}
-              size="small"
-            >
-              <ToggleButton value="move">移動・拡大</ToggleButton>
-              <ToggleButton value="cut">ラインでカット</ToggleButton>
-            </ToggleButtonGroup>
-            {mode === 'cut' && (
-              <>
-                <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>
-                  画像上をなぞって残したい範囲を囲んでください
-                </Typography>
-                <Button size="small" onClick={clearCut} variant="outlined" color="error">
-                  線をクリア
-                </Button>
-              </>
-            )}
-          </Box>
+          {/* モード切替: 移動/拡大 か ラインでカット（simpleモードでは非表示） */}
+          {!simple && (
+            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <ToggleButtonGroup
+                value={mode}
+                exclusive
+                onChange={(_, value) => {
+                  if (value !== null) setMode(value);
+                }}
+                size="small"
+              >
+                <ToggleButton value="move">移動・拡大</ToggleButton>
+                <ToggleButton value="cut">ラインでカット</ToggleButton>
+              </ToggleButtonGroup>
+              {mode === 'cut' && (
+                <>
+                  <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>
+                    画像上をなぞって残したい範囲を囲んでください
+                  </Typography>
+                  <Button size="small" onClick={clearCut} variant="outlined" color="error">
+                    線をクリア
+                  </Button>
+                </>
+              )}
+            </Box>
+          )}
 
           {/* 画像エディター */}
           <Box
@@ -284,7 +292,7 @@ export const ImageEditorDialog = ({
               sx={{
                 position: 'relative',
                 width: '100%',
-                paddingTop: '56.25%', // 16:9 = 9/16 = 56.25%
+                paddingTop: aspectRatio, // 表示枠のアスペクト比（16:9=56.25%, 正方形=100%）
                 bgcolor: backgroundColor,
                 borderRadius: 1,
                 overflow: 'hidden',
@@ -395,7 +403,9 @@ export const ImageEditorDialog = ({
                 fontWeight: 600,
               }}
             >
-              {mode === 'cut'
+              {simple
+                ? 'ドラッグで移動、下のスライダーで拡大縮小できます（青い枠内が保存されます）'
+                : mode === 'cut'
                 ? '赤い線で囲んだ内側だけが残ります（線を閉じるように囲んでください）'
                 : '青い枠内の領域が保存されます'}
             </Typography>
@@ -418,7 +428,8 @@ export const ImageEditorDialog = ({
             />
           </Box>
 
-          {/* 背景色選択 */}
+          {/* 背景色選択（simpleモードでは非表示） */}
+          {!simple && (
           <Box>
             <Typography variant="subtitle2" gutterBottom>
               背景色
@@ -462,6 +473,7 @@ export const ImageEditorDialog = ({
               ))}
             </ToggleButtonGroup>
           </Box>
+          )}
         </Box>
       </DialogContent>
       <DialogActions>

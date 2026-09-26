@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { UploadButton } from '@/components/UploadButton';
+import { ImageEditorDialog } from '@/components/ImageEditorDialog';
+import { uploadImageToCloudinary } from '@/utils/uploadImage';
 import {
   Box,
   Typography,
@@ -308,11 +310,11 @@ export const PartsManagementPage = () => {
     fetchSystemSettings();
   }, []);
 
-  // 画像クロップ用
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>('');
-  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
-  const [cropPosition, setCropPosition] = useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 });
+  // 画像編集用
+  const [imagePreview, setImagePreview] = useState<string>(''); // 表示用プレビュー（加工済み or 既存URL）
+  const [editorOpen, setEditorOpen] = useState(false); // 画像エディターの開閉
+  const [rawImageUrl, setRawImageUrl] = useState<string>(''); // エディターに渡す元画像(base64)
+  const [editedImage, setEditedImage] = useState<string>(''); // エディターで加工した画像(base64 PNG)。保存時にアップロード
 
   // インポート/エクスポート用
   const [importing, setImporting] = useState(false);
@@ -537,10 +539,9 @@ export const PartsManagementPage = () => {
     setDescription('');
     setPdfUrl('');
     setPdfFileName('');
-    setImageFile(null);
     setImagePreview('');
-    setImageDimensions(null);
-    setCropPosition({ x: 0.5, y: 0.5 });
+    setEditedImage('');
+    setRawImageUrl('');
   };
 
   const handleLogout = async () => {
@@ -724,92 +725,12 @@ export const PartsManagementPage = () => {
   const handleAdd = async () => {
     let uploadedImageUrl = imagePreview;
 
-    if (imageFile && imageDimensions) {
+    // エディターで加工した画像がある場合、そのままCloudinaryにアップロード
+    if (editedImage) {
       try {
-        // Calculate crop area based on objectFit: 'cover'
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          alert('Canvas非対応のブラウザです');
-          return;
-        }
-
-        const imgAspect = imageDimensions.width / imageDimensions.height;
-        const targetAspect = 1; // Square
-
-        let visibleWidth, visibleHeight, cropLeft, cropTop;
-
-        if (imgAspect > targetAspect) {
-          // Landscape: crop left/right
-          visibleHeight = imageDimensions.height;
-          visibleWidth = imageDimensions.height * targetAspect;
-          const maxCropX = imageDimensions.width - visibleWidth;
-          cropLeft = maxCropX * cropPosition.x;
-          cropTop = 0;
-        } else {
-          // Portrait: crop top/bottom
-          visibleWidth = imageDimensions.width;
-          visibleHeight = imageDimensions.width / targetAspect;
-          const maxCropY = imageDimensions.height - visibleHeight;
-          cropLeft = 0;
-          cropTop = maxCropY * cropPosition.y;
-        }
-
-        canvas.width = visibleWidth;
-        canvas.height = visibleHeight;
-
-        const img = new Image();
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = reject;
-          img.src = imagePreview;
-        });
-
-        ctx.drawImage(
-          img,
-          cropLeft,
-          cropTop,
-          visibleWidth,
-          visibleHeight,
-          0,
-          0,
-          visibleWidth,
-          visibleHeight
-        );
-
-        const blob = await new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob(
-            (b) => {
-              if (b) resolve(b);
-              else reject(new Error('Blob変換失敗'));
-            },
-            'image/jpeg',
-            0.9
-          );
-        });
-
-        // Upload to Cloudinary
-        const formData = new FormData();
-        formData.append('file', blob, 'cropped-image.jpg');
-        formData.append('upload_preset', 'ml_default');
-
-        const response = await fetch(
-          `https://api.cloudinary.com/v1_1/${
-            import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-          }/image/upload`,
-          { method: 'POST', body: formData }
-        );
-
-        const data = await response.json();
-        if (data.error) {
-          alert(`画像のアップロードに失敗しました: ${data.error.message}`);
-          return;
-        }
-
-        uploadedImageUrl = data.secure_url;
+        uploadedImageUrl = await uploadImageToCloudinary(editedImage, 'part.png');
       } catch (error) {
-        console.error('画像アップロードエラー:', error);
-        alert('画像のアップロードに失敗しました');
+        alert(error instanceof Error ? error.message : '画像のアップロードに失敗しました');
         return;
       }
     }
@@ -869,23 +790,9 @@ export const PartsManagementPage = () => {
     setDescription(part.description || '');
     setPdfUrl(part.pdfUrl || '');
     setPdfFileName('');
-    setImageFile(null);
-    setImagePreview(part.imageUrl || '');
-    setCropPosition({
-      x: part.cropPositionX ?? 0.5,
-      y: part.cropPositionY ?? 0.5
-    });
-
-    // 既存画像のサイズを取得してプレビュー表示
-    if (part.imageUrl) {
-      const img = new Image();
-      img.onload = () => {
-        setImageDimensions({ width: img.width, height: img.height });
-      };
-      img.src = part.imageUrl;
-    } else {
-      setImageDimensions(null);
-    }
+    setImagePreview(part.imageUrl || ''); // 既存の画像URLがあれば設定
+    setEditedImage(''); // 未編集
+    setRawImageUrl('');
 
     setOpenEditDialog(true);
   };
@@ -894,92 +801,12 @@ export const PartsManagementPage = () => {
     if (!selectedPart) return;
     let uploadedImageUrl = imagePreview;
 
-    if (imageFile && imageDimensions) {
+    // エディターで加工した新しい画像がある場合、Cloudinaryにアップロード
+    if (editedImage) {
       try {
-        // Calculate crop area based on objectFit: 'cover'
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          alert('Canvas非対応のブラウザです');
-          return;
-        }
-
-        const imgAspect = imageDimensions.width / imageDimensions.height;
-        const targetAspect = 1; // Square
-
-        let visibleWidth, visibleHeight, cropLeft, cropTop;
-
-        if (imgAspect > targetAspect) {
-          // Landscape: crop left/right
-          visibleHeight = imageDimensions.height;
-          visibleWidth = imageDimensions.height * targetAspect;
-          const maxCropX = imageDimensions.width - visibleWidth;
-          cropLeft = maxCropX * cropPosition.x;
-          cropTop = 0;
-        } else {
-          // Portrait: crop top/bottom
-          visibleWidth = imageDimensions.width;
-          visibleHeight = imageDimensions.width / targetAspect;
-          const maxCropY = imageDimensions.height - visibleHeight;
-          cropLeft = 0;
-          cropTop = maxCropY * cropPosition.y;
-        }
-
-        canvas.width = visibleWidth;
-        canvas.height = visibleHeight;
-
-        const img = new Image();
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = reject;
-          img.src = imagePreview;
-        });
-
-        ctx.drawImage(
-          img,
-          cropLeft,
-          cropTop,
-          visibleWidth,
-          visibleHeight,
-          0,
-          0,
-          visibleWidth,
-          visibleHeight
-        );
-
-        const blob = await new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob(
-            (b) => {
-              if (b) resolve(b);
-              else reject(new Error('Blob変換失敗'));
-            },
-            'image/jpeg',
-            0.9
-          );
-        });
-
-        // Upload to Cloudinary
-        const formData = new FormData();
-        formData.append('file', blob, 'cropped-image.jpg');
-        formData.append('upload_preset', 'ml_default');
-
-        const response = await fetch(
-          `https://api.cloudinary.com/v1_1/${
-            import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-          }/image/upload`,
-          { method: 'POST', body: formData }
-        );
-
-        const data = await response.json();
-        if (data.error) {
-          alert(`画像のアップロードに失敗しました: ${data.error.message}`);
-          return;
-        }
-
-        uploadedImageUrl = data.secure_url;
+        uploadedImageUrl = await uploadImageToCloudinary(editedImage, 'part.png');
       } catch (error) {
-        console.error('画像アップロードエラー:', error);
-        alert('画像のアップロードに失敗しました');
+        alert(error instanceof Error ? error.message : '画像のアップロードに失敗しました');
         return;
       }
     }
@@ -1003,8 +830,9 @@ export const PartsManagementPage = () => {
         notes: notes || undefined,
         description, // 空文字でクリア可能
         pdfUrl, // 空文字で資料削除
-        cropPositionX: cropPosition.x,
-        cropPositionY: cropPosition.y,
+        // 画像は編集済みで保存するため位置補正は不要（中央固定）
+        cropPositionX: 0.5,
+        cropPositionY: 0.5,
         stockQuantity: stockQuantity ? parseInt(stockQuantity) : undefined, // 在庫数量を追加
       },
     });
@@ -1020,25 +848,23 @@ export const PartsManagementPage = () => {
     deleteMutation.mutate(selectedPart.id);
   };
 
+  // 画像選択時: base64化してエディターを開く
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setImagePreview(result);
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setRawImageUrl(reader.result as string);
+      setEditorOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
 
-        // 画像の実際のサイズを取得
-        const img = new Image();
-        img.onload = () => {
-          setImageDimensions({ width: img.width, height: img.height });
-          setCropPosition({ x: 0.5, y: 0.5 }); // 初期位置は中央
-        };
-        img.src = result;
-      };
-      reader.readAsDataURL(file);
-    }
+  // エディターで「適用」したとき: 加工済み画像をプレビュー＆保存対象にする
+  const handleEditorSave = (editedImageUrl: string) => {
+    setEditedImage(editedImageUrl);
+    setImagePreview(editedImageUrl);
+    setEditorOpen(false);
   };
 
   // 資料（画像/PDF）を切り抜きせずそのままCloudinaryへアップロード
@@ -2147,83 +1973,12 @@ export const PartsManagementPage = () => {
             <UploadButton variant="outlined" fullWidth sx={{ py: 1.5 }} accept="image/*" onChange={handleImageChange}>
               画像を選択
             </UploadButton>
-            {imagePreview && imageDimensions && (() => {
-              const imgAspect = imageDimensions.width / imageDimensions.height;
-              const targetAspect = 1;
-              let visibleWidth, visibleHeight, cropLeft, cropTop, maxCropX, maxCropY;
-              if (imgAspect > targetAspect) {
-                visibleHeight = imageDimensions.height;
-                visibleWidth = imageDimensions.height * targetAspect;
-                maxCropX = imageDimensions.width - visibleWidth;
-                maxCropY = 0;
-                cropLeft = maxCropX * cropPosition.x;
-                cropTop = 0;
-              } else {
-                visibleWidth = imageDimensions.width;
-                visibleHeight = imageDimensions.width / targetAspect;
-                maxCropX = 0;
-                maxCropY = imageDimensions.height - visibleHeight;
-                cropLeft = 0;
-                cropTop = maxCropY * cropPosition.y;
-              }
-              const maxPreviewSize = 300;
-              const previewScale = Math.min(maxPreviewSize / imageDimensions.width, maxPreviewSize / imageDimensions.height);
-              const previewWidth = imageDimensions.width * previewScale;
-              const previewHeight = imageDimensions.height * previewScale;
-              const previewCropLeft = cropLeft * previewScale;
-              const previewCropTop = cropTop * previewScale;
-              const previewVisibleWidth = visibleWidth * previewScale;
-              const previewVisibleHeight = visibleHeight * previewScale;
-              const handleMouseDown = (e: React.MouseEvent) => {
-                e.preventDefault();
-                const startX = e.clientX;
-                const startY = e.clientY;
-                const startPosX = cropPosition.x;
-                const startPosY = cropPosition.y;
-                const handleMouseMove = (moveEvent: MouseEvent) => {
-                  const deltaX = moveEvent.clientX - startX;
-                  const deltaY = moveEvent.clientY - startY;
-                  if (maxCropX > 0) {
-                    const newX = startPosX + deltaX / (maxCropX * previewScale);
-                    setCropPosition({ x: Math.max(0, Math.min(1, newX)), y: 0.5 });
-                  } else if (maxCropY > 0) {
-                    const newY = startPosY + deltaY / (maxCropY * previewScale);
-                    setCropPosition({ x: 0.5, y: Math.max(0, Math.min(1, newY)) });
-                  }
-                };
-                const handleMouseUp = () => {
-                  document.removeEventListener('mousemove', handleMouseMove);
-                  document.removeEventListener('mouseup', handleMouseUp);
-                };
-                document.addEventListener('mousemove', handleMouseMove);
-                document.addEventListener('mouseup', handleMouseUp);
-              };
-              return (
-                <Box sx={{ mt: 2, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, justifyContent: 'center', alignItems: 'flex-start' }}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
-                      編集（青い枠をドラッグして表示範囲を調整）
-                    </Typography>
-                    <Box sx={{ position: 'relative', display: 'inline-block', width: `${previewWidth}px`, height: `${previewHeight}px` }}>
-                      <Box component="img" src={imagePreview} alt="元画像" sx={{ width: '100%', height: '100%', display: 'block', borderRadius: '8px', userSelect: 'none' }} />
-                      <Box onMouseDown={handleMouseDown} sx={{ position: 'absolute', top: `${previewCropTop}px`, left: `${previewCropLeft}px`, width: `${previewVisibleWidth}px`, height: `${previewVisibleHeight}px`, border: '3px solid #667eea', borderRadius: '8px', boxSizing: 'border-box', cursor: maxCropX > 0 ? 'ew-resize' : maxCropY > 0 ? 'ns-resize' : 'default', transition: 'box-shadow 0.2s', zIndex: 10, '&:hover': { boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.2)' }, '&:active': { boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.4)' } }}>
-                        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: 'rgba(102, 126, 234, 0.8)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, pointerEvents: 'none', userSelect: 'none' }}>ドラッグ</Box>
-                      </Box>
-                      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
-                        {maxCropX > 0 && (<><Box sx={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: `${previewCropLeft}px`, background: `repeating-linear-gradient(45deg, rgba(128, 128, 128, 0.7), rgba(128, 128, 128, 0.7) 8px, rgba(160, 160, 160, 0.7) 8px, rgba(160, 160, 160, 0.7) 16px)`, borderRadius: '8px 0 0 8px' }} /><Box sx={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: `${previewWidth - previewCropLeft - previewVisibleWidth}px`, background: `repeating-linear-gradient(45deg, rgba(128, 128, 128, 0.7), rgba(128, 128, 128, 0.7) 8px, rgba(160, 160, 160, 0.7) 8px, rgba(160, 160, 160, 0.7) 16px)`, borderRadius: '0 8px 8px 0' }} /></>)}
-                        {maxCropY > 0 && (<><Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: `${previewCropTop}px`, background: `repeating-linear-gradient(45deg, rgba(128, 128, 128, 0.7), rgba(128, 128, 128, 0.7) 8px, rgba(160, 160, 160, 0.7) 8px, rgba(160, 160, 160, 0.7) 16px)`, borderRadius: '8px 8px 0 0' }} /><Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${previewHeight - previewCropTop - previewVisibleHeight}px`, background: `repeating-linear-gradient(45deg, rgba(128, 128, 128, 0.7), rgba(128, 128, 128, 0.7) 8px, rgba(160, 160, 160, 0.7) 8px, rgba(160, 160, 160, 0.7) 16px)`, borderRadius: '0 0 8px 8px' }} /></>)}
-                      </Box>
-                    </Box>
-                  </Box>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
-                      実際の表示
-                    </Typography>
-                    <Box component="img" src={imagePreview} alt="実際の表示" sx={{ width: '120px', height: '120px', objectFit: 'cover', objectPosition: `${cropPosition.x * 100}% ${cropPosition.y * 100}%`, borderRadius: '8px', border: '2px solid #e0e0e0' }} />
-                  </Box>
-                </Box>
-              );
-            })()}
+            {imagePreview && (
+              <Box sx={{ mt: 2, textAlign: 'center' }}>
+                <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>プレビュー</Typography>
+                <Box component="img" src={imagePreview} alt="プレビュー" sx={{ width: '120px', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '2px solid #e0e0e0' }} />
+              </Box>
+            )}
           </Box>
         </DialogContent>
         <DialogActions sx={{ padding: '16px 24px' }}>
@@ -2456,83 +2211,12 @@ export const PartsManagementPage = () => {
             <UploadButton variant="outlined" fullWidth sx={{ py: 1.5 }} accept="image/*" onChange={handleImageChange}>
               画像を選択
             </UploadButton>
-            {imagePreview && imageDimensions && (() => {
-              const imgAspect = imageDimensions.width / imageDimensions.height;
-              const targetAspect = 1;
-              let visibleWidth, visibleHeight, cropLeft, cropTop, maxCropX, maxCropY;
-              if (imgAspect > targetAspect) {
-                visibleHeight = imageDimensions.height;
-                visibleWidth = imageDimensions.height * targetAspect;
-                maxCropX = imageDimensions.width - visibleWidth;
-                maxCropY = 0;
-                cropLeft = maxCropX * cropPosition.x;
-                cropTop = 0;
-              } else {
-                visibleWidth = imageDimensions.width;
-                visibleHeight = imageDimensions.width / targetAspect;
-                maxCropX = 0;
-                maxCropY = imageDimensions.height - visibleHeight;
-                cropLeft = 0;
-                cropTop = maxCropY * cropPosition.y;
-              }
-              const maxPreviewSize = 300;
-              const previewScale = Math.min(maxPreviewSize / imageDimensions.width, maxPreviewSize / imageDimensions.height);
-              const previewWidth = imageDimensions.width * previewScale;
-              const previewHeight = imageDimensions.height * previewScale;
-              const previewCropLeft = cropLeft * previewScale;
-              const previewCropTop = cropTop * previewScale;
-              const previewVisibleWidth = visibleWidth * previewScale;
-              const previewVisibleHeight = visibleHeight * previewScale;
-              const handleMouseDown = (e: React.MouseEvent) => {
-                e.preventDefault();
-                const startX = e.clientX;
-                const startY = e.clientY;
-                const startPosX = cropPosition.x;
-                const startPosY = cropPosition.y;
-                const handleMouseMove = (moveEvent: MouseEvent) => {
-                  const deltaX = moveEvent.clientX - startX;
-                  const deltaY = moveEvent.clientY - startY;
-                  if (maxCropX > 0) {
-                    const newX = startPosX + deltaX / (maxCropX * previewScale);
-                    setCropPosition({ x: Math.max(0, Math.min(1, newX)), y: 0.5 });
-                  } else if (maxCropY > 0) {
-                    const newY = startPosY + deltaY / (maxCropY * previewScale);
-                    setCropPosition({ x: 0.5, y: Math.max(0, Math.min(1, newY)) });
-                  }
-                };
-                const handleMouseUp = () => {
-                  document.removeEventListener('mousemove', handleMouseMove);
-                  document.removeEventListener('mouseup', handleMouseUp);
-                };
-                document.addEventListener('mousemove', handleMouseMove);
-                document.addEventListener('mouseup', handleMouseUp);
-              };
-              return (
-                <Box sx={{ mt: 2, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, justifyContent: 'center', alignItems: 'flex-start' }}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
-                      編集（青い枠をドラッグして表示範囲を調整）
-                    </Typography>
-                    <Box sx={{ position: 'relative', display: 'inline-block', width: `${previewWidth}px`, height: `${previewHeight}px` }}>
-                      <Box component="img" src={imagePreview} alt="元画像" sx={{ width: '100%', height: '100%', display: 'block', borderRadius: '8px', userSelect: 'none' }} />
-                      <Box onMouseDown={handleMouseDown} sx={{ position: 'absolute', top: `${previewCropTop}px`, left: `${previewCropLeft}px`, width: `${previewVisibleWidth}px`, height: `${previewVisibleHeight}px`, border: '3px solid #667eea', borderRadius: '8px', boxSizing: 'border-box', cursor: maxCropX > 0 ? 'ew-resize' : maxCropY > 0 ? 'ns-resize' : 'default', transition: 'box-shadow 0.2s', zIndex: 10, '&:hover': { boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.2)' }, '&:active': { boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.4)' } }}>
-                        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: 'rgba(102, 126, 234, 0.8)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, pointerEvents: 'none', userSelect: 'none' }}>ドラッグ</Box>
-                      </Box>
-                      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
-                        {maxCropX > 0 && (<><Box sx={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: `${previewCropLeft}px`, background: `repeating-linear-gradient(45deg, rgba(128, 128, 128, 0.7), rgba(128, 128, 128, 0.7) 8px, rgba(160, 160, 160, 0.7) 8px, rgba(160, 160, 160, 0.7) 16px)`, borderRadius: '8px 0 0 8px' }} /><Box sx={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: `${previewWidth - previewCropLeft - previewVisibleWidth}px`, background: `repeating-linear-gradient(45deg, rgba(128, 128, 128, 0.7), rgba(128, 128, 128, 0.7) 8px, rgba(160, 160, 160, 0.7) 8px, rgba(160, 160, 160, 0.7) 16px)`, borderRadius: '0 8px 8px 0' }} /></>)}
-                        {maxCropY > 0 && (<><Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: `${previewCropTop}px`, background: `repeating-linear-gradient(45deg, rgba(128, 128, 128, 0.7), rgba(128, 128, 128, 0.7) 8px, rgba(160, 160, 160, 0.7) 8px, rgba(160, 160, 160, 0.7) 16px)`, borderRadius: '8px 8px 0 0' }} /><Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${previewHeight - previewCropTop - previewVisibleHeight}px`, background: `repeating-linear-gradient(45deg, rgba(128, 128, 128, 0.7), rgba(128, 128, 128, 0.7) 8px, rgba(160, 160, 160, 0.7) 8px, rgba(160, 160, 160, 0.7) 16px)`, borderRadius: '0 0 8px 8px' }} /></>)}
-                      </Box>
-                    </Box>
-                  </Box>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
-                      実際の表示
-                    </Typography>
-                    <Box component="img" src={imagePreview} alt="実際の表示" sx={{ width: '120px', height: '120px', objectFit: 'cover', objectPosition: `${cropPosition.x * 100}% ${cropPosition.y * 100}%`, borderRadius: '8px', border: '2px solid #e0e0e0' }} />
-                  </Box>
-                </Box>
-              );
-            })()}
+            {imagePreview && (
+              <Box sx={{ mt: 2, textAlign: 'center' }}>
+                <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>プレビュー</Typography>
+                <Box component="img" src={imagePreview} alt="プレビュー" sx={{ width: '120px', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '2px solid #e0e0e0' }} />
+              </Box>
+            )}
           </Box>
         </DialogContent>
         <DialogActions sx={{ padding: '16px 24px' }}>
@@ -2631,6 +2315,17 @@ export const PartsManagementPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* 画像編集ダイアログ（拡大縮小・移動のみの簡易モード / 正方形枠） */}
+      <ImageEditorDialog
+        open={editorOpen}
+        imageUrl={rawImageUrl}
+        onClose={() => setEditorOpen(false)}
+        onSave={handleEditorSave}
+        title="画像を調整"
+        simple
+        aspectRatio="100%"
+      />
     </Box>
   );
 };

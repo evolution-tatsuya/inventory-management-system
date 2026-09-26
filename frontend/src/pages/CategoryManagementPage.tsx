@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { UploadButton } from '@/components/UploadButton';
+import { ImageEditorDialog } from '@/components/ImageEditorDialog';
+import { uploadImageToCloudinary } from '@/utils/uploadImage';
 import {
   Box,
   Typography,
@@ -193,10 +195,10 @@ export const CategoryManagementPage = () => {
   const [categoryId, setCategoryId] = useState('');
   const [categoryName, setCategoryName] = useState('');
   const [subtitle, setSubtitle] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>('');
-  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
-  const [cropPosition, setCropPosition] = useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 }); // 0.0 ~ 1.0 の割合
+  const [imagePreview, setImagePreview] = useState<string>(''); // 表示用プレビュー（加工済み or 既存URL）
+  const [editorOpen, setEditorOpen] = useState(false); // 画像エディターの開閉
+  const [rawImageUrl, setRawImageUrl] = useState<string>(''); // エディターに渡す元画像(base64)
+  const [editedImage, setEditedImage] = useState<string>(''); // エディターで加工した画像(base64 PNG)。保存時にアップロード
   const [createdAt, setCreatedAt] = useState<string>(''); // 作成日
   const [addError, setAddError] = useState<string>(''); // 追加エラーメッセージ
 
@@ -261,8 +263,9 @@ export const CategoryManagementPage = () => {
       setCategoryId('');
       setCategoryName('');
       setSubtitle('');
-      setImageFile(null);
       setImagePreview('');
+      setEditedImage('');
+      setRawImageUrl('');
     },
   });
 
@@ -324,8 +327,9 @@ export const CategoryManagementPage = () => {
     setCategoryId('');
     setCategoryName('');
     setSubtitle('');
-    setImageFile(null);
     setImagePreview('');
+    setEditedImage('');
+    setRawImageUrl('');
     setCreatedAt(new Date().toISOString().split('T')[0]); // 今日の日付をデフォルト
     setAddError(''); // エラーをクリア
     setOpenAddDialog(true);
@@ -334,95 +338,12 @@ export const CategoryManagementPage = () => {
   const handleAdd = async () => {
     let uploadedImageUrl = '';
 
-    // 画像が選択された場合、トリミングしてCloudinaryにアップロード（編集と同じロジック）
-    if (imageFile && imageDimensions) {
+    // エディターで加工した画像がある場合、そのままCloudinaryにアップロード
+    if (editedImage) {
       try {
-        // Canvasで画像をトリミング
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          alert('Canvas初期化エラー');
-          return;
-        }
-
-        // トリミング範囲を計算（objectFit: 'cover' と同じロジック）
-        const targetAspect = 1;
-        const imgAspect = imageDimensions.width / imageDimensions.height;
-
-        let visibleWidth, visibleHeight, cropLeft, cropTop;
-
-        if (imgAspect > targetAspect) {
-          // 横長の画像
-          visibleHeight = imageDimensions.height;
-          visibleWidth = imageDimensions.height * targetAspect;
-          const maxCropX = imageDimensions.width - visibleWidth;
-          cropLeft = maxCropX * cropPosition.x;
-          cropTop = 0;
-        } else {
-          // 縦長の画像
-          visibleWidth = imageDimensions.width;
-          visibleHeight = imageDimensions.width / targetAspect;
-          const maxCropY = imageDimensions.height - visibleHeight;
-          cropLeft = 0;
-          cropTop = maxCropY * cropPosition.y;
-        }
-
-        // Canvasサイズを正方形に設定
-        canvas.width = visibleWidth;
-        canvas.height = visibleHeight;
-
-        // 元画像を読み込んでトリミング
-        const img = new Image();
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = reject;
-          img.src = imagePreview;
-        });
-
-        // トリミングして描画
-        ctx.drawImage(
-          img,
-          cropLeft, cropTop, visibleWidth, visibleHeight,  // ソース範囲
-          0, 0, visibleWidth, visibleHeight                // 描画範囲
-        );
-
-        // CanvasをBlobに変換
-        const blob = await new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob((b) => {
-            if (b) resolve(b);
-            else reject(new Error('Blob変換失敗'));
-          }, 'image/jpeg', 0.9);
-        });
-
-        // Cloudinaryにアップロード
-        const formData = new FormData();
-        formData.append('file', blob, 'cropped-image.jpg');
-        formData.append('upload_preset', 'ml_default');
-
-        const response = await fetch(
-          `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
-          {
-            method: 'POST',
-            body: formData,
-          }
-        );
-
-        const data = await response.json();
-
-        // エラーチェック
-        if (data.error) {
-          alert(`画像のアップロードに失敗しました: ${data.error.message}`);
-          return;
-        }
-
-        if (!data.secure_url) {
-          alert('画像のアップロードに失敗しました: URLが取得できませんでした');
-          return;
-        }
-
-        uploadedImageUrl = data.secure_url;
+        uploadedImageUrl = await uploadImageToCloudinary(editedImage, 'category.png');
       } catch (error) {
-        alert('画像のアップロードに失敗しました');
+        alert(error instanceof Error ? error.message : '画像のアップロードに失敗しました');
         return;
       }
     }
@@ -432,8 +353,9 @@ export const CategoryManagementPage = () => {
       categoryId: categoryId || undefined,
       subtitle: subtitle || undefined,
       imageUrl: uploadedImageUrl || undefined,
-      cropPositionX: uploadedImageUrl ? cropPosition.x : undefined,
-      cropPositionY: uploadedImageUrl ? cropPosition.y : undefined,
+      // 画像は編集済みで保存するため位置補正は不要（中央固定）
+      cropPositionX: uploadedImageUrl ? 0.5 : undefined,
+      cropPositionY: uploadedImageUrl ? 0.5 : undefined,
       createdAt: createdAt ? new Date(createdAt).toISOString() : undefined,
     });
   };
@@ -444,48 +366,29 @@ export const CategoryManagementPage = () => {
     setCategoryName(category.name);
     setSubtitle(category.subtitle || ''); // サブタイトルの初期値
     setCreatedAt(category.createdAt ? new Date(category.createdAt).toISOString().split('T')[0] : ''); // 作成日
-    setImageFile(null);
     setImagePreview(category.imageUrl || ''); // 既存の画像URLがあれば設定
-
-    // データベースに保存されているクロップ位置を復元（デフォルトは中央）
-    setCropPosition({
-      x: category.cropPositionX ?? 0.5,
-      y: category.cropPositionY ?? 0.5
-    });
-
-    // 既存画像のサイズを取得してプレビュー表示
-    if (category.imageUrl) {
-      const img = new Image();
-      img.onload = () => {
-        setImageDimensions({ width: img.width, height: img.height });
-      };
-      img.src = category.imageUrl;
-    } else {
-      setImageDimensions(null); // 画像がない場合はリセット
-    }
-
+    setEditedImage(''); // 未編集
+    setRawImageUrl('');
     setOpenEditDialog(true);
   };
 
+  // 画像選択時: base64化してエディターを開く
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setImagePreview(result);
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setRawImageUrl(reader.result as string);
+      setEditorOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
 
-        // 画像の実際のサイズを取得
-        const img = new Image();
-        img.onload = () => {
-          setImageDimensions({ width: img.width, height: img.height });
-          setCropPosition({ x: 0.5, y: 0.5 }); // 初期位置は中央
-        };
-        img.src = result;
-      };
-      reader.readAsDataURL(file);
-    }
+  // エディターで「適用」したとき: 加工済み画像をプレビュー＆保存対象にする
+  const handleEditorSave = (editedImageUrl: string) => {
+    setEditedImage(editedImageUrl);
+    setImagePreview(editedImageUrl);
+    setEditorOpen(false);
   };
 
   const handleEdit = async () => {
@@ -493,115 +396,15 @@ export const CategoryManagementPage = () => {
 
     let uploadedImageUrl = imagePreview;
 
-    // 新しい画像がアップロードされた場合、トリミングしてCloudinaryにアップロード
-    if (imageFile && imageDimensions) {
-      console.log('画像アップロード開始:', imageFile.name);
-      console.log('cropPosition:', cropPosition);
-
+    // エディターで加工した新しい画像がある場合、Cloudinaryにアップロード
+    if (editedImage) {
       try {
-        // Canvasで画像をトリミング
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          alert('Canvas初期化エラー');
-          return;
-        }
-
-        // トリミング範囲を計算（objectFit: 'cover' と同じロジック）
-        const targetSize = 120;
-        const imgAspect = imageDimensions.width / imageDimensions.height;
-        const targetAspect = 1;
-
-        let visibleWidth, visibleHeight, cropLeft, cropTop;
-
-        if (imgAspect > targetAspect) {
-          // 横長の画像
-          visibleHeight = imageDimensions.height;
-          visibleWidth = imageDimensions.height * targetAspect;
-          const maxCropX = imageDimensions.width - visibleWidth;
-          cropLeft = maxCropX * cropPosition.x;
-          cropTop = 0;
-        } else {
-          // 縦長の画像
-          visibleWidth = imageDimensions.width;
-          visibleHeight = imageDimensions.width / targetAspect;
-          const maxCropY = imageDimensions.height - visibleHeight;
-          cropLeft = 0;
-          cropTop = maxCropY * cropPosition.y;
-        }
-
-        // Canvasサイズを正方形に設定
-        canvas.width = visibleWidth;
-        canvas.height = visibleHeight;
-
-        // 元画像を読み込んでトリミング
-        const img = new Image();
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = reject;
-          img.src = imagePreview;
-        });
-
-        // トリミングして描画
-        ctx.drawImage(
-          img,
-          cropLeft, cropTop, visibleWidth, visibleHeight,  // ソース範囲
-          0, 0, visibleWidth, visibleHeight                // 描画範囲
-        );
-
-        // CanvasをBlobに変換
-        const blob = await new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob((b) => {
-            if (b) resolve(b);
-            else reject(new Error('Blob変換失敗'));
-          }, 'image/jpeg', 0.9);
-        });
-
-        // Cloudinaryにアップロード
-        const formData = new FormData();
-        formData.append('file', blob, 'cropped-image.jpg');
-        formData.append('upload_preset', 'ml_default');
-
-        console.log('Cloudinary URL:', `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`);
-        const response = await fetch(
-          `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
-          {
-            method: 'POST',
-            body: formData,
-          }
-        );
-
-        const data = await response.json();
-        console.log('Cloudinaryレスポンス:', data);
-
-        // エラーチェック
-        if (data.error) {
-          console.error('Cloudinaryエラー:', data.error);
-          alert(`画像のアップロードに失敗しました: ${data.error.message}`);
-          return;
-        }
-
-        if (!data.secure_url) {
-          console.error('secure_urlが見つかりません:', data);
-          alert('画像のアップロードに失敗しました: URLが取得できませんでした');
-          return;
-        }
-
-        uploadedImageUrl = data.secure_url;
-        console.log('アップロード成功:', uploadedImageUrl);
+        uploadedImageUrl = await uploadImageToCloudinary(editedImage, 'category.png');
       } catch (error) {
-        console.error('画像アップロードエラー:', error);
-        alert('画像のアップロードに失敗しました');
+        alert(error instanceof Error ? error.message : '画像のアップロードに失敗しました');
         return;
       }
     }
-
-    console.log('カテゴリー更新データ:', {
-      categoryId,
-      name: categoryName,
-      subtitle,
-      imageUrl: uploadedImageUrl,
-    });
 
     updateMutation.mutate({
       id: selectedCategory.id,
@@ -610,8 +413,9 @@ export const CategoryManagementPage = () => {
         name: categoryName,
         subtitle: subtitle,
         imageUrl: uploadedImageUrl || undefined,
-        cropPositionX: cropPosition.x,
-        cropPositionY: cropPosition.y,
+        // 画像は編集済みで保存するため位置補正は不要（中央固定）
+        cropPositionX: 0.5,
+        cropPositionY: 0.5,
         createdAt: createdAt ? new Date(createdAt).toISOString() : undefined,
       },
     });
@@ -1063,271 +867,25 @@ export const CategoryManagementPage = () => {
             >
               画像を選択
             </UploadButton>
-            {imagePreview && imageDimensions && (() => {
-              // objectFit: 'cover' のトリミング計算
-              const targetSize = 120; // 表示サイズ
-              const imgAspect = imageDimensions.width / imageDimensions.height;
-              const targetAspect = 1; // 正方形
-
-              let visibleWidth, visibleHeight, cropLeft, cropTop, maxCropX, maxCropY;
-
-              if (imgAspect > targetAspect) {
-                // 横長の画像: 高さを基準に、左右がトリミングされる
-                visibleHeight = imageDimensions.height;
-                visibleWidth = imageDimensions.height * targetAspect;
-                maxCropX = imageDimensions.width - visibleWidth;
-                maxCropY = 0;
-                cropLeft = maxCropX * cropPosition.x;
-                cropTop = 0;
-              } else {
-                // 縦長の画像: 幅を基準に、上下がトリミングされる
-                visibleWidth = imageDimensions.width;
-                visibleHeight = imageDimensions.width / targetAspect;
-                maxCropX = 0;
-                maxCropY = imageDimensions.height - visibleHeight;
-                cropLeft = 0;
-                cropTop = maxCropY * cropPosition.y;
-              }
-
-              // プレビュー表示サイズの計算（最大300pxに収める）
-              const maxPreviewSize = 300;
-              const previewScale = Math.min(maxPreviewSize / imageDimensions.width, maxPreviewSize / imageDimensions.height);
-              const previewWidth = imageDimensions.width * previewScale;
-              const previewHeight = imageDimensions.height * previewScale;
-
-              // トリミング範囲のプレビュー上での位置とサイズ
-              const previewCropLeft = cropLeft * previewScale;
-              const previewCropTop = cropTop * previewScale;
-              const previewVisibleWidth = visibleWidth * previewScale;
-              const previewVisibleHeight = visibleHeight * previewScale;
-
-              // ドラッグハンドラー
-              const handleMouseDown = (e: React.MouseEvent) => {
-                e.preventDefault();
-                const startX = e.clientX;
-                const startY = e.clientY;
-                const startPosX = cropPosition.x;
-                const startPosY = cropPosition.y;
-
-                const handleMouseMove = (moveEvent: MouseEvent) => {
-                  const deltaX = moveEvent.clientX - startX;
-                  const deltaY = moveEvent.clientY - startY;
-
-                  if (maxCropX > 0) {
-                    // 横長の画像: X方向に移動可能
-                    const newX = startPosX + deltaX / (maxCropX * previewScale);
-                    setCropPosition({ x: Math.max(0, Math.min(1, newX)), y: 0.5 });
-                  } else if (maxCropY > 0) {
-                    // 縦長の画像: Y方向に移動可能
-                    const newY = startPosY + deltaY / (maxCropY * previewScale);
-                    setCropPosition({ x: 0.5, y: Math.max(0, Math.min(1, newY)) });
-                  }
-                };
-
-                const handleMouseUp = () => {
-                  document.removeEventListener('mousemove', handleMouseMove);
-                  document.removeEventListener('mouseup', handleMouseUp);
-                };
-
-                document.addEventListener('mousemove', handleMouseMove);
-                document.addEventListener('mouseup', handleMouseUp);
-              };
-
-              return (
-                <Box sx={{ mt: 2, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, justifyContent: 'center', alignItems: 'flex-start' }}>
-                  {/* 編集用プレビュー */}
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
-                      編集（青い枠をドラッグして表示範囲を調整）
-                    </Typography>
-                    <Box
-                      sx={{
-                        position: 'relative',
-                        display: 'inline-block',
-                        width: `${previewWidth}px`,
-                        height: `${previewHeight}px`,
-                      }}
-                    >
-                      {/* 元画像 */}
-                      <Box
-                        component="img"
-                        src={imagePreview}
-                        alt="元画像"
-                        sx={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'block',
-                          borderRadius: '8px',
-                          userSelect: 'none',
-                        }}
-                      />
-
-                    {/* 表示範囲の枠線（ドラッグ可能） - 最前面に配置 */}
-                    <Box
-                      onMouseDown={handleMouseDown}
-                      sx={{
-                        position: 'absolute',
-                        top: `${previewCropTop}px`,
-                        left: `${previewCropLeft}px`,
-                        width: `${previewVisibleWidth}px`,
-                        height: `${previewVisibleHeight}px`,
-                        border: '3px solid #667eea',
-                        borderRadius: '8px',
-                        boxSizing: 'border-box',
-                        cursor: maxCropX > 0 ? 'ew-resize' : maxCropY > 0 ? 'ns-resize' : 'default',
-                        transition: 'box-shadow 0.2s',
-                        zIndex: 10,
-                        '&:hover': {
-                          boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.2)',
-                        },
-                        '&:active': {
-                          boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.4)',
-                        },
-                      }}
-                    >
-                      {/* ドラッグハンドル表示 */}
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          backgroundColor: 'rgba(102, 126, 234, 0.8)',
-                          color: 'white',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          pointerEvents: 'none',
-                          userSelect: 'none',
-                        }}
-                      >
-                        ドラッグ
-                      </Box>
-                    </Box>
-
-                    {/* トリミングマスク（斜線パターン） */}
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        pointerEvents: 'none',
-                      }}
-                    >
-                      {/* 横長の画像: 左右にグレー斜線 */}
-                      {maxCropX > 0 && (
-                        <>
-                          {/* 左側のグレー斜線 */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              bottom: 0,
-                              width: `${previewCropLeft}px`,
-                              background: `repeating-linear-gradient(
-                                45deg,
-                                rgba(128, 128, 128, 0.7),
-                                rgba(128, 128, 128, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 16px
-                              )`,
-                              borderRadius: '8px 0 0 8px',
-                            }}
-                          />
-
-                          {/* 右側のグレー斜線 */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              top: 0,
-                              right: 0,
-                              bottom: 0,
-                              width: `${previewWidth - previewCropLeft - previewVisibleWidth}px`,
-                              background: `repeating-linear-gradient(
-                                45deg,
-                                rgba(128, 128, 128, 0.7),
-                                rgba(128, 128, 128, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 16px
-                              )`,
-                              borderRadius: '0 8px 8px 0',
-                            }}
-                          />
-                        </>
-                      )}
-
-                      {/* 縦長の画像: 上下にグレー斜線 */}
-                      {maxCropY > 0 && (
-                        <>
-                          {/* 上側のグレー斜線 */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              height: `${previewCropTop}px`,
-                              background: `repeating-linear-gradient(
-                                45deg,
-                                rgba(128, 128, 128, 0.7),
-                                rgba(128, 128, 128, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 16px
-                              )`,
-                              borderRadius: '8px 8px 0 0',
-                            }}
-                          />
-
-                          {/* 下側のグレー斜線 */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              height: `${previewHeight - previewCropTop - previewVisibleHeight}px`,
-                              background: `repeating-linear-gradient(
-                                45deg,
-                                rgba(128, 128, 128, 0.7),
-                                rgba(128, 128, 128, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 16px
-                              )`,
-                              borderRadius: '0 0 8px 8px',
-                            }}
-                          />
-                        </>
-                      )}
-                    </Box>
-                  </Box>
-                  </Box>
-
-                  {/* 実際の表示プレビュー */}
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
-                      実際の表示
-                    </Typography>
-                    <Box
-                      component="img"
-                      src={imagePreview}
-                      alt="実際の表示"
-                      sx={{
-                        width: '120px',
-                        height: '120px',
-                        objectFit: 'cover',
-                        objectPosition: `${cropPosition.x * 100}% ${cropPosition.y * 100}%`,
-                        borderRadius: '8px',
-                        border: '2px solid #e0e0e0',
-                      }}
-                    />
-                  </Box>
-                </Box>
-              );
-            })()}
+            {imagePreview && (
+              <Box sx={{ mt: 2, textAlign: 'center' }}>
+                <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
+                  プレビュー
+                </Typography>
+                <Box
+                  component="img"
+                  src={imagePreview}
+                  alt="プレビュー"
+                  sx={{
+                    width: '120px',
+                    height: '120px',
+                    objectFit: 'cover',
+                    borderRadius: '8px',
+                    border: '2px solid #e0e0e0',
+                  }}
+                />
+              </Box>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
@@ -1395,271 +953,25 @@ export const CategoryManagementPage = () => {
             >
               画像を選択
             </UploadButton>
-            {imagePreview && imageDimensions && (() => {
-              // objectFit: 'cover' のトリミング計算
-              const targetSize = 120; // 表示サイズ
-              const imgAspect = imageDimensions.width / imageDimensions.height;
-              const targetAspect = 1; // 正方形
-
-              let visibleWidth, visibleHeight, cropLeft, cropTop, maxCropX, maxCropY;
-
-              if (imgAspect > targetAspect) {
-                // 横長の画像: 高さを基準に、左右がトリミングされる
-                visibleHeight = imageDimensions.height;
-                visibleWidth = imageDimensions.height * targetAspect;
-                maxCropX = imageDimensions.width - visibleWidth;
-                maxCropY = 0;
-                cropLeft = maxCropX * cropPosition.x;
-                cropTop = 0;
-              } else {
-                // 縦長の画像: 幅を基準に、上下がトリミングされる
-                visibleWidth = imageDimensions.width;
-                visibleHeight = imageDimensions.width / targetAspect;
-                maxCropX = 0;
-                maxCropY = imageDimensions.height - visibleHeight;
-                cropLeft = 0;
-                cropTop = maxCropY * cropPosition.y;
-              }
-
-              // プレビュー表示サイズの計算（最大300pxに収める）
-              const maxPreviewSize = 300;
-              const previewScale = Math.min(maxPreviewSize / imageDimensions.width, maxPreviewSize / imageDimensions.height);
-              const previewWidth = imageDimensions.width * previewScale;
-              const previewHeight = imageDimensions.height * previewScale;
-
-              // トリミング範囲のプレビュー上での位置とサイズ
-              const previewCropLeft = cropLeft * previewScale;
-              const previewCropTop = cropTop * previewScale;
-              const previewVisibleWidth = visibleWidth * previewScale;
-              const previewVisibleHeight = visibleHeight * previewScale;
-
-              // ドラッグハンドラー
-              const handleMouseDown = (e: React.MouseEvent) => {
-                e.preventDefault();
-                const startX = e.clientX;
-                const startY = e.clientY;
-                const startPosX = cropPosition.x;
-                const startPosY = cropPosition.y;
-
-                const handleMouseMove = (moveEvent: MouseEvent) => {
-                  const deltaX = moveEvent.clientX - startX;
-                  const deltaY = moveEvent.clientY - startY;
-
-                  if (maxCropX > 0) {
-                    // 横長の画像: X方向に移動可能
-                    const newX = startPosX + deltaX / (maxCropX * previewScale);
-                    setCropPosition({ x: Math.max(0, Math.min(1, newX)), y: 0.5 });
-                  } else if (maxCropY > 0) {
-                    // 縦長の画像: Y方向に移動可能
-                    const newY = startPosY + deltaY / (maxCropY * previewScale);
-                    setCropPosition({ x: 0.5, y: Math.max(0, Math.min(1, newY)) });
-                  }
-                };
-
-                const handleMouseUp = () => {
-                  document.removeEventListener('mousemove', handleMouseMove);
-                  document.removeEventListener('mouseup', handleMouseUp);
-                };
-
-                document.addEventListener('mousemove', handleMouseMove);
-                document.addEventListener('mouseup', handleMouseUp);
-              };
-
-              return (
-                <Box sx={{ mt: 2, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, justifyContent: 'center', alignItems: 'flex-start' }}>
-                  {/* 編集用プレビュー */}
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
-                      編集（青い枠をドラッグして表示範囲を調整）
-                    </Typography>
-                    <Box
-                      sx={{
-                        position: 'relative',
-                        display: 'inline-block',
-                        width: `${previewWidth}px`,
-                        height: `${previewHeight}px`,
-                      }}
-                    >
-                      {/* 元画像 */}
-                      <Box
-                        component="img"
-                        src={imagePreview}
-                        alt="元画像"
-                        sx={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'block',
-                          borderRadius: '8px',
-                          userSelect: 'none',
-                        }}
-                      />
-
-                    {/* 表示範囲の枠線（ドラッグ可能） - 最前面に配置 */}
-                    <Box
-                      onMouseDown={handleMouseDown}
-                      sx={{
-                        position: 'absolute',
-                        top: `${previewCropTop}px`,
-                        left: `${previewCropLeft}px`,
-                        width: `${previewVisibleWidth}px`,
-                        height: `${previewVisibleHeight}px`,
-                        border: '3px solid #667eea',
-                        borderRadius: '8px',
-                        boxSizing: 'border-box',
-                        cursor: maxCropX > 0 ? 'ew-resize' : maxCropY > 0 ? 'ns-resize' : 'default',
-                        transition: 'box-shadow 0.2s',
-                        zIndex: 10,
-                        '&:hover': {
-                          boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.2)',
-                        },
-                        '&:active': {
-                          boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.4)',
-                        },
-                      }}
-                    >
-                      {/* ドラッグハンドル表示 */}
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          backgroundColor: 'rgba(102, 126, 234, 0.8)',
-                          color: 'white',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          pointerEvents: 'none',
-                          userSelect: 'none',
-                        }}
-                      >
-                        ドラッグ
-                      </Box>
-                    </Box>
-
-                    {/* トリミングマスク（斜線パターン） */}
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        pointerEvents: 'none',
-                      }}
-                    >
-                      {/* 横長の画像: 左右にグレー斜線 */}
-                      {maxCropX > 0 && (
-                        <>
-                          {/* 左側のグレー斜線 */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              bottom: 0,
-                              width: `${previewCropLeft}px`,
-                              background: `repeating-linear-gradient(
-                                45deg,
-                                rgba(128, 128, 128, 0.7),
-                                rgba(128, 128, 128, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 16px
-                              )`,
-                              borderRadius: '8px 0 0 8px',
-                            }}
-                          />
-
-                          {/* 右側のグレー斜線 */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              top: 0,
-                              right: 0,
-                              bottom: 0,
-                              width: `${previewWidth - previewCropLeft - previewVisibleWidth}px`,
-                              background: `repeating-linear-gradient(
-                                45deg,
-                                rgba(128, 128, 128, 0.7),
-                                rgba(128, 128, 128, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 16px
-                              )`,
-                              borderRadius: '0 8px 8px 0',
-                            }}
-                          />
-                        </>
-                      )}
-
-                      {/* 縦長の画像: 上下にグレー斜線 */}
-                      {maxCropY > 0 && (
-                        <>
-                          {/* 上側のグレー斜線 */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              height: `${previewCropTop}px`,
-                              background: `repeating-linear-gradient(
-                                45deg,
-                                rgba(128, 128, 128, 0.7),
-                                rgba(128, 128, 128, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 16px
-                              )`,
-                              borderRadius: '8px 8px 0 0',
-                            }}
-                          />
-
-                          {/* 下側のグレー斜線 */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              height: `${previewHeight - previewCropTop - previewVisibleHeight}px`,
-                              background: `repeating-linear-gradient(
-                                45deg,
-                                rgba(128, 128, 128, 0.7),
-                                rgba(128, 128, 128, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 8px,
-                                rgba(160, 160, 160, 0.7) 16px
-                              )`,
-                              borderRadius: '0 0 8px 8px',
-                            }}
-                          />
-                        </>
-                      )}
-                    </Box>
-                  </Box>
-                  </Box>
-
-                  {/* 実際の表示プレビュー */}
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
-                      実際の表示
-                    </Typography>
-                    <Box
-                      component="img"
-                      src={imagePreview}
-                      alt="実際の表示"
-                      sx={{
-                        width: '120px',
-                        height: '120px',
-                        objectFit: 'cover',
-                        objectPosition: `${cropPosition.x * 100}% ${cropPosition.y * 100}%`,
-                        borderRadius: '8px',
-                        border: '2px solid #e0e0e0',
-                      }}
-                    />
-                  </Box>
-                </Box>
-              );
-            })()}
+            {imagePreview && (
+              <Box sx={{ mt: 2, textAlign: 'center' }}>
+                <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
+                  プレビュー
+                </Typography>
+                <Box
+                  component="img"
+                  src={imagePreview}
+                  alt="プレビュー"
+                  sx={{
+                    width: '120px',
+                    height: '120px',
+                    objectFit: 'cover',
+                    borderRadius: '8px',
+                    border: '2px solid #e0e0e0',
+                  }}
+                />
+              </Box>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
@@ -1696,6 +1008,17 @@ export const CategoryManagementPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* 画像編集ダイアログ（拡大縮小・移動のみの簡易モード / 正方形枠） */}
+      <ImageEditorDialog
+        open={editorOpen}
+        imageUrl={rawImageUrl}
+        onClose={() => setEditorOpen(false)}
+        onSave={handleEditorSave}
+        title="画像を調整"
+        simple
+        aspectRatio="100%"
+      />
     </Box>
   );
 };
