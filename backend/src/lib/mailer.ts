@@ -1,19 +1,34 @@
 // ============================================================
-// mailer: Resend を使ったメール送信
+// mailer: Gmail SMTP (nodemailer) を使ったメール送信
 // ============================================================
 // パスワード再発行メールなどの送信に使用。
 // 環境変数:
-//   RESEND_API_KEY  … Resend の API キー（必須。未設定なら送信をスキップしログのみ）
-//   RESEND_FROM     … 送信元アドレス（例: "在庫管理システム <noreply@yourdomain.com>"）
-//                     未設定時は Resend のテスト用 onboarding@resend.dev を使う
+//   GMAIL_USER          … 送信元 Gmail アドレス（例: zaiko.system.no.1@gmail.com）
+//   GMAIL_APP_PASSWORD  … Gmail のアプリパスワード（16桁。スペースは無視される）
+//   MAIL_FROM_NAME      … 送信元の表示名（任意。既定: "在庫管理システム"）
+//
+// いずれかが未設定の場合は送信をスキップし警告ログのみ（開発時の安全策）。
+// ※ アプリパスワードは Google アカウントの「2段階認証 → アプリパスワード」で発行。
 // ============================================================
 
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const apiKey = process.env.RESEND_API_KEY;
-const fromAddress = process.env.RESEND_FROM || 'onboarding@resend.dev';
+const gmailUser = process.env.GMAIL_USER;
+// アプリパスワードは表示上スペース区切りだが、実際にはスペース無しでも可。念のため除去。
+const gmailAppPassword = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, '');
+const fromName = process.env.MAIL_FROM_NAME || '在庫管理システム';
 
-const resend = apiKey ? new Resend(apiKey) : null;
+const isConfigured = Boolean(gmailUser && gmailAppPassword);
+
+const transporter = isConfigured
+  ? nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: gmailUser,
+        pass: gmailAppPassword,
+      },
+    })
+  : null;
 
 interface SendMailOptions {
   to: string;
@@ -22,15 +37,24 @@ interface SendMailOptions {
 }
 
 /**
- * メールを送信する。RESEND_API_KEY 未設定時は送信せず警告ログのみ（開発時の安全策）。
+ * メールを送信する。Gmail 認証情報が未設定なら送信せず警告ログのみ（開発時の安全策）。
  */
 export const sendMail = async ({ to, subject, html }: SendMailOptions): Promise<void> => {
-  if (!resend) {
-    console.warn('[mailer] RESEND_API_KEY が未設定のためメール送信をスキップしました:', { to, subject });
+  if (!transporter) {
+    console.warn(
+      '[mailer] GMAIL_USER / GMAIL_APP_PASSWORD が未設定のためメール送信をスキップしました:',
+      { to, subject },
+    );
     return;
   }
-  const { error } = await resend.emails.send({ from: fromAddress, to, subject, html });
-  if (error) {
+  try {
+    await transporter.sendMail({
+      from: `${fromName} <${gmailUser}>`,
+      to,
+      subject,
+      html,
+    });
+  } catch (error) {
     console.error('[mailer] メール送信エラー:', error);
     throw new Error('メールの送信に失敗しました');
   }
