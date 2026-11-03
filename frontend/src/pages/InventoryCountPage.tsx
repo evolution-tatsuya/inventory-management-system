@@ -54,6 +54,15 @@ type Scope = 'case' | 'unit' | 'category' | 'all';
 const VIRTUALIZE_THRESHOLD = 200;
 const VIRTUAL_ROW_HEIGHT = 44; // 仮想行の推定高さ(px)
 // 仮想化リストの列幅（ユニット列あり/なしの2パターン）
+// ユニット番号などを自然順で比較する（文字列中の数字を数値として扱う。
+// 例: "100(2)" < "100(10)"、空文字は末尾へ）
+const naturalCompare = (a: string, b: string): number => {
+  if (a === b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return a.localeCompare(b, 'ja', { numeric: true, sensitivity: 'base' });
+};
+
 // 先頭列はユニット番号（品番の左）
 const VIRTUAL_GRID_COLUMNS_WITH_UNIT =
   '100px minmax(140px,1.4fr) minmax(140px,1.6fr) minmax(120px,1.2fr) 110px 90px 90px 70px 70px';
@@ -216,24 +225,36 @@ export default function InventoryCountPage() {
       }
     });
     // 複数ユニット/ケースにまたがる場合の表示を整える
-    return Array.from(map.values()).map((r) => {
+    const built = Array.from(map.values()).map((r) => {
       const units = Array.from(r._units);
-      const unitNumbers = Array.from(r._unitNumbers);
+      // ユニット番号は自然順（数値として）に並べ、代表＝最小値をソートキーにする
+      const unitNumbers = Array.from(r._unitNumbers).sort(naturalCompare);
       return {
-        key: r.key,
-        partId: r.partId,
-        partNumber: r.partNumber,
-        partName: r.partName,
-        unitNumber:
-          unitNumbers.length > 1 ? `${unitNumbers[0]} 他${unitNumbers.length - 1}` : r.unitNumber,
-        unitName: units.length > 1 ? `${units[0]} 他${units.length - 1}` : r.unitName,
-        storageCase: r.storageCase,
-        theoretical: r.theoretical,
-        counted: r.counted,
-        partCount: r.partCount,
-        details: r.details,
+        row: {
+          key: r.key,
+          partId: r.partId,
+          partNumber: r.partNumber,
+          partName: r.partName,
+          unitNumber:
+            unitNumbers.length > 1 ? `${unitNumbers[0]} 他${unitNumbers.length - 1}` : r.unitNumber,
+          unitName: units.length > 1 ? `${units[0]} 他${units.length - 1}` : r.unitName,
+          storageCase: r.storageCase,
+          theoretical: r.theoretical,
+          counted: r.counted,
+          partCount: r.partCount,
+          details: r.details,
+        } as Row,
+        // ソート用の素のユニット番号（最小値。無ければ品番でフォールバック）
+        sortKey: unitNumbers[0] ?? r.unitNumber ?? '',
       };
     });
+    // ユニット番号の若い順（自然順）。同一ユニット番号内は品番順で安定させる
+    built.sort(
+      (a, b) =>
+        naturalCompare(a.sortKey, b.sortKey) ||
+        naturalCompare(a.row.partNumber, b.row.partNumber),
+    );
+    return built.map((b) => b.row);
   }, [targetParts, rows, genreToCategory]);
 
   // ユニット列を表示するスコープ（カテゴリー全件/全件は複数ユニットが混ざるため表示）
