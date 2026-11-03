@@ -9,6 +9,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import * as XLSX from 'xlsx';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
@@ -347,6 +348,52 @@ export default function InventoryCountPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportExcel = () => {
+    // CSVと同じ列構成（実数記入欄は空欄のまま＝紙/Excel上で手書き・手入力する運用）
+    const header = ['№', '品番', '品名', 'ユニット', '収納ケース', '理論在庫', '実数記入'];
+    const wsData: (string | number)[][] = [
+      header,
+      ...displayRows.map((r, i) => [
+        i + 1,
+        r.partNumber,
+        r.partName,
+        r.unitName,
+        r.storageCase,
+        r.theoretical,
+        '',
+      ]),
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [
+      { wch: 6 }, // №
+      { wch: 18 }, // 品番
+      { wch: 40 }, // 品名
+      { wch: 16 }, // ユニット
+      { wch: 14 }, // 収納ケース
+      { wch: 12 }, // 理論在庫
+      { wch: 14 }, // 実数記入
+    ];
+
+    // ヘッダー行を太字に
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
+      if (!ws[cellAddress]) continue;
+      ws[cellAddress].s = {
+        font: { bold: true },
+        alignment: { horizontal: 'left', vertical: 'center' },
+      };
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '棚卸しリスト');
+    XLSX.writeFile(
+      wb,
+      `棚卸しリスト_${rangeLabel()}_${new Date().toISOString().slice(0, 10)}.xlsx`,
+    );
+  };
+
   const handlePrint = () => {
     const rowsHtml = displayRows
       .map(
@@ -533,6 +580,9 @@ export default function InventoryCountPage() {
             </Button>
             <Button variant="outlined" size="small" onClick={handleExportCSV} disabled={!displayRows.length}>
               CSV
+            </Button>
+            <Button variant="outlined" size="small" onClick={handleExportExcel} disabled={!displayRows.length}>
+              Excel
             </Button>
             <Button
               variant="contained"
