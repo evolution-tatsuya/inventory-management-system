@@ -54,10 +54,11 @@ type Scope = 'case' | 'unit' | 'category' | 'all';
 const VIRTUALIZE_THRESHOLD = 200;
 const VIRTUAL_ROW_HEIGHT = 44; // 仮想行の推定高さ(px)
 // 仮想化リストの列幅（ユニット列あり/なしの2パターン）
+// 先頭列はユニット番号（品番の左）
 const VIRTUAL_GRID_COLUMNS_WITH_UNIT =
-  'minmax(140px,1.4fr) minmax(140px,1.6fr) minmax(120px,1.2fr) 110px 90px 90px 70px 70px';
+  '100px minmax(140px,1.4fr) minmax(140px,1.6fr) minmax(120px,1.2fr) 110px 90px 90px 70px 70px';
 const VIRTUAL_GRID_COLUMNS_NO_UNIT =
-  'minmax(140px,1.4fr) minmax(160px,2fr) 110px 90px 90px 70px 70px';
+  '100px minmax(140px,1.4fr) minmax(160px,2fr) 110px 90px 90px 70px 70px';
 
 interface RowDetail {
   partId: string;
@@ -77,6 +78,7 @@ interface Row {
   partId: string; // 代表Part.id（保存・入力状態の識別に使用）
   partNumber: string;
   partName: string;
+  unitNumber: string; // ユニット番号（Unit.unitNumber・品番の左に表示）
   unitName: string;
   storageCase: string;
   theoretical: number; // 理論在庫（PartMaster.stockQuantity・品番共有）
@@ -175,7 +177,7 @@ export default function InventoryCountPage() {
 
   // 表示用の行データ（品番×カテゴリーで集約。同一品番の複数パーツ行を1行にまとめる）
   const displayRows: Row[] = useMemo(() => {
-    const map = new Map<string, Row & { _units: Set<string> }>();
+    const map = new Map<string, Row & { _units: Set<string>; _unitNumbers: Set<string> }>();
     targetParts.forEach((p) => {
       const key = rowKeyOf(p);
       const edit = rows[key];
@@ -194,12 +196,14 @@ export default function InventoryCountPage() {
         existing.partCount += 1;
         existing.details.push(detail);
         if (p.unit?.unitName) existing._units.add(p.unit.unitName);
+        if ((p as any).unit?.unitNumber) existing._unitNumbers.add((p as any).unit.unitNumber);
       } else {
         map.set(key, {
           key,
           partId: p.id, // 代表（収納ケース更新の対象。集約時は先頭を代表とする）
           partNumber: p.partNumber,
           partName: p.partName,
+          unitNumber: (p as any).unit?.unitNumber || '-',
           unitName: p.unit?.unitName || '-',
           storageCase: edit?.storageCase ?? p.storageCase ?? '',
           theoretical: p.partMaster?.stockQuantity ?? 0,
@@ -207,17 +211,21 @@ export default function InventoryCountPage() {
           partCount: 1,
           details: [detail],
           _units: new Set(p.unit?.unitName ? [p.unit.unitName] : []),
+          _unitNumbers: new Set((p as any).unit?.unitNumber ? [(p as any).unit.unitNumber] : []),
         });
       }
     });
     // 複数ユニット/ケースにまたがる場合の表示を整える
     return Array.from(map.values()).map((r) => {
       const units = Array.from(r._units);
+      const unitNumbers = Array.from(r._unitNumbers);
       return {
         key: r.key,
         partId: r.partId,
         partNumber: r.partNumber,
         partName: r.partName,
+        unitNumber:
+          unitNumbers.length > 1 ? `${unitNumbers[0]} 他${unitNumbers.length - 1}` : r.unitNumber,
         unitName: units.length > 1 ? `${units[0]} 他${units.length - 1}` : r.unitName,
         storageCase: r.storageCase,
         theoretical: r.theoretical,
@@ -331,11 +339,11 @@ export default function InventoryCountPage() {
   };
 
   const handleExportCSV = () => {
-    const header = '№\t品番\t品名\tユニット\t収納ケース\t理論在庫\t実数記入\n';
+    const header = '№\tユニット番号\t品番\t品名\tユニット\t収納ケース\t理論在庫\t実数記入\n';
     const body = displayRows
       .map(
         (r, i) =>
-          `${i + 1}\t${r.partNumber}\t${r.partName}\t${r.unitName}\t${r.storageCase}\t${r.theoretical}\t`,
+          `${i + 1}\t${r.unitNumber}\t${r.partNumber}\t${r.partName}\t${r.unitName}\t${r.storageCase}\t${r.theoretical}\t`,
       )
       .join('\n');
     const bom = '﻿';
@@ -350,11 +358,12 @@ export default function InventoryCountPage() {
 
   const handleExportExcel = () => {
     // CSVと同じ列構成（実数記入欄は空欄のまま＝紙/Excel上で手書き・手入力する運用）
-    const header = ['№', '品番', '品名', 'ユニット', '収納ケース', '理論在庫', '実数記入'];
+    const header = ['№', 'ユニット番号', '品番', '品名', 'ユニット', '収納ケース', '理論在庫', '実数記入'];
     const wsData: (string | number)[][] = [
       header,
       ...displayRows.map((r, i) => [
         i + 1,
+        r.unitNumber,
         r.partNumber,
         r.partName,
         r.unitName,
@@ -367,6 +376,7 @@ export default function InventoryCountPage() {
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     ws['!cols'] = [
       { wch: 6 }, // №
+      { wch: 14 }, // ユニット番号
       { wch: 18 }, // 品番
       { wch: 40 }, // 品名
       { wch: 16 }, // ユニット
@@ -400,6 +410,7 @@ export default function InventoryCountPage() {
         (r, i) => `
         <tr>
           <td>${i + 1}</td>
+          <td>${escapeHtml(r.unitNumber)}</td>
           <td>${r.partNumber}</td>
           <td>${escapeHtml(r.partName)}</td>
           <td>${escapeHtml(r.unitName)}</td>
@@ -423,7 +434,7 @@ export default function InventoryCountPage() {
       <h1>棚卸しチェックリスト</h1>
       <div class="meta"><span>範囲: ${escapeHtml(rangeLabel())}</span><span>件数: ${displayRows.length}</span><span>日付: __________</span><span>担当: __________</span></div>
       <table><thead><tr>
-        <th>№</th><th>品番</th><th>品名</th><th>ユニット</th><th>収納ケース</th><th>理論在庫</th><th>実数記入</th><th>✓</th>
+        <th>№</th><th>ユニット番号</th><th>品番</th><th>品名</th><th>ユニット</th><th>収納ケース</th><th>理論在庫</th><th>実数記入</th><th>✓</th>
       </tr></thead><tbody>${rowsHtml}</tbody></table>
       </body></html>`;
     const w = window.open('', '_blank');
@@ -634,6 +645,7 @@ export default function InventoryCountPage() {
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow>
+                  <TableCell>ユニット番号</TableCell>
                   <TableCell>品番</TableCell>
                   <TableCell>品名</TableCell>
                   {showUnitColumn && <TableCell>ユニット</TableCell>}
@@ -653,6 +665,7 @@ export default function InventoryCountPage() {
                       key={r.key}
                       sx={{ background: rowBg(r, d) }}
                     >
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{r.unitNumber}</TableCell>
                       <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                         {r.partNumber}
                         {r.partCount > 1 && (
@@ -737,6 +750,7 @@ export default function InventoryCountPage() {
                 zIndex: 1,
               }}
             >
+              <Box>ユニット番号</Box>
               <Box>品番</Box>
               <Box>品名</Box>
               {showUnitColumn && <Box>ユニット</Box>}
@@ -775,6 +789,9 @@ export default function InventoryCountPage() {
                         boxSizing: 'border-box',
                       }}
                     >
+                      <Box sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', pr: 1 }}>
+                        {r.unitNumber}
+                      </Box>
                       <Box sx={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {r.partNumber}
                         {r.partCount > 1 && (
