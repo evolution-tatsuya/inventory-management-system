@@ -6,8 +6,9 @@
 // 紙用にチェックリストのPDF/CSV出力にも対応。
 // ============================================================
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
@@ -46,7 +47,16 @@ import {
   inventoryCountApi,
 } from '@/services/api';
 
-type Scope = 'case' | 'unit' | 'all';
+type Scope = 'case' | 'unit' | 'category' | 'all';
+
+// 行数がこれを超えたら仮想化リストに切り替える（素のTableだと数千行でフリーズするため）
+const VIRTUALIZE_THRESHOLD = 200;
+const VIRTUAL_ROW_HEIGHT = 44; // 仮想行の推定高さ(px)
+// 仮想化リストの列幅（ユニット列あり/なしの2パターン）
+const VIRTUAL_GRID_COLUMNS_WITH_UNIT =
+  'minmax(140px,1.4fr) minmax(140px,1.6fr) minmax(120px,1.2fr) 110px 90px 90px 70px 70px';
+const VIRTUAL_GRID_COLUMNS_NO_UNIT =
+  'minmax(140px,1.4fr) minmax(160px,2fr) 110px 90px 90px 70px 70px';
 
 interface RowDetail {
   partId: string;
@@ -128,6 +138,13 @@ export default function InventoryCountPage() {
     return Array.from(set).sort();
   }, [parts]);
 
+  // genreId -> categoryId の対応表（品番の在庫は「品番×カテゴリー」単位で共有されるため）
+  const genreToCategory = useMemo(() => {
+    const m = new Map<string, string>();
+    genres.forEach((g: any) => m.set(g.id, g.categoryId));
+    return m;
+  }, [genres]);
+
   // 対象パーツを範囲に応じて抽出
   const targetParts = useMemo(() => {
     let list = parts as any[];
@@ -135,17 +152,15 @@ export default function InventoryCountPage() {
       list = filterCase ? list.filter((p) => p.storageCase === filterCase) : [];
     } else if (scope === 'unit') {
       list = filterUnitId ? list.filter((p) => p.unitId === filterUnitId) : [];
+    } else if (scope === 'category') {
+      // カテゴリー配下の全パーツ（ジャンル→カテゴリーの対応で絞り込む）
+      list = filterCategoryId
+        ? list.filter((p) => genreToCategory.get(p.genreId) === filterCategoryId)
+        : [];
     }
     // all はそのまま全件
     return list;
-  }, [parts, scope, filterCase, filterUnitId]);
-
-  // genreId -> categoryId の対応表（品番の在庫は「品番×カテゴリー」単位で共有されるため）
-  const genreToCategory = useMemo(() => {
-    const m = new Map<string, string>();
-    genres.forEach((g: any) => m.set(g.id, g.categoryId));
-    return m;
-  }, [genres]);
+  }, [parts, scope, filterCase, filterUnitId, filterCategoryId, genreToCategory]);
 
   // 集約キー: 品番 × カテゴリー（在庫共有の単位）
   const rowKeyOf = (p: any) => `${genreToCategory.get(p.genreId) ?? 'null'}::${p.partNumber}`;
@@ -212,6 +227,21 @@ export default function InventoryCountPage() {
     });
   }, [targetParts, rows, genreToCategory]);
 
+  // ユニット列を表示するスコープ（カテゴリー全件/全件は複数ユニットが混ざるため表示）
+  const showUnitColumn = scope === 'all' || scope === 'category';
+  const VIRTUAL_GRID_COLUMNS = showUnitColumn
+    ? VIRTUAL_GRID_COLUMNS_WITH_UNIT
+    : VIRTUAL_GRID_COLUMNS_NO_UNIT;
+
+  // 仮想化（大量行でもフリーズしないよう可視範囲のみ描画）
+  const virtualParentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: displayRows.length,
+    getScrollElement: () => virtualParentRef.current,
+    estimateSize: () => VIRTUAL_ROW_HEIGHT,
+    overscan: 12,
+  });
+
   const setCounted = (key: string, value: string, fallbackCase: string) => {
     const v = value.replace(/[^0-9]/g, '');
     setRows((prev) => ({
@@ -228,6 +258,24 @@ export default function InventoryCountPage() {
 
   // 差異計算
   const diffOf = (r: Row): number | null => (r.counted === '' ? null : Number(r.counted) - r.theoretical);
+
+  // 行の状態チップ（テーブル/仮想化リストで共用）
+  const statusOf = (r: Row, d: number | null) =>
+    r.counted === ''
+      ? { label: '未', color: 'default' as const }
+      : d === 0
+      ? { label: '一致', color: 'success' as const }
+      : (d ?? 0) > 0
+      ? { label: '過剰', color: 'info' as const }
+      : { label: '不足', color: 'warning' as const };
+
+  // 行の背景色（テーブル/仮想化リストで共用）
+  const rowBg = (r: Row, d: number | null) =>
+    r.counted === ''
+      ? 'transparent'
+      : d === 0
+      ? 'rgba(47,133,90,0.06)'
+      : 'rgba(183,121,31,0.08)';
 
   // 進捗集計
   const countedRows = displayRows.filter((r) => r.counted !== '');
@@ -264,6 +312,7 @@ export default function InventoryCountPage() {
   const scopeReady =
     scope === 'all' ||
     (scope === 'unit' && !!filterUnitId) ||
+    (scope === 'category' && !!filterCategoryId) ||
     (scope === 'case' && !!filterCase);
 
   // ---- PDF/CSV出力 ----
@@ -272,6 +321,10 @@ export default function InventoryCountPage() {
     if (scope === 'unit') {
       const u = units.find((x: any) => x.id === filterUnitId);
       return `ユニット ${u?.unitName || ''}`;
+    }
+    if (scope === 'category') {
+      const c = categories.find((x: any) => x.id === filterCategoryId);
+      return `カテゴリー ${c?.name || ''}`;
     }
     return '全件';
   };
@@ -377,8 +430,26 @@ export default function InventoryCountPage() {
             >
               <ToggleButton value="case">収納ケース別</ToggleButton>
               <ToggleButton value="unit">ユニット別</ToggleButton>
+              <ToggleButton value="category">カテゴリー別</ToggleButton>
               <ToggleButton value="all">全件</ToggleButton>
             </ToggleButtonGroup>
+
+            {scope === 'category' && (
+              <FormControl size="small" sx={{ minWidth: 220 }}>
+                <InputLabel>カテゴリー</InputLabel>
+                <Select
+                  label="カテゴリー"
+                  value={filterCategoryId}
+                  onChange={(e) => setFilterCategoryId(e.target.value)}
+                >
+                  {categories.map((c: any) => (
+                    <MenuItem key={c.id} value={c.id}>
+                      {c.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
 
             {scope === 'case' && (
               <FormControl size="small" sx={{ minWidth: 220 }}>
@@ -500,18 +571,22 @@ export default function InventoryCountPage() {
               ? '収納ケースを選択してください。'
               : scope === 'unit'
               ? 'カテゴリー・ジャンル・ユニットを選択してください。'
+              : scope === 'category'
+              ? 'カテゴリーを選択してください。'
               : ''}
           </Alert>
         )}
 
-        {!isLoading && scopeReady && (
+        {/* 行数が少ないときは従来のMUIテーブル、多いとき(>VIRTUALIZE_THRESHOLD)は
+            仮想化リストで描画する。カテゴリー全件/全件でも数千行まで固まらない。 */}
+        {!isLoading && scopeReady && displayRows.length <= VIRTUALIZE_THRESHOLD && (
           <TableContainer component={Paper} elevation={2}>
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow>
                   <TableCell>品番</TableCell>
                   <TableCell>品名</TableCell>
-                  {scope === 'all' && <TableCell>ユニット</TableCell>}
+                  {showUnitColumn && <TableCell>ユニット</TableCell>}
                   <TableCell>収納ケース</TableCell>
                   <TableCell align="right">理論在庫</TableCell>
                   <TableCell align="right">実数</TableCell>
@@ -522,25 +597,11 @@ export default function InventoryCountPage() {
               <TableBody>
                 {displayRows.map((r) => {
                   const d = diffOf(r);
-                  const status =
-                    r.counted === ''
-                      ? { label: '未', color: 'default' as const }
-                      : d === 0
-                      ? { label: '一致', color: 'success' as const }
-                      : (d ?? 0) > 0
-                      ? { label: '過剰', color: 'info' as const }
-                      : { label: '不足', color: 'warning' as const };
+                  const status = statusOf(r, d);
                   return (
                     <TableRow
                       key={r.key}
-                      sx={{
-                        background:
-                          r.counted === ''
-                            ? 'transparent'
-                            : d === 0
-                            ? 'rgba(47,133,90,0.06)'
-                            : 'rgba(183,121,31,0.08)',
-                      }}
+                      sx={{ background: rowBg(r, d) }}
                     >
                       <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                         {r.partNumber}
@@ -563,7 +624,7 @@ export default function InventoryCountPage() {
                         )}
                       </TableCell>
                       <TableCell>{r.partName}</TableCell>
-                      {scope === 'all' && <TableCell>{r.unitName}</TableCell>}
+                      {showUnitColumn && <TableCell>{r.unitName}</TableCell>}
                       <TableCell>
                         <TextField
                           size="small"
@@ -600,6 +661,132 @@ export default function InventoryCountPage() {
               </TableBody>
             </Table>
           </TableContainer>
+        )}
+
+        {/* 大量行: 仮想化リスト（可視範囲のみ描画） */}
+        {!isLoading && scopeReady && displayRows.length > VIRTUALIZE_THRESHOLD && (
+          <Paper elevation={2} sx={{ overflow: 'hidden' }}>
+            <Alert severity="info" sx={{ borderRadius: 0 }}>
+              {displayRows.length.toLocaleString()} 件を高速表示しています（スクロールで全件確認・入力できます）。
+            </Alert>
+            {/* ヘッダー（固定） */}
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: VIRTUAL_GRID_COLUMNS,
+                alignItems: 'center',
+                px: 1.5,
+                py: 1,
+                borderBottom: '2px solid',
+                borderColor: 'divider',
+                bgcolor: 'grey.100',
+                fontWeight: 600,
+                fontSize: 13,
+                position: 'sticky',
+                top: 0,
+                zIndex: 1,
+              }}
+            >
+              <Box>品番</Box>
+              <Box>品名</Box>
+              {showUnitColumn && <Box>ユニット</Box>}
+              <Box>収納ケース</Box>
+              <Box sx={{ textAlign: 'right' }}>理論在庫</Box>
+              <Box sx={{ textAlign: 'right' }}>実数</Box>
+              <Box sx={{ textAlign: 'center' }}>差異</Box>
+              <Box sx={{ textAlign: 'center' }}>状態</Box>
+            </Box>
+            {/* スクロールコンテナ */}
+            <Box ref={virtualParentRef} sx={{ height: 'calc(100vh - 360px)', minHeight: 400, overflow: 'auto' }}>
+              <Box sx={{ height: rowVirtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+                {rowVirtualizer.getVirtualItems().map((vi) => {
+                  const r = displayRows[vi.index];
+                  const d = diffOf(r);
+                  const status = statusOf(r, d);
+                  return (
+                    <Box
+                      key={r.key}
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${vi.start}px)`,
+                        display: 'grid',
+                        gridTemplateColumns: VIRTUAL_GRID_COLUMNS,
+                        alignItems: 'center',
+                        px: 1.5,
+                        py: 0.5,
+                        minHeight: VIRTUAL_ROW_HEIGHT,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                        fontSize: 13,
+                        background: rowBg(r, d),
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <Box sx={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {r.partNumber}
+                        {r.partCount > 1 && (
+                          <Chip
+                            label={`${r.partCount}箇所`}
+                            size="small"
+                            variant="outlined"
+                            clickable
+                            onClick={() => setDetailRow(r)}
+                            title="使用箇所の内訳を表示"
+                            sx={{
+                              ml: 0.5,
+                              height: 18,
+                              fontSize: 10,
+                              cursor: 'pointer',
+                              '&:hover': { bgcolor: 'primary.main', color: '#fff' },
+                            }}
+                          />
+                        )}
+                      </Box>
+                      <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pr: 1 }}>
+                        {r.partName}
+                      </Box>
+                      {showUnitColumn && (
+                        <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pr: 1 }}>
+                          {r.unitName}
+                        </Box>
+                      )}
+                      <Box>
+                        <TextField
+                          size="small"
+                          variant="standard"
+                          placeholder="—"
+                          value={r.storageCase}
+                          onChange={(e) => setCase(r.key, e.target.value, r.counted)}
+                          sx={{ width: 80 }}
+                        />
+                      </Box>
+                      <Box sx={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.theoretical}</Box>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <TextField
+                          size="small"
+                          type="text"
+                          inputMode="numeric"
+                          value={r.counted}
+                          onChange={(e) => setCounted(r.key, e.target.value, r.storageCase)}
+                          placeholder="—"
+                          sx={{ width: 64, '& input': { textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }}
+                        />
+                      </Box>
+                      <Box sx={{ textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                        {d === null ? '' : d > 0 ? `+${d}` : d}
+                      </Box>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Chip label={status.label} size="small" color={status.color} variant={r.counted === '' ? 'outlined' : 'filled'} />
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Box>
+          </Paper>
         )}
       </Box>
 
